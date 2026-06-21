@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Sparkles, Sun } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Sparkles, Sun, LayoutDashboard, Palette, Clock, Settings } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { kelvinToRgb } from './utils/color';
 import { WIZ_SCENES } from './features/lighting/components/SceneSelector';
@@ -17,11 +17,16 @@ import { useSleepTimerCountdown } from './features/timer/hooks/useSleepTimerCoun
 // Components
 import { Titlebar } from './features/layout/components/Titlebar';
 import { DeviceSelector } from './features/devices/components/DeviceSelector';
-import { LightController } from './features/lighting/components/LightController';
-import { SceneSelector } from './features/lighting/components/SceneSelector';
-import { SleepTimer } from './features/timer/components/SleepTimer';
+import { DashboardView } from './features/lighting/components/DashboardView';
+import { ScenesView } from './features/lighting/components/ScenesView';
+import { TimerView } from './features/timer/components/TimerView';
+import { SettingsView } from './features/settings/components/SettingsView';
+
+type TabId = 'dashboard' | 'scenes' | 'timer' | 'settings';
 
 export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+
   // Device store selector
   const {
     devices,
@@ -47,6 +52,7 @@ export const App: React.FC = () => {
   const {
     timerActive,
     timerSeconds,
+    totalTimerSeconds,
     timerFadeOut,
     startTimer,
     cancelTimer,
@@ -116,22 +122,6 @@ export const App: React.FC = () => {
     document.documentElement.style.setProperty('--glow-strength', glowStrength.toString());
   }, [lampState]);
 
-  // Determine current active color for dynamic border or glow
-  const currentRgbString = () => {
-    let rgb = [255, 180, 84];
-    if (lampState.state) {
-      if (lampState.sceneId !== undefined) {
-        const scene = WIZ_SCENES.find((s) => s.id === lampState.sceneId);
-        if (scene) return scene.colors[0]; // fallback Hex
-      } else if (lampState.temp !== undefined) {
-        rgb = kelvinToRgb(lampState.temp);
-      } else if (lampState.r !== undefined) {
-        rgb = [lampState.r, lampState.g ?? 0, lampState.b ?? 0];
-      }
-    }
-    return `rgb(${rgb.join(',')})`;
-  };
-
   const handleStartTimer = (mins: number, fadeOut: boolean) => {
     startTimer(mins, fadeOut, lampState.dimming);
   };
@@ -164,7 +154,7 @@ export const App: React.FC = () => {
         </aside>
 
         {/* Right Main Pane: Active Controls */}
-        <main className="flex-1 flex flex-col overflow-y-auto p-6 space-y-6 custom-scrollbar bg-theme-main transition-colors duration-300">
+        <main className="flex-1 flex flex-col overflow-hidden p-6 space-y-6 bg-theme-main transition-colors duration-300">
           {/* Header Section */}
           <header className="flex items-center justify-between pb-4 border-b border-theme-border transition-colors duration-300">
             <div>
@@ -178,7 +168,7 @@ export const App: React.FC = () => {
                 )}
               </h1>
               <p className="text-[10px] text-theme-textSecondary font-mono mt-0.5 flex items-center gap-1.5 font-semibold transition-colors duration-300">
-                {isConnected ? (
+                {selectedIp && isConnected ? (
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
                 ) : (
                   <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
@@ -187,62 +177,90 @@ export const App: React.FC = () => {
               </p>
             </div>
 
-            <button
-              onClick={applyCircadianRhythm}
-              title="Sincronizar ritmo circadiano"
-              className="p-2 hover:opacity-80 active:scale-95 rounded-xl border border-theme-border text-theme-accent bg-theme-input transition-all flex items-center gap-1.5 text-xs"
-            >
-              <Sun className="w-4 h-4" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider">Circadiano</span>
-            </button>
+            {selectedIp && (
+              <button
+                onClick={applyCircadianRhythm}
+                title="Sincronizar ritmo circadiano"
+                className="p-2 hover:opacity-80 active:scale-95 rounded-xl border border-theme-border text-theme-accent bg-theme-input transition-all flex items-center gap-1.5 text-xs"
+              >
+                <Sun className="w-4 h-4" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider">Circadiano</span>
+              </button>
+            )}
           </header>
 
-          {selectedIp ? (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-              {/* Main Controls (Orb + Sliders + Scenes) */}
-              <div className="xl:col-span-7 space-y-6">
-                {/* Breathing Orb Visualization */}
-                <div className="flex justify-center py-6 bg-theme-input rounded-2xl border border-theme-border shadow-[inset_0_1px_1px_var(--border-color)]">
-                  <div
-                    className={`w-36 h-36 rounded-full border border-theme-border relative transition-all duration-700 ${
-                      lampState.state ? 'animate-breathe' : ''
-                    }`}
-                    style={{
-                      background: lampState.state
-                        ? `radial-gradient(circle at 38% 32%, ${currentRgbString()} 0%, rgba(var(--glow-color), 0.3) 60%, rgba(255,255,255,0.01) 100%)`
-                        : 'radial-gradient(circle at 38% 32%, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
-                      boxShadow: lampState.state
-                        ? `0 0 calc((20px + 60px * (var(--glow-strength))) * var(--glow-strength-multiplier, 1.0)) calc((2px + 12px * (var(--glow-strength))) * var(--glow-strength-multiplier, 1.0)) rgba(var(--glow-color), 0.3), inset 0 0 15px rgba(255,255,255,0.06)`
-                        : 'none',
-                    }}
+          {/* Navigation Bar */}
+          <nav className="flex bg-theme-input border border-theme-border rounded-xl p-0.5 gap-0.5 max-w-md w-full transition-colors duration-300">
+            {([
+              { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
+              { id: 'scenes', label: 'Escenas', icon: Palette },
+              { id: 'timer', label: 'Temporizador', icon: Clock },
+              { id: 'settings', label: 'Configuración', icon: Settings },
+            ] as const).map((tab) => {
+              const TabIcon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all duration-150 ${
+                    isActive
+                      ? 'bg-theme-card text-theme-text shadow-sm'
+                      : 'text-theme-textSecondary hover:text-theme-text font-normal'
+                  }`}
+                >
+                  <TabIcon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Tab Content Panel */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+            {activeTab === 'settings' ? (
+              <SettingsView />
+            ) : selectedIp ? (
+              <>
+                {activeTab === 'dashboard' && (
+                  <DashboardView
+                    lampState={lampState}
+                    isConnected={isConnected}
+                    setLampState={setLampState}
+                    circadianActive={circadianActive}
                   />
-                </div>
-
-                {/* Light Controller */}
-                <LightController state={lampState} onStateChange={setLampState} />
-
-                {/* WiZ Scene Selector */}
-                <SceneSelector currentSceneId={lampState.sceneId} onSelectScene={(id) => setLampState({ sceneId: id, state: true, temp: undefined })} />
+                )}
+                {activeTab === 'scenes' && (
+                  <ScenesView
+                    currentSceneId={lampState.sceneId}
+                    onSelectScene={(id) => setLampState({ sceneId: id, state: true, temp: undefined })}
+                  />
+                )}
+                {activeTab === 'timer' && (
+                  <TimerView
+                    isActive={timerActive}
+                    onStartTimer={handleStartTimer}
+                    onCancelTimer={cancelTimer}
+                    remainingSeconds={timerSeconds}
+                    totalSeconds={totalTimerSeconds}
+                    fadeOutEnabled={timerFadeOut}
+                  />
+                )}
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 border border-dashed border-theme-border rounded-2xl bg-theme-input animate-fade-in">
+                <p className="text-sm text-theme-textSecondary text-center max-w-sm transition-colors duration-300">
+                  Selecciona una lámpara de la red local o introduce una IP manualmente en el panel izquierdo para comenzar a controlarla.
+                </p>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className="mt-4 px-4 py-2 bg-theme-input hover:bg-theme-border border border-theme-border rounded-xl text-xs font-semibold text-theme-text transition-all active:scale-95"
+                >
+                  Ir a Configuración de Red
+                </button>
               </div>
-
-              {/* Sidebar controls: sleep timer, etc. */}
-              <div className="xl:col-span-5 space-y-6">
-                <SleepTimer
-                  isActive={timerActive}
-                  onStartTimer={handleStartTimer}
-                  onCancelTimer={cancelTimer}
-                  remainingSeconds={timerSeconds}
-                  fadeOutEnabled={timerFadeOut}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 border border-dashed border-theme-border rounded-2xl bg-theme-input">
-              <p className="text-sm text-theme-textSecondary text-center max-w-sm transition-colors duration-300">
-                Selecciona una lámpara de la red local o introduce una IP manualmente en el panel izquierdo para comenzar a controlarla.
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </main>
       </div>
     </div>
