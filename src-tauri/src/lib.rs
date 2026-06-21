@@ -6,94 +6,134 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
 
-// Struct to represent app configuration
+#[derive(Debug)]
+#[allow(dead_code)]
+enum AppError {
+    Network(String),
+    Config(String),
+    Validation(String),
+}
+
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AppError::Network(_) => write!(f, "Error de comunicación con la lámpara"),
+            AppError::Config(_) => write!(f, "Error de configuración interna"),
+            AppError::Validation(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl From<AppError> for String {
+    fn from(e: AppError) -> String {
+        e.to_string()
+    }
+}
+
+impl From<AppError> for tauri::ipc::InvokeError {
+    fn from(e: AppError) -> Self {
+        tauri::ipc::InvokeError::from(e.to_string())
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Default, Clone)]
 struct AppConfig {
     device_names: HashMap<String, String>,
 }
 
-fn get_config_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let mut path = app.path().app_data_dir().map_err(|e| e.to_string())?;
+fn get_config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
+    let mut path = app.path().app_data_dir().map_err(|e| AppError::Config(e.to_string()))?;
     if !path.exists() {
-        fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+        fs::create_dir_all(&path).map_err(|e| AppError::Config(e.to_string()))?;
     }
     path.push("config.json");
     Ok(path)
 }
 
 #[tauri::command]
-fn get_device_names(app: tauri::AppHandle) -> Result<HashMap<String, String>, String> {
+fn get_device_names(app: tauri::AppHandle) -> Result<HashMap<String, String>, AppError> {
     let path = get_config_path(&app)?;
     if !path.exists() {
         return Ok(HashMap::new());
     }
-    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let content = fs::read_to_string(&path).map_err(|e| AppError::Config(e.to_string()))?;
     let config: AppConfig = serde_json::from_str(&content).unwrap_or_default();
     Ok(config.device_names)
 }
 
 #[tauri::command]
-fn save_device_name(app: tauri::AppHandle, ip: String, name: String) -> Result<(), String> {
+fn save_device_name(app: tauri::AppHandle, ip: String, name: String) -> Result<(), AppError> {
     validate_ip(&ip)?;
     if ip.len() > 45 {
-        return Err("La dirección IP no puede superar los 45 caracteres".to_string());
+        return Err(AppError::Validation("La dirección IP no puede superar los 45 caracteres".to_string()));
     }
     if name.len() > 256 {
-        return Err("El nombre del dispositivo no puede superar los 256 caracteres".to_string());
+        return Err(AppError::Validation("El nombre del dispositivo no puede superar los 256 caracteres".to_string()));
     }
     let path = get_config_path(&app)?;
     let mut config = if path.exists() {
-        let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let content = fs::read_to_string(&path).map_err(|e| AppError::Config(e.to_string()))?;
         serde_json::from_str(&content).unwrap_or_default()
     } else {
         AppConfig::default()
     };
-    
+
     config.device_names.insert(ip, name);
-    
-    let content = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
-    fs::write(&path, content).map_err(|e| e.to_string())?;
+
+    let content = serde_json::to_string_pretty(&config).map_err(|e| AppError::Config(e.to_string()))?;
+    fs::write(&path, content).map_err(|e| AppError::Config(e.to_string()))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = fs::metadata(&path) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o600);
+            fs::set_permissions(&path, perms).ok();
+        }
+    }
+
     Ok(())
 }
 
-fn validate_ip(ip: &str) -> Result<IpAddr, String> {
+fn validate_ip(ip: &str) -> Result<IpAddr, AppError> {
     ip.parse::<IpAddr>()
-        .map_err(|_| format!("Dirección IP inválida: {}", ip))
+        .map_err(|_| AppError::Validation(format!("Dirección IP inválida: {}", ip)))
 }
 
-fn send_udp_cmd(ip: &str, payload: &Value) -> Result<Value, String> {
+fn send_udp_cmd(ip: &str, payload: &Value) -> Result<Value, AppError> {
     validate_ip(ip)?;
-    let socket = UdpSocket::bind("0.0.0.0:0").map_err(|e| e.to_string())?;
-    socket.set_read_timeout(Some(Duration::from_millis(1500))).map_err(|e| e.to_string())?;
-    
+    let socket = UdpSocket::bind("0.0.0.0:0").map_err(|e| AppError::Network(e.to_string()))?;
+    socket.set_read_timeout(Some(Duration::from_millis(1500))).map_err(|e| AppError::Network(e.to_string()))?;
+
     let dest = format!("{}:38899", ip);
-    let msg = serde_json::to_string(payload).map_err(|e| e.to_string())?;
-    
-    socket.send_to(msg.as_bytes(), &dest).map_err(|e| e.to_string())?;
-    
+    let msg = serde_json::to_string(payload).map_err(|e| AppError::Network(e.to_string()))?;
+
+    socket.send_to(msg.as_bytes(), &dest).map_err(|e| AppError::Network(e.to_string()))?;
+
     let mut buf = [0; 2048];
-    let (amt, _) = socket.recv_from(&mut buf).map_err(|e| e.to_string())?;
-    
-    let resp: Value = serde_json::from_slice(&buf[..amt]).map_err(|e| e.to_string())?;
+    let (amt, _) = socket.recv_from(&mut buf).map_err(|e| AppError::Network(e.to_string()))?;
+
+    let resp: Value = serde_json::from_slice(&buf[..amt]).map_err(|e| AppError::Network(e.to_string()))?;
     Ok(resp)
 }
 
-fn discover_udp() -> Result<Vec<Value>, String> {
-    let socket = UdpSocket::bind("0.0.0.0:0").map_err(|e| e.to_string())?;
-    socket.set_broadcast(true).map_err(|e| e.to_string())?;
-    socket.set_read_timeout(Some(Duration::from_millis(2000))).map_err(|e| e.to_string())?;
+fn discover_udp() -> Result<Vec<Value>, AppError> {
+    let socket = UdpSocket::bind("0.0.0.0:0").map_err(|e| AppError::Network(e.to_string()))?;
+    socket.set_broadcast(true).map_err(|e| AppError::Network(e.to_string()))?;
+    socket.set_read_timeout(Some(Duration::from_millis(2000))).map_err(|e| AppError::Network(e.to_string()))?;
 
     let payload = serde_json::json!({
         "method": "getPilot",
         "params": {}
     });
     let msg = payload.to_string();
-    
-    socket.send_to(msg.as_bytes(), "255.255.255.255:38899").map_err(|e| e.to_string())?;
+
+    socket.send_to(msg.as_bytes(), "255.255.255.255:38899").map_err(|e| AppError::Network(e.to_string()))?;
 
     let mut found = Vec::new();
     let mut buf = [0; 2048];
-    
+
     loop {
         match socket.recv_from(&mut buf) {
             Ok((amt, src)) => {
@@ -104,21 +144,21 @@ fn discover_udp() -> Result<Vec<Value>, String> {
                     }));
                 }
             }
-            Err(_) => break, // Timeout reached (end of scan)
+            Err(_) => break,
         }
     }
-    
+
     Ok(found)
 }
 
 #[tauri::command]
-fn discover() -> Result<Value, String> {
+fn discover() -> Result<Value, AppError> {
     let devices = discover_udp()?;
     Ok(serde_json::json!(devices))
 }
 
 #[tauri::command]
-fn get_state(ip: String) -> Result<Value, String> {
+fn get_state(ip: String) -> Result<Value, AppError> {
     let payload = serde_json::json!({
         "method": "getPilot",
         "params": {}
@@ -137,20 +177,20 @@ fn control(
     g: Option<u8>,
     b: Option<u8>,
     scene_id: Option<u8>,
-) -> Result<Value, String> {
+) -> Result<Value, AppError> {
     if let Some(d) = dimming {
         if d < 10 || d > 100 {
-            return Err("El brillo debe estar entre 10 y 100".to_string());
+            return Err(AppError::Validation("El brillo debe estar entre 10 y 100".to_string()));
         }
     }
     if let Some(t) = temp {
         if t < 2200 || t > 6500 {
-            return Err("La temperatura debe estar entre 2200K y 6500K".to_string());
+            return Err(AppError::Validation("La temperatura debe estar entre 2200K y 6500K".to_string()));
         }
     }
     if let Some(s_id) = scene_id {
         if s_id < 1 || s_id > 32 {
-            return Err("El ID de escena debe estar entre 1 y 32".to_string());
+            return Err(AppError::Validation("El ID de escena debe estar entre 1 y 32".to_string()));
         }
     }
 
@@ -172,12 +212,12 @@ fn control(
     if let Some(s_id) = scene_id {
         params.insert("sceneId".to_string(), serde_json::Value::Number(s_id.into()));
     }
-    
+
     let payload = serde_json::json!({
         "method": "setPilot",
         "params": params
     });
-    
+
     let resp = send_udp_cmd(&ip, &payload)?;
     Ok(resp)
 }
