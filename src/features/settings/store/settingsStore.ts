@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { deviceService } from '../../../services/deviceService';
+import { isTauri } from '../../../utils/tauri';
 
 interface SettingsState {
   theme: 'light' | 'dark';
@@ -24,13 +25,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
 
     // Set native system window theme & background color
-    const win = getCurrentWebviewWindow();
-    win.setTheme(newTheme === 'dark' ? 'dark' : 'light').catch((e) => {
-      console.warn('Failed to set native window theme:', e);
-    });
-    win.setBackgroundColor(newTheme === 'dark' ? '#141416' : '#f5f5f7').catch((e) => {
-      console.warn('Failed to set native window background color:', e);
-    });
+    if (isTauri()) {
+      try {
+        const win = getCurrentWebviewWindow();
+        win.setTheme(newTheme === 'dark' ? 'dark' : 'light').catch((e) => {
+          console.warn('Failed to set native window theme:', e);
+        });
+        win.setBackgroundColor(newTheme === 'dark' ? '#141416' : '#f5f5f7').catch((e) => {
+          console.warn('Failed to set native window background color:', e);
+        });
+      } catch (e) {
+        console.warn('Tauri window API is not available:', e);
+      }
+    }
 
     // Save theme to backend — IP is provided by caller to avoid circular dependency
     const ip = selectedIp !== undefined ? selectedIp : null;
@@ -47,12 +54,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ theme: finalTheme });
     localStorage.setItem('theme', finalTheme);
 
-    const win = getCurrentWebviewWindow();
-    win.setTheme(finalTheme === 'dark' ? 'dark' : 'light').catch((e) => {
-      console.warn('Failed to set native window theme:', e);
-    });
-    win.setBackgroundColor(finalTheme === 'dark' ? '#141416' : '#f5f5f7').catch((e) => {
-      console.warn('Failed to set native window background color:', e);
-    });
+    if (isTauri()) {
+      try {
+        const win = getCurrentWebviewWindow();
+        win.setTheme(finalTheme === 'dark' ? 'dark' : 'light').catch((e) => {
+          console.warn('Failed to set native window theme:', e);
+        });
+        win.setBackgroundColor(finalTheme === 'dark' ? '#141416' : '#f5f5f7').catch((e) => {
+          console.warn('Failed to set native window background color:', e);
+        });
+      } catch (e) {
+        console.warn('Tauri window API is not available:', e);
+      }
+    }
   },
 }));
+
