@@ -47,4 +47,5 @@ export interface DiscoverDeviceResponse {
 export interface PreferencesResponse {
   device_names: Record<string, string>;
   last_ip: string | null;
+  theme: string | null;
 }

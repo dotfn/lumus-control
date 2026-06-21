@@ -42,14 +42,14 @@ export const LightController: React.FC<LightControllerProps> = ({
           onClick={handlePower}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-xs transition-all duration-200 ${
             state.state
-              ? 'bg-[#34c759] border-transparent text-white shadow-[0_4px_12px_rgba(52,199,89,0.25)]'
-              : 'bg-white/5 border-white/[0.06] text-[#a5a5a7] hover:bg-white/10'
+              ? 'bg-theme-green border-transparent text-white shadow-[0_4px_12px_rgba(52,199,89,0.25)]'
+              : 'bg-theme-input border-theme-border text-theme-textSecondary hover:opacity-85'
           }`}
         >
           <Power className="w-3.5 h-3.5" />
           {state.state ? 'Apagar' : 'Encender'}
         </button>
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#9a968c] font-display flex items-center gap-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-textSecondary font-display flex items-center gap-1 transition-colors duration-300">
           <Sun className="w-3.5 h-3.5" />
           Brillo: {state.dimming}%
         </span>
@@ -68,13 +68,13 @@ export const LightController: React.FC<LightControllerProps> = ({
       </div>
 
       {/* Mode Tabs */}
-      <div className="flex bg-black/35 border border-white/[0.04] rounded-lg p-0.5">
+      <div className="flex bg-theme-input border border-theme-border rounded-lg p-0.5 transition-colors duration-300">
         <button
           onClick={() => setActiveTab('color')}
           className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all duration-150 ${
             activeTab === 'color'
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-[#a5a5a7] hover:text-[#e1e1e6] font-normal'
+              ? 'bg-theme-card text-theme-text shadow-sm'
+              : 'text-theme-textSecondary hover:text-theme-text font-normal'
           }`}
         >
           <Palette className="w-3.5 h-3.5" />
@@ -84,8 +84,8 @@ export const LightController: React.FC<LightControllerProps> = ({
           onClick={() => setActiveTab('white')}
           className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all duration-150 ${
             activeTab === 'white'
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-[#a5a5a7] hover:text-[#e1e1e6] font-normal'
+              ? 'bg-theme-card text-theme-text shadow-sm'
+              : 'text-theme-textSecondary hover:text-theme-text font-normal'
           }`}
         >
           <Thermometer className="w-3.5 h-3.5" />
@@ -104,11 +104,11 @@ export const LightController: React.FC<LightControllerProps> = ({
           />
         ) : (
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-[#9a968c]">
+            <div className="flex justify-between items-center transition-colors duration-300">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-theme-textSecondary">
                 Temperatura de blanco
               </label>
-              <span className="font-mono text-[10px] text-[#9a968c]">{state.temp || 4000}K</span>
+              <span className="font-mono text-[10px] text-theme-textSecondary">{state.temp || 4000}K</span>
             </div>
             <input
               type="range"
@@ -121,7 +121,7 @@ export const LightController: React.FC<LightControllerProps> = ({
                 background: 'linear-gradient(to right, #ff9b34, #ffe7d0, #ffffff, #c7dfff, #6ab1ff)',
               }}
             />
-            <div className="flex justify-between text-[10px] text-[#9a968c] font-mono">
+            <div className="flex justify-between text-[10px] text-theme-textSecondary font-mono transition-colors duration-300">
               <span>2200K cálido</span>
               <span>6500K frío</span>
             </div>

@@ -27,7 +27,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#9a968c]">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-theme-textSecondary transition-colors duration-300">
           Colores sólidos
         </label>
       </div>
@@ -39,8 +39,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             <button
               key={color.name}
               onClick={() => onChange(color.r, color.g, color.b)}
-              className={`w-9 h-9 rounded-full border-2 transition-transform active:scale-95 duration-150 hover:scale-110 ${
-                isSelected ? 'border-white scale-105' : 'border-white/10'
+              className={`w-9 h-9 rounded-full border-2 transition-all active:scale-95 duration-150 hover:scale-110 ${
+                isSelected ? 'border-theme-text scale-105 shadow-sm' : 'border-theme-border'
               }`}
               style={{ backgroundColor: `rgb(${color.r},${color.g},${color.b})` }}
               title={color.name}
@@ -50,7 +50,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 
         {/* Custom Color Selector Swatch */}
         <label
-          className="relative w-9 h-9 rounded-full border-2 border-white/10 overflow-hidden cursor-pointer hover:scale-110 transition-transform active:scale-95 flex items-center justify-center"
+          className="relative w-9 h-9 rounded-full border-2 border-theme-border overflow-hidden cursor-pointer hover:scale-110 transition-transform active:scale-95 flex items-center justify-center"
           style={{
             background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
           }}

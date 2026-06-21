@@ -30,7 +30,7 @@ export const SceneSelector: React.FC<SceneSelectorProps> = ({
 }) => {
   return (
     <div className="space-y-3">
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-[#9a968c]">
+      <label className="text-[11px] font-semibold uppercase tracking-wider text-theme-textSecondary transition-colors duration-300">
         Escenas dinámicas
       </label>
       
@@ -47,8 +47,8 @@ export const SceneSelector: React.FC<SceneSelectorProps> = ({
               onClick={() => onSelectScene(scene.id)}
               className={`relative overflow-hidden p-3 rounded-xl border text-left transition-all duration-300 group ${
                 isSelected
-                  ? 'border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.15)] bg-white/5'
-                  : 'border-white/5 bg-white/[0.01] hover:bg-white/5 hover:border-white/10'
+                  ? 'border-blue-500/50 shadow-[0_0_12px_rgba(0,122,255,0.15)] bg-theme-card'
+                  : 'border-theme-border bg-theme-input hover:bg-theme-border'
               }`}
             >
               {/* Colored background glow on hover or when selected */}
@@ -63,9 +63,9 @@ export const SceneSelector: React.FC<SceneSelectorProps> = ({
                     className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0"
                     style={{ background: bgGradient }}
                   />
-                  <span className="font-semibold text-xs text-[#f5f2ea] truncate">{scene.name}</span>
+                  <span className="font-semibold text-xs text-theme-text truncate transition-colors duration-300">{scene.name}</span>
                 </div>
-                <span className="text-[10px] text-[#9a968c] mt-1 line-clamp-2">
+                <span className="text-[10px] text-theme-textSecondary mt-1 line-clamp-2 transition-colors duration-300">
                   {scene.description}
                 </span>
               </div>

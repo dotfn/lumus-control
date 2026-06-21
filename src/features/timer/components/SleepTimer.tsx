@@ -30,9 +30,9 @@ export const SleepTimer: React.FC<SleepTimerProps> = ({
   };
 
   return (
-    <div className="space-y-3.5 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+    <div className="space-y-3.5 p-4 bg-theme-input border border-theme-border rounded-2xl transition-colors duration-300">
       <div className="flex items-center justify-between">
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#9a968c] flex items-center gap-1.5 font-display">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-theme-textSecondary flex items-center gap-1.5 font-display transition-colors duration-300">
           <Moon className="w-3.5 h-3.5 text-indigo-400" />
           Temporizador de apagado
         </label>
@@ -53,7 +53,7 @@ export const SleepTimer: React.FC<SleepTimerProps> = ({
                 className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all ${
                   minutes === t
                     ? 'bg-indigo-500/10 border-indigo-400/30 text-indigo-200'
-                    : 'bg-white/5 border-white/5 text-[#9a968c] hover:bg-white/10'
+                    : 'bg-theme-input border border-theme-border text-theme-textSecondary hover:bg-theme-border hover:text-theme-text'
                 }`}
               >
                 {t} min
@@ -61,7 +61,7 @@ export const SleepTimer: React.FC<SleepTimerProps> = ({
             ))}
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer select-none group text-xs text-[#9a968c] hover:text-[#f5f2ea] transition-colors">
+          <label className="flex items-center gap-2 cursor-pointer select-none group text-xs text-theme-textSecondary hover:text-theme-text transition-colors">
             <input
               type="checkbox"
               checked={fadeOut}
@@ -84,14 +84,14 @@ export const SleepTimer: React.FC<SleepTimerProps> = ({
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="text-xs text-[#9a968c] leading-relaxed">
+          <p className="text-xs text-theme-textSecondary leading-relaxed transition-colors duration-300">
             La lámpara se apagará en{' '}
-            <span className="font-semibold text-white">{formatTime(remainingSeconds)}</span>
+            <span className="font-semibold text-theme-text">{formatTime(remainingSeconds)}</span>
             {fadeOutEnabled && ' reduciendo el brillo paulatinamente.'}
           </p>
           <button
             onClick={onCancelTimer}
-            className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+            className="w-full py-2 bg-theme-input hover:bg-theme-border border border-theme-border text-theme-text rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
           >
             <Square className="w-3.5 h-3.5 fill-current" />
             Cancelar temporizador

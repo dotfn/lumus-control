@@ -73,14 +73,14 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-[#9a968c] font-display flex items-center gap-1.5">
-          <Radio className={`w-3.5 h-3.5 ${isScanning ? 'animate-pulse text-amber-400' : 'text-slate-400'}`} />
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-theme-textSecondary font-display flex items-center gap-1.5 transition-colors duration-300">
+          <Radio className={`w-3.5 h-3.5 ${isScanning ? 'animate-pulse text-theme-accent' : 'text-theme-textSecondary opacity-60'}`} />
           Dispositivos en red
         </h2>
         <button
           onClick={onScan}
           disabled={isScanning}
-          className="px-3 py-1 text-xs font-medium bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 flex items-center gap-1"
+          className="px-3 py-1 text-xs font-medium bg-theme-input border border-theme-border rounded-lg hover:bg-theme-border text-theme-text transition-colors disabled:opacity-50 flex items-center gap-1"
         >
           {isScanning ? 'Buscando...' : 'Buscar'}
         </button>
@@ -88,7 +88,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
 
       <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
         {devices.length === 0 ? (
-          <p className="text-xs text-[#9a968c] leading-relaxed">
+          <p className="text-xs text-theme-textSecondary leading-relaxed transition-colors duration-300">
             Presiona "Buscar" para escanear tu red local en busca de lámparas WiZ.
           </p>
         ) : (
@@ -101,8 +101,8 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                 key={device.ip}
                 className={`group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${
                   isSelected
-                    ? 'border-[#007aff]/30 bg-[#007aff]/10'
-                    : 'border-white/5 bg-white/[0.02] hover:bg-white/5'
+                    ? 'border-blue-500/30 bg-blue-500/10'
+                    : 'border-theme-border bg-theme-input hover:bg-theme-border'
                 }`}
               >
                 <div
@@ -116,23 +116,23 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                         value={tempName}
                         onChange={(e) => setTempName(e.target.value)}
                         placeholder="Ej. Escritorio"
-                        className="flex-1 bg-white/5 border border-white/10 rounded-md px-2 py-0.5 text-xs text-white outline-none focus:border-amber-400/40"
+                        className="flex-1 bg-theme-input border border-theme-border rounded-md px-2 py-0.5 text-xs text-theme-text outline-none focus:border-theme-accent/40"
                         onKeyDown={(e) => e.key === 'Enter' && saveName(device.ip)}
                         autoFocus
                       />
                       <button
                         onClick={() => saveName(device.ip)}
-                        className="p-1 hover:bg-white/10 rounded text-green-400"
+                        className="p-1 hover:bg-theme-border rounded text-theme-green"
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
                     <div className="flex flex-col">
-                      <span className="font-semibold text-xs text-[#f5f2ea] truncate">
+                      <span className="font-semibold text-xs text-theme-text truncate transition-colors duration-300">
                         {device.name || 'Lámpara WiZ'}
                       </span>
-                      <span className="font-mono text-[10px] text-[#9a968c]">
+                      <span className="font-mono text-[10px] text-theme-textSecondary transition-colors duration-300">
                         {device.ip} {device.state?.state !== undefined && `· ${device.state.state ? 'Encendida' : 'Apagada'}`}
                       </span>
                     </div>
@@ -145,7 +145,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                       e.stopPropagation();
                       startEditing(device.ip, device.name);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded-lg text-[#9a968c] hover:text-white transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-theme-border rounded-lg text-theme-textSecondary hover:text-theme-text transition-all"
                     title="Editar nombre"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -163,11 +163,11 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
           value={manualIp}
           onChange={(e) => setManualIp(e.target.value)}
           placeholder="Añadir IP manualmente..."
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-400/40 transition-colors"
+          className="flex-1 bg-theme-input border border-theme-border rounded-xl px-3 py-2 text-xs font-mono text-theme-text outline-none focus:border-theme-accent/40 transition-colors"
         />
         <button
           type="submit"
-          className="px-3 py-2 bg-white/10 border border-white/10 rounded-xl hover:bg-white/15 transition-colors flex items-center justify-center"
+          className="px-3 py-2 bg-theme-input border border-theme-border rounded-xl hover:bg-theme-border text-theme-text transition-colors flex items-center justify-center"
         >
           <Plus className="w-4 h-4" />
         </button>

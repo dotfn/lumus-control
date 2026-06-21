@@ -7,6 +7,7 @@ import { WIZ_SCENES } from './features/lighting/components/SceneSelector';
 import { useDeviceStore } from './features/devices/store/deviceStore';
 import { useLightingStore } from './features/lighting/store/lightingStore';
 import { useTimerStore } from './features/timer/store/timerStore';
+import { useSettingsStore } from './features/settings/store/settingsStore';
 
 // Hooks
 import { useWizLightEvents } from './features/lighting/hooks/useWizLightEvents';
@@ -54,10 +55,31 @@ export const App: React.FC = () => {
   useWizLightEvents();
   useSleepTimerCountdown();
 
-  // Load preferences and scan local network on mount
+  const initTheme = useSettingsStore((state) => state.initTheme);
+
+  // Initialize theme, load preferences and scan local network on mount
   useEffect(() => {
+    initTheme();
     loadPreferencesAndScan();
-  }, [loadPreferencesAndScan]);
+  }, [initTheme, loadPreferencesAndScan]);
+
+  // Disable CSS transitions during window resizing to prevent layout/repaint lag and white background gaps
+  useEffect(() => {
+    let resizeTimer: number;
+    const handleResize = () => {
+      document.documentElement.classList.add('resizing');
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        document.documentElement.classList.remove('resizing');
+      }, 150);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
+    };
+  }, []);
 
   // Update CSS custom properties for Dynamic Ambient Theme
   useEffect(() => {
@@ -110,21 +132,22 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full bg-[#141416] rounded-[12px] flex flex-col overflow-hidden text-[#f5f2ea] font-sans antialiased relative select-none">
+    <div className="w-full h-full bg-theme-bg flex flex-col overflow-hidden text-theme-text font-sans antialiased relative select-none transition-colors duration-300">
       <Titlebar />
 
       {/* Dynamic Background Glow Layer */}
       <div
-        className="absolute inset-0 pointer-events-none transition-all duration-1000 -z-10 opacity-[0.04]"
+        className="absolute inset-0 pointer-events-none transition-all duration-1000 -z-10"
         style={{
           background: `radial-gradient(circle at 50% 0%, var(--glow-color) 0%, transparent 65%)`,
+          opacity: `calc(0.04 * var(--glow-strength-multiplier, 1.0))`
         }}
       />
 
       {/* Main Container - Split View (Sidebar + Main Pane) */}
       <div className="flex-1 flex overflow-hidden pt-12">
         {/* Left Sidebar Pane: Devices & Scanning */}
-        <aside className="w-[280px] bg-[#1a1a1c]/70 border-r border-white/[0.04] flex flex-col p-5 overflow-y-auto space-y-6 flex-shrink-0">
+        <aside className="w-[280px] bg-theme-sidebar border-r border-theme-border flex flex-col p-5 overflow-y-auto space-y-6 flex-shrink-0 transition-colors duration-300">
           <DeviceSelector
             selectedIp={selectedIp}
             onSelect={selectDevice}
@@ -136,20 +159,20 @@ export const App: React.FC = () => {
         </aside>
 
         {/* Right Main Pane: Active Controls */}
-        <main className="flex-1 flex flex-col overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#1c1c1e]/40">
+        <main className="flex-1 flex flex-col overflow-y-auto p-6 space-y-6 custom-scrollbar bg-theme-main transition-colors duration-300">
           {/* Header Section */}
-          <header className="flex items-center justify-between pb-4 border-b border-white/5">
+          <header className="flex items-center justify-between pb-4 border-b border-theme-border transition-colors duration-300">
             <div>
-              <h1 className="font-display font-bold text-xl tracking-tight text-white flex items-center gap-2">
+              <h1 className="font-display font-bold text-xl tracking-tight text-theme-text flex items-center gap-2 transition-colors duration-300">
                 WiZ Control
                 {circadianActive && (
-                  <span className="text-[10px] bg-[#007aff]/15 text-blue-300 border border-[#007aff]/30 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 animate-bounce">
+                  <span className="text-[10px] bg-blue-500/15 text-blue-500 border border-blue-500/30 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 animate-bounce">
                     <Sparkles className="w-2.5 h-2.5" />
                     Sincronizado
                   </span>
                 )}
               </h1>
-              <p className="text-[10px] text-[#9a968c] font-mono mt-0.5 flex items-center gap-1.5 font-semibold">
+              <p className="text-[10px] text-theme-textSecondary font-mono mt-0.5 flex items-center gap-1.5 font-semibold transition-colors duration-300">
                 {isConnected ? (
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
                 ) : (
@@ -162,7 +185,7 @@ export const App: React.FC = () => {
             <button
               onClick={applyCircadianRhythm}
               title="Sincronizar ritmo circadiano"
-              className="p-2 hover:bg-white/5 active:scale-95 rounded-xl border border-white/10 text-[#007aff] transition-all flex items-center gap-1.5 text-xs"
+              className="p-2 hover:opacity-80 active:scale-95 rounded-xl border border-theme-border text-theme-accent bg-theme-input transition-all flex items-center gap-1.5 text-xs"
             >
               <Sun className="w-4 h-4" />
               <span className="text-[10px] font-semibold uppercase tracking-wider">Circadiano</span>
@@ -174,9 +197,9 @@ export const App: React.FC = () => {
               {/* Main Controls (Orb + Sliders + Scenes) */}
               <div className="xl:col-span-7 space-y-6">
                 {/* Breathing Orb Visualization */}
-                <div className="flex justify-center py-6 bg-white/[0.01] rounded-2xl border border-white/[0.02] shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
+                <div className="flex justify-center py-6 bg-theme-input rounded-2xl border border-theme-border shadow-[inset_0_1px_1px_var(--border-color)]">
                   <div
-                    className={`w-36 h-36 rounded-full border border-white/15 relative transition-all duration-700 ${
+                    className={`w-36 h-36 rounded-full border border-theme-border relative transition-all duration-700 ${
                       lampState.state ? 'animate-breathe' : ''
                     }`}
                     style={{
@@ -184,7 +207,7 @@ export const App: React.FC = () => {
                         ? `radial-gradient(circle at 38% 32%, ${currentRgbString()} 0%, rgba(var(--glow-color), 0.3) 60%, rgba(255,255,255,0.01) 100%)`
                         : 'radial-gradient(circle at 38% 32%, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
                       boxShadow: lampState.state
-                        ? `0 0 calc(20px + 60px * (var(--glow-strength))) calc(2px + 12px * (var(--glow-strength))) rgba(var(--glow-color), 0.3), inset 0 0 15px rgba(255,255,255,0.06)`
+                        ? `0 0 calc((20px + 60px * (var(--glow-strength))) * var(--glow-strength-multiplier, 1.0)) calc((2px + 12px * (var(--glow-strength))) * var(--glow-strength-multiplier, 1.0)) rgba(var(--glow-color), 0.3), inset 0 0 15px rgba(255,255,255,0.06)`
                         : 'none',
                     }}
                   />
@@ -209,8 +232,8 @@ export const App: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-              <p className="text-sm text-[#9a968c] text-center max-w-sm">
+            <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 border border-dashed border-theme-border rounded-2xl bg-theme-input">
+              <p className="text-sm text-theme-textSecondary text-center max-w-sm transition-colors duration-300">
                 Selecciona una lámpara de la red local o introduce una IP manualmente en el panel izquierdo para comenzar a controlarla.
               </p>
             </div>

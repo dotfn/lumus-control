@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { WizDevice } from '../../../types';
 import { wizService } from '../../../services/wizService';
+import { useSettingsStore } from '../../settings/store/settingsStore';
 
 interface DeviceState {
   devices: WizDevice[];
@@ -80,7 +81,8 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
 
   selectDevice: (ip) => {
     set({ selectedIp: ip });
-    wizService.savePreferences(ip).catch(() => {});
+    const currentTheme = useSettingsStore.getState().theme;
+    wizService.savePreferences(ip, currentTheme).catch(() => {});
     
     // Add to device list if it's manual and not there
     const currentDevices = get().devices;

@@ -34,8 +34,8 @@ export const wizService = {
     return await invoke<PreferencesResponse>('get_preferences');
   },
 
-  async savePreferences(lastIp: string): Promise<void> {
-    await invoke('save_preferences', { lastIp });
+  async savePreferences(lastIp: string | null, theme?: string): Promise<void> {
+    await invoke('save_preferences', { lastIp, theme });
   },
 
   async saveDeviceName(ip: string, name: string): Promise<void> {

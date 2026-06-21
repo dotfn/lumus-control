@@ -3,13 +3,69 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light Mode Variables */
+    --bg-app: #f5f5f7;
+    --bg-sidebar: rgba(238, 240, 243, 0.8);
+    --bg-card: #ffffff;
+    --bg-main: rgba(255, 255, 255, 0.45);
+    --border-color: rgba(0, 0, 0, 0.08);
+    --text-primary: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --bg-input: rgba(0, 0, 0, 0.03);
+    --border-input: rgba(0, 0, 0, 0.08);
+    
+    --accent-blue: #007aff;
+    --accent-green: #34c759;
+    --glow-strength-multiplier: 0.35;
+    
+    --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+    --slider-track: rgba(0, 0, 0, 0.08);
+    --slider-thumb-bg: #ffffff;
+    --slider-thumb-border: rgba(0, 0, 0, 0.15);
+  }
+
+  .dark {
+    /* Dark Mode Variables */
+    --bg-app: #141416;
+    --bg-sidebar: rgba(26, 26, 28, 0.75);
+    --bg-card: rgba(28, 28, 30, 0.5);
+    --bg-main: rgba(28, 28, 30, 0.2);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --text-primary: #f5f2ea;
+    --text-secondary: #9a968c;
+    --bg-input: rgba(255, 255, 255, 0.04);
+    --border-input: rgba(255, 255, 255, 0.06);
+    
+    --accent-blue: #007aff;
+    --accent-green: #34c759;
+    --glow-strength-multiplier: 1.0;
+    
+    --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+    --slider-track: rgba(255, 255, 255, 0.12);
+    --slider-thumb-bg: #f5f2ea;
+    --slider-thumb-border: #0b0b0e;
+  }
+
   body {
-    @apply bg-[#141416] text-[#f5f2ea] font-sans antialiased selection:bg-amber-400/30 selection:text-amber-200 h-full w-full overflow-hidden;
+    @apply bg-theme-bg text-theme-text font-sans antialiased h-full w-full overflow-hidden transition-colors duration-300;
+  }
+  ::selection {
+    background-color: rgba(0, 122, 255, 0.25);
+    color: var(--accent-blue);
   }
   html {
+    @apply bg-theme-bg transition-colors duration-300;
     overflow: hidden;
     width: 100%;
     height: 100%;
+  }
+  /* Disable transitions and animations during window resizing to prevent repaint lags and white flashing */
+  html.resizing,
+  html.resizing * {
+    transition: none !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
   }
   #root {
     width: 100%;
@@ -27,16 +83,17 @@
   animation: breathe 4.5s ease-in-out infinite;
 }
 
-/* Custom styling for sliders */
+/* Custom styling for sliders using variables */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 4px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--slider-track);
   outline: none;
   cursor: pointer;
+  transition: background 0.3s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -45,11 +102,11 @@ input[type="range"]::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #f5f2ea;
-  border: 3px solid #0b0b0e;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09);
+  background: var(--slider-thumb-bg);
+  border: 3px solid var(--slider-thumb-border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, background 0.3s ease, border-color 0.3s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
@@ -71,14 +128,16 @@ input[type="range"]::-webkit-slider-thumb:active {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--scrollbar-thumb);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
+  transition: background-color 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--scrollbar-thumb);
+  filter: brightness(1.2);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
