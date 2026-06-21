@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Sparkles, Sun } from 'lucide-react';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { kelvinToRgb } from './utils/color';
 import { WIZ_SCENES } from './features/lighting/components/SceneSelector';
 
@@ -60,6 +61,10 @@ export const App: React.FC = () => {
   // Initialize theme, load preferences and scan local network on mount
   useEffect(() => {
     initTheme();
+    // La ventana arranca oculta (visible: false en tauri.conf.json).
+    // La mostramos aquí, una vez que el tema está aplicado, para evitar
+    // que el usuario vea el flash blanco del primer paint.
+    getCurrentWebviewWindow().show().catch(() => {});
     loadPreferencesAndScan();
   }, [initTheme, loadPreferencesAndScan]);
 
