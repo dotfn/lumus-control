@@ -12,8 +12,39 @@
         }
       })();
     </script>
+    <style>
+      :root {
+        --bg-app: #f5f5f7; --bg-sidebar: rgba(238,240,243,0.8);
+        --bg-card: #ffffff; --bg-main: rgba(255,255,255,0.45);
+        --border-color: rgba(0,0,0,0.08); --text-primary: #1d1d1f;
+        --text-secondary: #6e6e73; --bg-input: rgba(0,0,0,0.03);
+        --border-input: rgba(0,0,0,0.08);
+        --accent-blue: #007aff; --accent-green: #34c759;
+        --glow-strength-multiplier: 0.55;
+        --scrollbar-thumb: rgba(0,0,0,0.15);
+        --slider-track: rgba(0,0,0,0.08);
+        --slider-thumb-bg: #ffffff; --slider-thumb-border: rgba(0,0,0,0.15);
+      }
+      html.dark {
+        --bg-app: #141416; --bg-sidebar: rgba(26,26,28,0.75);
+        --bg-card: rgba(28,28,30,0.5); --bg-main: rgba(28,28,30,0.2);
+        --border-color: rgba(255,255,255,0.06); --text-primary: #f5f2ea;
+        --text-secondary: #9a968c; --bg-input: rgba(255,255,255,0.04);
+        --border-input: rgba(255,255,255,0.06);
+        --accent-blue: #007aff; --accent-green: #34c759;
+        --glow-strength-multiplier: 1.0;
+        --scrollbar-thumb: rgba(255,255,255,0.12);
+        --slider-track: rgba(255,255,255,0.12);
+        --slider-thumb-bg: #f5f2ea; --slider-thumb-border: #0b0b0e;
+      }
+      body {
+        background-color: var(--bg-app) !important;
+        color: var(--text-primary) !important;
+      }
+    </style>
   </head>
-  <body class="overflow-hidden select-none w-full h-full m-0">
+  <body class="overflow-hidden select-none w-full h-full m-0"
+        style="background-color: var(--bg-app); color: var(--text-primary);">
     <div id="root" class="w-full h-full bg-transparent overflow-hidden"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
