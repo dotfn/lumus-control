@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  @font-face {
+    font-family: 'SpaceGrotesk';
+    font-style: normal;
+    font-weight: 500 700;
+    font-display: swap;
+    src: url('/fonts/space-grotesk-variable.woff2') format('woff2');
+  }
+
+  @font-face {
+    font-family: 'InterVariable';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('/fonts/inter-variable.woff2') format('woff2');
+  }
+
+  @font-face {
+    font-family: 'JetBrainsMono';
+    font-style: normal;
+    font-weight: 400 500;
+    font-display: swap;
+    src: url('/fonts/jetbrains-mono-variable.woff2') format('woff2');
+  }
+
+  body {
+    @apply bg-[#0b0b0e] text-[#f5f2ea] font-sans antialiased selection:bg-amber-400/30 selection:text-amber-200 min-h-screen flex items-center justify-center;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}
+
+.animate-breathe {
+  animation: breathe 4.5s ease-in-out infinite;
+}
+
+/* Custom styling for sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f5f2ea;
+  border: 3px solid #0b0b0e;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.9);
+}
