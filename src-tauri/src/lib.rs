@@ -4,7 +4,18 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use tauri::Manager;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use tauri::{Manager, Emitter};
+
+#[derive(serde::Serialize, Clone)]
+struct DeviceStatePayload {
+    ip: String,
+    online: bool,
+    state: Option<serde_json::Value>,
+}
+
+struct ActiveDevice(std::sync::Mutex<Option<String>>);
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -112,7 +123,7 @@ fn send_udp_cmd(ip: &str, payload: &Value) -> Result<Value, AppError> {
 
     socket.send_to(msg.as_bytes(), &dest).map_err(|e| AppError::Network(e.to_string()))?;
 
-    let mut buf = [0; 2048];
+    let mut buf = [0; 4096];
     let (amt, _) = socket.recv_from(&mut buf).map_err(|e| AppError::Network(e.to_string()))?;
 
     let resp: Value = serde_json::from_slice(&buf[..amt]).map_err(|e| AppError::Network(e.to_string()))?;
@@ -133,7 +144,7 @@ fn discover_udp() -> Result<Vec<Value>, AppError> {
     socket.send_to(msg.as_bytes(), "255.255.255.255:38899").map_err(|e| AppError::Network(e.to_string()))?;
 
     let mut found = Vec::new();
-    let mut buf = [0; 2048];
+    let mut buf = [0; 4096];
 
     loop {
         match socket.recv_from(&mut buf) {
@@ -164,7 +175,11 @@ fn get_preferences(app: tauri::AppHandle) -> Result<AppConfig, AppError> {
 }
 
 #[tauri::command]
-fn save_preferences(app: tauri::AppHandle, last_ip: Option<String>) -> Result<(), AppError> {
+fn save_preferences(
+    app: tauri::AppHandle,
+    active_device: tauri::State<'_, ActiveDevice>,
+    last_ip: Option<String>,
+) -> Result<(), AppError> {
     let path = get_config_path(&app)?;
     let mut config = if path.exists() {
         let content = fs::read_to_string(&path).map_err(|e| AppError::Config(e.to_string()))?;
@@ -173,8 +188,12 @@ fn save_preferences(app: tauri::AppHandle, last_ip: Option<String>) -> Result<()
         AppConfig::default()
     };
 
-    if let Some(ip) = last_ip {
-        config.last_ip = Some(ip);
+    if let Some(ref ip) = last_ip {
+        config.last_ip = Some(ip.clone());
+        
+        if let Ok(mut lock) = active_device.0.lock() {
+            *lock = Some(ip.clone());
+        }
     }
 
     let content = serde_json::to_string_pretty(&config).map_err(|e| AppError::Config(e.to_string()))?;
@@ -211,6 +230,7 @@ fn get_state(ip: String) -> Result<Value, AppError> {
 
 #[tauri::command]
 fn control(
+    app: tauri::AppHandle,
     ip: String,
     state: Option<bool>,
     dimming: Option<u8>,
@@ -261,6 +281,17 @@ fn control(
     });
 
     let resp = send_udp_cmd(&ip, &payload)?;
+    
+    // Query state immediately after successful control command and emit event
+    if let Ok(state_val) = get_state(ip.clone()) {
+        let event_payload = DeviceStatePayload {
+            ip: ip.clone(),
+            online: true,
+            state: Some(state_val),
+        };
+        let _ = app.emit("device-state-changed", event_payload);
+    }
+
     Ok(resp)
 }
 
@@ -275,6 +306,70 @@ pub fn run() {
             .build(),
         )?;
       }
+
+      let mut initial_ip = None;
+      if let Ok(path) = get_config_path(app.handle()) {
+        if path.exists() {
+          if let Ok(content) = fs::read_to_string(&path) {
+            let config: AppConfig = serde_json::from_str(&content).unwrap_or_default();
+            initial_ip = config.last_ip;
+          }
+        }
+      }
+
+      let shutdown = Arc::new(AtomicBool::new(false));
+      app.manage(shutdown.clone());
+      app.manage(ActiveDevice(std::sync::Mutex::new(initial_ip)));
+
+      let app_handle = app.handle().clone();
+      std::thread::spawn(move || {
+        while !shutdown.load(Ordering::Relaxed) {
+          std::thread::sleep(Duration::from_secs(5));
+          
+          if shutdown.load(Ordering::Relaxed) {
+            break;
+          }
+
+          let ip_opt = {
+            let state = app_handle.state::<ActiveDevice>();
+            let lock = state.0.lock();
+            match lock {
+              Ok(guard) => guard.clone(),
+              Err(poisoned) => {
+                let guard = poisoned.into_inner();
+                guard.clone()
+              }
+            }
+          };
+
+          if let Some(ip) = ip_opt {
+            let payload = serde_json::json!({
+              "method": "getPilot",
+              "params": {}
+            });
+            let result = send_udp_cmd(&ip, &payload);
+            let event_payload = match result {
+              Ok(resp) => {
+                let state_val = resp.get("result").cloned().unwrap_or(serde_json::Value::Null);
+                DeviceStatePayload {
+                  ip: ip.clone(),
+                  online: true,
+                  state: Some(state_val),
+                }
+              }
+              Err(_) => {
+                DeviceStatePayload {
+                  ip: ip.clone(),
+                  online: false,
+                  state: None,
+                }
+              }
+            };
+            let _ = app_handle.emit("device-state-changed", event_payload);
+          }
+        }
+      });
+
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
