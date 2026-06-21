@@ -1,0 +1,50 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-tap:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: dotfn/homebrew-lumus
+          token: ${{ secrets.TAP_PAT }}
+          path: homebrew-lumus
+
+      - name: Compute SHA256 for all architectures
+        id: shas
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          ARM_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/lumus-control_${VERSION}_aarch64.dmg"
+          INTEL_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/lumus-control_${VERSION}_x86_64.dmg"
+
+          ARM_SHA=$(curl -sL "$ARM_URL" | shasum -a 256 | cut -d' ' -f1)
+          INTEL_SHA=$(curl -sL "$INTEL_URL" | shasum -a 256 | cut -d' ' -f1)
+
+          echo "arm_sha256=$ARM_SHA" >> "$GITHUB_OUTPUT"
+          echo "intel_sha256=$INTEL_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Update cask
+        run: |
+          cd homebrew-lumus
+          sed -i '' "s/version \".*\"/version \"${{ steps.shas.outputs.version }}\"/" Casks/lumus-control.rb
+          sed -i '' "/on_arm do/{n;s/sha256 :no_check/sha256 \"${{ steps.shas.outputs.arm_sha256 }}\"/;}" Casks/lumus-control.rb
+          sed -i '' "/on_intel do/{n;s/sha256 :no_check/sha256 \"${{ steps.shas.outputs.intel_sha256 }}\"/;}" Casks/lumus-control.rb
+
+      - name: Commit and push
+        run: |
+          cd homebrew-lumus
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add Casks/lumus-control.rb
+          git commit -m "Update to v${{ steps.shas.outputs.version }}"
+          git push
