@@ -1,0 +1,3 @@
+pnpm typecheck
+pnpm lint
+cargo check --manifest-path src-tauri/Cargo.toml

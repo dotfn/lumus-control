@@ -14,7 +14,26 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint & Typecheck & Test
+    name: Quality Checks
+    if: github.event_name == 'pull_request'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+
+  build:
+    name: Build macOS
+    if: github.event_name != 'pull_request'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,33 +49,12 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
-
-  build:
-    name: Build macOS
-    needs: quality
-    if: github.event_name != 'pull_request'
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          run_install: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
       - run: pnpm tauri build --target aarch64-apple-darwin
 
       - name: Upload DMG
