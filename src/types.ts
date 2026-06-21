@@ -43,3 +43,8 @@ export interface DiscoverDeviceResponse {
     sceneId?: number;
   };
 }
+
+export interface PreferencesResponse {
+  device_names: Record<string, string>;
+  last_ip: string | null;
+}

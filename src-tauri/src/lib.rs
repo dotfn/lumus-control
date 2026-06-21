@@ -39,6 +39,7 @@ impl From<AppError> for tauri::ipc::InvokeError {
 #[derive(serde::Serialize, serde::Deserialize, Default, Clone)]
 struct AppConfig {
     device_names: HashMap<String, String>,
+    last_ip: Option<String>,
 }
 
 fn get_config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -152,6 +153,47 @@ fn discover_udp() -> Result<Vec<Value>, AppError> {
 }
 
 #[tauri::command]
+fn get_preferences(app: tauri::AppHandle) -> Result<AppConfig, AppError> {
+    let path = get_config_path(&app)?;
+    if !path.exists() {
+        return Ok(AppConfig::default());
+    }
+    let content = fs::read_to_string(&path).map_err(|e| AppError::Config(e.to_string()))?;
+    let config: AppConfig = serde_json::from_str(&content).unwrap_or_default();
+    Ok(config)
+}
+
+#[tauri::command]
+fn save_preferences(app: tauri::AppHandle, last_ip: Option<String>) -> Result<(), AppError> {
+    let path = get_config_path(&app)?;
+    let mut config = if path.exists() {
+        let content = fs::read_to_string(&path).map_err(|e| AppError::Config(e.to_string()))?;
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        AppConfig::default()
+    };
+
+    if let Some(ip) = last_ip {
+        config.last_ip = Some(ip);
+    }
+
+    let content = serde_json::to_string_pretty(&config).map_err(|e| AppError::Config(e.to_string()))?;
+    fs::write(&path, content).map_err(|e| AppError::Config(e.to_string()))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = fs::metadata(&path) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o600);
+            fs::set_permissions(&path, perms).ok();
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 fn discover() -> Result<Value, AppError> {
     let devices = discover_udp()?;
     Ok(serde_json::json!(devices))
@@ -240,7 +282,9 @@ pub fn run() {
         get_state,
         control,
         get_device_names,
-        save_device_name
+        save_device_name,
+        get_preferences,
+        save_preferences
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

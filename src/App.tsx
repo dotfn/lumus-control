@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, Sun, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { WizDevice, WizState, GetStateResponse, DiscoverDeviceResponse } from './types';
+import { WizDevice, WizState, GetStateResponse, DiscoverDeviceResponse, PreferencesResponse } from './types';
 import { DeviceSelector } from './components/DeviceSelector';
 import { LightController } from './components/LightController';
 import { SceneSelector, WIZ_SCENES } from './components/SceneSelector';
@@ -11,9 +11,7 @@ import { kelvinToRgb } from './utils/color';
 
 export const App: React.FC = () => {
   // Selection and State
-  const [selectedIp, setSelectedIp] = useState<string | null>(
-    localStorage.getItem('wiz_last_ip') || null
-  );
+  const [selectedIp, setSelectedIp] = useState<string | null>(null);
   const [devices, setDevices] = useState<WizDevice[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('Buscando dispositivos...');
@@ -44,12 +42,15 @@ export const App: React.FC = () => {
   // 1. Load devices metadata from Tauri Config and scan
   useEffect(() => {
     const loadConfigAndScan = async () => {
+      let savedIp: string | null = null;
       let names: Record<string, string> = {};
       try {
-        names = await invoke<Record<string, string>>('get_device_names');
+        const prefs = await invoke<PreferencesResponse>('get_preferences');
+        names = prefs.device_names;
+        savedIp = prefs.last_ip;
         setDeviceNames(names);
       } catch (e) {
-        console.error('Failed to load device names', e);
+        console.error('Failed to load preferences', e);
       }
 
       // Scan
@@ -62,15 +63,15 @@ export const App: React.FC = () => {
         }));
         setDevices(hydrated);
 
-        // Auto select first device if none selected
+        // Auto select first device, or saved IP if found in scan
+        const targetIp = savedIp && hydrated.some((d) => d.ip === savedIp) ? savedIp : hydrated[0].ip;
         if (!selectedIp) {
-          const firstIp = hydrated[0].ip;
-          setSelectedIp(firstIp);
-          localStorage.setItem('wiz_last_ip', firstIp);
+          setSelectedIp(targetIp);
         }
-      } else if (selectedIp) {
+      } else if (savedIp) {
         // If broadcast didn't find it but we have a saved IP, ensure it's in list
-        setDevices([{ ip: selectedIp, name: names[selectedIp] || 'Lámpara guardada' }]);
+        setDevices([{ ip: savedIp, name: names[savedIp] || 'Lámpara guardada' }]);
+        setSelectedIp(savedIp);
       }
     };
 
@@ -270,7 +271,7 @@ export const App: React.FC = () => {
 
   const selectDevice = (ip: string) => {
     setSelectedIp(ip);
-    localStorage.setItem('wiz_last_ip', ip);
+    invoke('save_preferences', { lastIp: ip }).catch(() => {});
     // Add to device list if it's manual and not there
     if (!devices.some((d) => d.ip === ip)) {
       setDevices((prev) => [...prev, { ip, name: deviceNames[ip] || 'Lámpara manual' }]);
