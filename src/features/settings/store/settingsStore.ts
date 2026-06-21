@@ -38,26 +38,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   initTheme: () => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    let finalTheme: 'light' | 'dark' = 'dark';
-
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      finalTheme = savedTheme;
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      finalTheme = prefersDark ? 'dark' : 'light';
-    }
+    // El script inline en index.html ya aplicó la clase 'dark' en el <html>
+    // antes del primer paint. Solo leemos el DOM para sincronizar el store
+    // y la ventana nativa de Tauri.
+    const isDark = document.documentElement.classList.contains('dark');
+    const finalTheme = isDark ? 'dark' : 'light';
 
     set({ theme: finalTheme });
     localStorage.setItem('theme', finalTheme);
 
-    if (finalTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-
-    // Set native system window theme & background color
     const win = getCurrentWebviewWindow();
     win.setTheme(finalTheme === 'dark' ? 'dark' : 'light').catch((e) => {
       console.warn('Failed to set native window theme:', e);
