@@ -28,7 +28,7 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
       />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-theme-border/60 bg-theme-bg/85 backdrop-blur-md transition-colors duration-300">
+      <header className="sticky top-0 z-50 w-full border-b border-theme-border bg-theme-bg/85 backdrop-blur-md transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -66,8 +66,9 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
               target="_blank"
               rel="noreferrer"
               className="p-2 hover:bg-theme-input text-theme-textSecondary hover:text-theme-text rounded-xl border border-theme-border transition-all"
+              aria-label="Repositorio en GitHub"
             >
-              <Github className="w-4 h-4" />
+              <Github className="w-4 h-4" aria-hidden="true" />
             </a>
             <Link
               to="/download"
@@ -85,8 +86,9 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 hover:bg-theme-input text-theme-text rounded-xl border border-theme-border transition-all"
+              aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
             >
-              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              {mobileMenuOpen ? <X className="w-4 h-4" aria-hidden="true" /> : <Menu className="w-4 h-4" aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -105,7 +107,7 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
                   {link.label}
                 </Link>
               ))}
-              <div className="border-t border-theme-border/60 pt-4 mt-2 flex items-center gap-4">
+              <div className="border-t border-theme-border pt-4 mt-2 flex items-center gap-4">
                 <a
                   href="https://github.com/dotfn/lumus-control"
                   target="_blank"
@@ -134,7 +136,7 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-theme-border/60 bg-theme-sidebar/40 py-12 px-6 transition-colors duration-300">
+      <footer className="border-t border-theme-border bg-theme-sidebar/40 py-12 px-6 transition-colors duration-300">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center">
@@ -154,9 +156,10 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
               href="https://github.com/dotfn/lumus-control"
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-theme-textSecondary hover:text-theme-text transition-colors flex items-center gap-1"
-            >
-              <Github className="w-3.5 h-3.5" /> GitHub
+                  className="text-xs text-theme-textSecondary hover:text-theme-text transition-colors flex items-center gap-1"
+                  aria-label="Repositorio en GitHub"
+                >
+                  <Github className="w-3.5 h-3.5" aria-hidden="true" /> GitHub
             </a>
             <Link
               to="/download"

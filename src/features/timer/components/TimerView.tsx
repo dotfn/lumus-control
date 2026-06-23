@@ -101,6 +101,7 @@ export const TimerView: React.FC<TimerViewProps> = ({
               value={minutes}
               onChange={(e) => setMinutes(parseInt(e.target.value, 10))}
               className="w-full"
+              aria-label={`Duración: ${minutes} minutos`}
             />
           </div>
 

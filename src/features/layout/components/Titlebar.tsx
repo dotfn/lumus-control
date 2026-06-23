@@ -6,6 +6,8 @@ export const Titlebar: React.FC = () => {
     <div
       data-tauri-drag-region
       className="absolute top-0 left-0 right-0 h-12 bg-theme-card/75 border-b border-theme-border backdrop-blur-xl flex items-center justify-between px-5 select-none z-50 text-xs font-sans text-theme-textSecondary transition-colors duration-300"
+      role="toolbar"
+      aria-label="Barra de título de la aplicación"
     >
       {/* Spacer for native macOS Traffic Lights */}
       <div className="w-[72px]" />

@@ -4,47 +4,117 @@
 
 @layer base {
   :root {
-    /* Light Mode Variables */
-    --bg-app: #f5f5f7;
-    --bg-sidebar: rgba(238, 240, 243, 0.8);
-    --bg-card: #ffffff;
-    --bg-main: rgba(255, 255, 255, 0.45);
-    --border-color: rgba(0, 0, 0, 0.08);
-    --text-primary: #1d1d1f;
-    --text-secondary: #6e6e73;
-    --bg-input: rgba(0, 0, 0, 0.03);
-    --border-input: rgba(0, 0, 0, 0.08);
-    
-    --accent-blue: #007aff;
-    --accent-green: #34c759;
+    /* Base theme colors in raw RGB format */
+    --theme-bg: 245 245 247;
+    --theme-bg-opacity: 1;
+
+    --theme-sidebar: 238 240 243;
+    --theme-sidebar-opacity: 0.8;
+
+    --theme-card: 255 255 255;
+    --theme-card-opacity: 1;
+
+    --theme-main: 255 255 255;
+    --theme-main-opacity: 0.45;
+
+    --theme-border: 0 0 0;
+    --theme-border-opacity: 0.08;
+
+    --theme-text: 29 29 31;
+    --theme-text-opacity: 1;
+
+    --theme-text-secondary: 110 110 115;
+    --theme-text-secondary-opacity: 1;
+
+    --theme-accent: 0 122 255;
+    --theme-accent-opacity: 1;
+
+    --theme-green: 52 199 89;
+    --theme-green-opacity: 1;
+
+    --theme-input: 0 0 0;
+    --theme-input-opacity: 0.03;
+
+    --theme-input-border: 0 0 0;
+    --theme-input-border-opacity: 0.08;
+
     --glow-strength-multiplier: 0.55;
-    
+
+    /* Scrollbar & slider variables */
     --scrollbar-thumb: rgba(0, 0, 0, 0.15);
     --slider-track: rgba(0, 0, 0, 0.08);
     --slider-thumb-bg: #ffffff;
     --slider-thumb-border: rgba(0, 0, 0, 0.15);
+
+    /* Backwards compatibility aliases for raw CSS / SVG references */
+    --bg-app: rgb(var(--theme-bg));
+    --bg-sidebar: rgb(var(--theme-sidebar) / var(--theme-sidebar-opacity));
+    --bg-card: rgb(var(--theme-card) / var(--theme-card-opacity));
+    --bg-main: rgb(var(--theme-main) / var(--theme-main-opacity));
+    --border-color: rgb(var(--theme-border) / var(--theme-border-opacity));
+    --text-primary: rgb(var(--theme-text));
+    --text-secondary: rgb(var(--theme-text-secondary));
+    --bg-input: rgb(var(--theme-input) / var(--theme-input-opacity));
+    --border-input: rgb(var(--theme-input-border) / var(--theme-input-border-opacity));
+    --accent-blue: rgb(var(--theme-accent));
+    --accent-green: rgb(var(--theme-green));
   }
 
   .dark {
-    /* Dark Mode Variables */
-    --bg-app: #141416;
-    --bg-sidebar: rgba(26, 26, 28, 0.75);
-    --bg-card: rgba(28, 28, 30, 0.5);
-    --bg-main: rgba(28, 28, 30, 0.2);
-    --border-color: rgba(255, 255, 255, 0.06);
-    --text-primary: #f5f2ea;
-    --text-secondary: #9a968c;
-    --bg-input: rgba(255, 255, 255, 0.04);
-    --border-input: rgba(255, 255, 255, 0.06);
-    
-    --accent-blue: #007aff;
-    --accent-green: #34c759;
+    /* Base theme colors in raw RGB format */
+    --theme-bg: 20 20 22;
+    --theme-bg-opacity: 1;
+
+    --theme-sidebar: 26 26 28;
+    --theme-sidebar-opacity: 0.75;
+
+    --theme-card: 28 28 30;
+    --theme-card-opacity: 0.5;
+
+    --theme-main: 28 28 30;
+    --theme-main-opacity: 0.2;
+
+    --theme-border: 255 255 255;
+    --theme-border-opacity: 0.06;
+
+    --theme-text: 245 242 234;
+    --theme-text-opacity: 1;
+
+    --theme-text-secondary: 154 150 140;
+    --theme-text-secondary-opacity: 1;
+
+    --theme-accent: 0 122 255;
+    --theme-accent-opacity: 1;
+
+    --theme-green: 52 199 89;
+    --theme-green-opacity: 1;
+
+    --theme-input: 255 255 255;
+    --theme-input-opacity: 0.04;
+
+    --theme-input-border: 255 255 255;
+    --theme-input-border-opacity: 0.06;
+
     --glow-strength-multiplier: 1.0;
-    
+
+    /* Scrollbar & slider variables */
     --scrollbar-thumb: rgba(255, 255, 255, 0.12);
     --slider-track: rgba(255, 255, 255, 0.12);
     --slider-thumb-bg: #f5f2ea;
     --slider-thumb-border: #0b0b0e;
+
+    /* Backwards compatibility aliases for raw CSS / SVG references */
+    --bg-app: rgb(var(--theme-bg));
+    --bg-sidebar: rgb(var(--theme-sidebar) / var(--theme-sidebar-opacity));
+    --bg-card: rgb(var(--theme-card) / var(--theme-card-opacity));
+    --bg-main: rgb(var(--theme-main) / var(--theme-main-opacity));
+    --border-color: rgb(var(--theme-border) / var(--theme-border-opacity));
+    --text-primary: rgb(var(--theme-text));
+    --text-secondary: rgb(var(--theme-text-secondary));
+    --bg-input: rgb(var(--theme-input) / var(--theme-input-opacity));
+    --border-input: rgb(var(--theme-input-border) / var(--theme-input-border-opacity));
+    --accent-blue: rgb(var(--theme-accent));
+    --accent-green: rgb(var(--theme-green));
   }
 
   body {

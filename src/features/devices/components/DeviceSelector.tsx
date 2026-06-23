@@ -22,6 +22,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
   const [manualIp, setManualIp] = useState('');
   const [editingIp, setEditingIp] = useState<string | null>(null);
   const [tempName, setTempName] = useState('');
+  const manualIpInputId = 'manual-ip-input';
 
   const isValidIp = (ip: string) => {
     // IPv4
@@ -123,8 +124,9 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                       <button
                         onClick={() => saveName(device.ip)}
                         className="p-1 hover:bg-theme-border rounded text-theme-green"
+                        aria-label="Confirmar nombre"
                       >
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
                     </div>
                   ) : (
@@ -146,9 +148,9 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                       startEditing(device.ip, device.name);
                     }}
                     className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-theme-border rounded-lg text-theme-textSecondary hover:text-theme-text transition-all"
-                    title="Editar nombre"
+                    aria-label="Editar nombre del dispositivo"
                   >
-                    <Edit2 className="w-3.5 h-3.5" />
+                    <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -158,7 +160,9 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
       </div>
 
       <form onSubmit={handleManualAdd} className="flex gap-2">
+        <label htmlFor={manualIpInputId} className="sr-only">Dirección IP manual</label>
         <input
+          id={manualIpInputId}
           type="text"
           value={manualIp}
           onChange={(e) => setManualIp(e.target.value)}
@@ -167,9 +171,10 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
         />
         <button
           type="submit"
+          aria-label="Añadir dispositivo por IP"
           className="px-3 py-2 bg-theme-input border border-theme-border rounded-xl hover:bg-theme-border text-theme-text transition-colors flex items-center justify-center"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4" aria-hidden="true" />
         </button>
       </form>
     </div>

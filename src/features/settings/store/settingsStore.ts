@@ -10,7 +10,12 @@ interface SettingsState {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  theme: 'dark', // Default to dark theme
+  theme: (() => {
+    if (typeof window === 'undefined') return 'dark';
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  })(),
 
   toggleTheme: (selectedIp?: string | null) => {
     const newTheme = get().theme === 'dark' ? 'light' : 'dark';

@@ -97,9 +97,10 @@ export const SettingsView: React.FC = () => {
               <button
                 onClick={handleTestConnection}
                 title="Probar conexión"
+                aria-label="Probar conexión con el dispositivo"
                 className="p-1.5 hover:bg-theme-border rounded-xl border border-theme-border text-theme-textSecondary hover:text-theme-text transition-all active:scale-95 flex items-center justify-center"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             )}
           </div>

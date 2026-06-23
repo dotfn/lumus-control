@@ -44,7 +44,7 @@ export const LandingPage: React.FC = () => {
             </Link>
             <Link
               to="/demo"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3.5 bg-theme-input hover:bg-theme-border/60 border border-theme-border text-theme-text font-bold rounded-2xl active:scale-95 transition-all text-sm"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3.5 bg-theme-input hover:bg-theme-border border border-theme-border text-theme-text font-bold rounded-2xl active:scale-95 transition-all text-sm"
             >
               <Play className="w-4 h-4 text-blue-500" />
               <span>Probar Demo Online</span>
@@ -64,9 +64,9 @@ export const LandingPage: React.FC = () => {
 
         {/* Right Column: Interactive Mockup Card */}
         <div className="flex-1 w-full max-w-lg z-10 animate-breathe">
-          <div className="relative glass-card overflow-hidden shadow-2xl border-theme-border/80">
+          <div className="relative glass-card overflow-hidden shadow-2xl border-theme-border">
             {/* Simulated Window Control Bars */}
-            <div className="flex items-center gap-1.5 pb-4 border-b border-theme-border/50">
+            <div className="flex items-center gap-1.5 pb-4 border-b border-theme-border">
               <span className="w-3 h-3 rounded-full bg-red-500/40" />
               <span className="w-3 h-3 rounded-full bg-yellow-500/40" />
               <span className="w-3 h-3 rounded-full bg-green-500/40" />
@@ -110,7 +110,7 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Control Inputs */}
-            <div className="space-y-4 pt-4 border-t border-theme-border/50">
+            <div className="space-y-4 pt-4 border-t border-theme-border">
               {/* Power Toggle */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-theme-textSecondary">Estado de Energía</span>
@@ -176,7 +176,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Features Grid Section */}
-      <section id="features" className="py-20 px-6 bg-theme-sidebar/10 border-y border-theme-border/40 transition-colors duration-300">
+      <section id="features" className="py-20 px-6 bg-theme-sidebar/10 border-y border-theme-border transition-colors duration-300">
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center space-y-4">
             <h2 className="font-display font-extrabold text-3xl tracking-tight text-theme-text transition-colors">

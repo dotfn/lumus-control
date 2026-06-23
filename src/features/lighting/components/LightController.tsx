@@ -64,6 +64,7 @@ export const LightController: React.FC<LightControllerProps> = ({
           value={state.dimming}
           onChange={handleBrightnessInput}
           className="w-full"
+          aria-label={`Brillo: ${state.dimming}%`}
         />
       </div>
 
@@ -117,6 +118,7 @@ export const LightController: React.FC<LightControllerProps> = ({
               value={state.temp || 4000}
               onChange={handleTempInput}
               className="w-full"
+              aria-label={`Temperatura de blanco: ${state.temp || 4000}K`}
               style={{
                 background: 'linear-gradient(to right, #ff9b34, #ffe7d0, #ffffff, #c7dfff, #6ab1ff)',
               }}

@@ -31,7 +31,7 @@ export const DownloadPage: React.FC = () => {
         {/* Installation Options */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Option 1: Automated Script */}
-          <div className="glass-card flex flex-col justify-between p-8 border-theme-border/80 relative overflow-hidden group">
+          <div className="glass-card flex flex-col justify-between p-8 border-theme-border relative overflow-hidden group">
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-theme-input border border-theme-border flex items-center justify-center text-blue-500">
@@ -58,21 +58,21 @@ export const DownloadPage: React.FC = () => {
                   <button
                     onClick={() => copyToClipboard(oneLinerCmd, 'oneliner')}
                     className="p-2 hover:bg-theme-border rounded-lg text-theme-textSecondary hover:text-theme-text transition-all flex-shrink-0"
-                    title="Copiar comando"
+                    aria-label="Copiar comando de instalación"
                   >
-                    {copiedText === 'oneliner' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {copiedText === 'oneliner' ? <Check className="w-4 h-4 text-emerald-400" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="pt-6 mt-6 border-t border-theme-border/50 text-[10px] text-theme-textSecondary font-semibold">
+            <div className="pt-6 mt-6 border-t border-theme-border text-[10px] text-theme-textSecondary font-semibold">
               No requiere permisos de administrador (`sudo`).
             </div>
           </div>
 
           {/* Option 2: Homebrew */}
-          <div className="glass-card flex flex-col justify-between p-8 border-theme-border/80 relative overflow-hidden group">
+          <div className="glass-card flex flex-col justify-between p-8 border-theme-border relative overflow-hidden group">
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-theme-input border border-theme-border flex items-center justify-center text-amber-600">
@@ -100,9 +100,9 @@ export const DownloadPage: React.FC = () => {
                     <button
                       onClick={() => copyToClipboard(brewTapCmd, 'brewtap')}
                       className="p-2 hover:bg-theme-border rounded-lg text-theme-textSecondary hover:text-theme-text transition-all flex-shrink-0"
-                      title="Copiar comando"
+                      aria-label="Copiar comando de tap de Homebrew"
                     >
-                      {copiedText === 'brewtap' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      {copiedText === 'brewtap' ? <Check className="w-4 h-4 text-emerald-400" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
                     </button>
                   </div>
                 </div>
@@ -116,23 +116,23 @@ export const DownloadPage: React.FC = () => {
                     <button
                       onClick={() => copyToClipboard(brewInstallCmd, 'brewinst')}
                       className="p-2 hover:bg-theme-border rounded-lg text-theme-textSecondary hover:text-theme-text transition-all flex-shrink-0"
-                      title="Copiar comando"
+                      aria-label="Copiar comando de instalación Homebrew"
                     >
-                      {copiedText === 'brewinst' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      {copiedText === 'brewinst' ? <Check className="w-4 h-4 text-emerald-400" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="pt-6 mt-6 border-t border-theme-border/50 text-[10px] text-theme-textSecondary font-semibold">
+            <div className="pt-6 mt-6 border-t border-theme-border text-[10px] text-theme-textSecondary font-semibold">
               Mantiene la aplicación actualizada fácilmente mediante `brew upgrade`.
             </div>
           </div>
         </div>
 
         {/* Manual Release Downloads */}
-        <div className="glass-card p-8 border-theme-border/80">
+        <div className="glass-card p-8 border-theme-border">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-2">
               <h3 className="font-bold text-base text-theme-text flex items-center gap-2">
@@ -146,7 +146,7 @@ export const DownloadPage: React.FC = () => {
               href="https://github.com/dotfn/lumus-control/releases"
               target="_blank"
               rel="noreferrer"
-              className="px-6 py-3 bg-theme-input hover:bg-theme-border/60 border border-theme-border text-theme-text hover:text-theme-text font-bold text-xs rounded-xl flex items-center gap-2 transition-all flex-shrink-0 active:scale-95"
+              className="px-6 py-3 bg-theme-input hover:bg-theme-border border border-theme-border text-theme-text hover:text-theme-text font-bold text-xs rounded-xl flex items-center gap-2 transition-all flex-shrink-0 active:scale-95"
             >
               <Download className="w-4 h-4 text-blue-500" />
               <span>Ver Releases en GitHub</span>

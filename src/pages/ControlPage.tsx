@@ -152,7 +152,7 @@ export const ControlPage: React.FC = () => {
       <div className="flex-1 flex overflow-hidden pt-12 flex-col">
         {/* Banner de simulación interactiva si está en modo demo */}
         {isDemo && (
-          <div className="bg-blue-500/10 border-b border-theme-border/60 text-blue-400 px-5 py-2 text-xs flex justify-between items-center z-40 animate-fade-in">
+          <div className="bg-blue-500/10 border-b border-theme-border text-blue-400 px-5 py-2 text-xs flex justify-between items-center z-40 animate-fade-in">
             <div className="flex items-center gap-2 font-medium">
               <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
               <span>
@@ -218,7 +218,7 @@ export const ControlPage: React.FC = () => {
             </header>
 
             {/* Navigation Bar */}
-            <nav className="flex bg-theme-input border border-theme-border rounded-xl p-0.5 gap-0.5 max-w-md w-full transition-colors duration-300">
+            <nav className="flex bg-theme-input border border-theme-border rounded-xl p-0.5 gap-0.5 max-w-md w-full transition-colors duration-300" role="tablist" aria-label="Secciones de control">
               {([
                 { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
                 { id: 'scenes', label: 'Escenas', icon: Palette },
@@ -230,6 +230,10 @@ export const ControlPage: React.FC = () => {
                 return (
                   <button
                     key={tab.id}
+                    role="tab"
+                    id={`tab-${tab.id}`}
+                    aria-selected={isActive}
+                    aria-controls={`tabpanel-${tab.id}`}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all duration-150 ${
                       isActive
@@ -237,7 +241,7 @@ export const ControlPage: React.FC = () => {
                         : 'text-theme-textSecondary hover:text-theme-text font-normal'
                     }`}
                   >
-                    <TabIcon className="w-3.5 h-3.5" />
+                    <TabIcon className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>{tab.label}</span>
                   </button>
                 );
@@ -245,7 +249,7 @@ export const ControlPage: React.FC = () => {
             </nav>
 
             {/* Tab Content Panel */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1" role="tabpanel" id="tabpanel-settings" aria-labelledby="tab-settings">
               {activeTab === 'settings' ? (
                 <SettingsView />
               ) : selectedIp ? (

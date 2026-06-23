@@ -43,7 +43,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                 isSelected ? 'border-theme-text scale-105 shadow-sm' : 'border-theme-border'
               }`}
               style={{ backgroundColor: `rgb(${color.r},${color.g},${color.b})` }}
-              title={color.name}
+              aria-label={`Color ${color.name}`}
             />
           );
         })}
@@ -54,7 +54,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           style={{
             background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
           }}
-          title="Color personalizado"
+          aria-label="Selector de color personalizado"
         >
           <input
             type="color"
