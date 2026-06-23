@@ -6,8 +6,6 @@ on:
 
 jobs:
   update-tap:
-    # FIX: cambiar a ubuntu-latest — el job solo hace git, curl y sed.
-    # El sed -i'' de BSD (macOS) se reemplaza por GNU sed compatible con ubuntu.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tap repo
@@ -17,48 +15,50 @@ jobs:
           token: ${{ secrets.TAP_PAT }}
           path: homebrew-lumus
 
-      - name: Compute SHA256 for all architectures
+      - name: Compute SHA256 for Apple Silicon
         id: shas
         env:
           GH_TOKEN: ${{ github.token }}
-        # FIX: set -Eeuo pipefail + validación de curl
-        # Sin esto, si la URL del DMG falla, curl retorna vacío y shasum produce
-        # un hash de string vacío, corrompiendo silenciosamente el cask de Homebrew.
         run: |
           set -Eeuo pipefail
 
           TAG="${{ github.event.release.tag_name }}"
           VERSION="${TAG#v}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-          ARM_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/lumus-control_${VERSION}_aarch64.dmg"
+          ARM_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/lumus-control_${VERSION}_aarch64.dmg"
 
-          echo "Downloading ARM64 DMG from: $ARM_URL"
-          ARM_SHA=$(curl --fail --silent --location "$ARM_URL" | shasum -a 256 | cut -d' ' -f1)
-          if [ -z "$ARM_SHA" ]; then
+          echo "Downloading ARM64 DMG from: ${ARM_URL}"
+          ARM_SHA=$(curl --fail --silent --location "${ARM_URL}" | shasum -a 256 | cut -d' ' -f1)
+          if [ -z "${ARM_SHA}" ]; then
             echo "ERROR: ARM64 SHA256 is empty — DMG download may have failed" >&2
             exit 1
           fi
 
-          echo "arm_sha256=$ARM_SHA" >> "$GITHUB_OUTPUT"
-          echo "ARM64  SHA256: $ARM_SHA"
+          echo "arm_sha256=${ARM_SHA}" >> "$GITHUB_OUTPUT"
+          echo "ARM64  SHA256: ${ARM_SHA}"
 
       - name: Update cask
-        # FIX: Generar el archivo Cask de forma robusta con template para evitar fallos de sed.
+        # IMPORTANT: heredoc sin comillas ('EOF' → EOF) para que las variables
+        # de shell se expandan. Las de GitHub Actions ya fueron interpoladas
+        # antes de que el runner ejecute el script.
+        env:
+          VERSION: ${{ steps.shas.outputs.version }}
+          ARM_SHA: ${{ steps.shas.outputs.arm_sha256 }}
         run: |
           set -Eeuo pipefail
           cd homebrew-lumus
-          
-          cat << 'EOF' > Casks/lumus-control.rb
+
+          cat > Casks/lumus-control.rb << EOF
 cask "lumus-control" do
-  version "${{ steps.shas.outputs.version }}"
-  sha256 "${{ steps.shas.outputs.arm_sha256 }}"
+  version "${VERSION}"
+  sha256 "${ARM_SHA}"
 
   url "https://github.com/dotfn/lumus-control/releases/download/v#{version}/lumus-control_#{version}_aarch64.dmg",
       verified: "github.com/dotfn/lumus-control/"
   name "Lumus Control"
-  desc "Desktop control application for Lumus devices"
-  homepage "https://github.com/dotfn/lumus-control"
+  desc "Panel local para controlar lámparas WiZ via UDP"
+  homepage "https://lumus-control.vercel.app"
 
   depends_on arch: :arm64
 
@@ -76,12 +76,19 @@ cask "lumus-control" do
 end
 EOF
 
+          echo "Cask generado:"
+          cat Casks/lumus-control.rb
+
       - name: Commit and push
+        env:
+          VERSION: ${{ steps.shas.outputs.version }}
         run: |
           set -Eeuo pipefail
           cd homebrew-lumus
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Casks/lumus-control.rb
-          git commit -m "chore: update to v${{ steps.shas.outputs.version }} (Apple Silicon only)"
+          # Si no hay cambios (re-run del mismo tag), el commit no falla
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: update lumus-control to v${VERSION}"
           git push
