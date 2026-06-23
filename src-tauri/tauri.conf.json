@@ -21,8 +21,6 @@
         "fullscreen": false,
         "decorations": true,
         "transparent": false,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true,
         "visible": false,
         "backgroundColor": "#141416"
       }
@@ -43,11 +41,6 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
-    },
-    "macOS": {
-      "signingIdentity": "-",
-      "hardenedRuntime": false,
-      "minimumSystemVersion": "10.15"
     }
   }
 }

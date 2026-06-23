@@ -24,3 +24,10 @@ log = "0.4"
 tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
 tokio = { version = "1", features = ["net", "time"] }
+
+# Optimizaciones de build para release — no afectan `pnpm dev`
+[profile.release]
+opt-level = 3        # Máxima optimización de velocidad
+lto = true           # Link-Time Optimization — reduce tamaño binario ~20-30%
+codegen-units = 1    # Habilita inlining máximo entre crates (más lento de compilar, binario mejor)
+panic = "abort"      # Elimina unwinding overhead — reduce tamaño binario adicional

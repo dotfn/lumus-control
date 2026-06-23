@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  # Tags v* siempre buildean y publican — sin path filter.
+  # Separado de build.yml para que el path filter de main
+  # no afecte accidentalmente a los releases.
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false  # nunca cancelar un release en curso
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Apple Silicon
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: lumus-control-macos-aarch64
+            bundle-path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+
+          # macOS Intel
+          - name: macOS (Intel)
+            os: macos-13
+            target: x86_64-apple-darwin
+            artifact: lumus-control-macos-x86_64
+            bundle-path: src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+
+          # Windows x86_64
+          - name: Windows (x86_64)
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: lumus-control-windows-x86_64
+            bundle-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.target }}
+
+      # cargo test solo en aarch64 — unit tests son independientes de arch y plataforma.
+      # Evita correr los mismos tests 3 veces.
+      - name: Run Rust tests
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: cargo test --release --manifest-path src-tauri/Cargo.toml
+
+      - name: Build Tauri app
+        run: pnpm tauri build --target ${{ matrix.target }}
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.bundle-path }}
+            install.sh
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Generate changelog
+        run: |
+          set -Eeuo pipefail
+          echo "## What's Changed" > release_body.md
+          echo "" >> release_body.md
+          PREVIOUS=$(git tag --sort=-version:refname | sed -n '2p')
+          if [ -n "$PREVIOUS" ]; then
+            git log "$PREVIOUS..HEAD" --pretty=format:"- %s" >> release_body.md
+          else
+            git log --pretty=format:"- %s" >> release_body.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_body.md
+          files: artifacts/**
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

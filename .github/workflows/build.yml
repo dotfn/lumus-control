@@ -1,63 +1,60 @@
-name: Build & Release
+name: Build (main)
 
 on:
+  # Solo buildea en main cuando cambia código fuente relevante.
+  # Útil para detectar problemas de build antes de taggear un release.
   push:
-    branches: ['**']
-    tags: ['v*']
-  pull_request:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'src-tauri/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: build-main-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Quality Checks
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          run_install: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
-
   build:
     name: Build macOS (${{ matrix.arch == 'aarch64' && 'Apple Silicon' || 'Intel' }})
-    needs: quality
-    if: (github.event_name == 'push' && github.ref_name == 'main') || startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.arch == 'aarch64' && 'macos-latest' || 'macos-13' }}
     strategy:
+      fail-fast: false
       matrix:
         arch: [aarch64, x86_64]
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.arch }}-apple-darwin
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
-      - run: cargo test --release --manifest-path src-tauri/Cargo.toml
+          key: ${{ matrix.arch }}
+
+      # cargo test solo en aarch64 — unit tests son independientes de arch target
+      - name: Run Rust tests
+        if: matrix.arch == 'aarch64'
+        run: cargo test --release --manifest-path src-tauri/Cargo.toml
+
       - run: pnpm tauri build --target ${{ matrix.arch }}-apple-darwin
 
       - name: Upload DMG
@@ -67,48 +64,3 @@ jobs:
           path: |
             src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/dmg/*.dmg
             install.sh
-
-  release:
-    name: Create Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download ARM64 DMG
-        uses: actions/download-artifact@v4
-        with:
-          name: lumus-control-macos-aarch64
-
-      - name: Download x86_64 DMG
-        uses: actions/download-artifact@v4
-        with:
-          name: lumus-control-macos-x86_64
-
-      - name: Generate changelog
-        run: |
-          echo "## What's Changed" > release_body.md
-          echo "" >> release_body.md
-          PREVIOUS=$(git tag --sort=-version:refname | sed -n '2p')
-          if [ -n "$PREVIOUS" ]; then
-            git log "$PREVIOUS..HEAD" --pretty=format:"- %s" >> release_body.md
-          else
-            git log --pretty=format:"- %s" >> release_body.md
-          fi
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          body_path: release_body.md
-          files: |
-            ./*.dmg
-            install.sh
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
