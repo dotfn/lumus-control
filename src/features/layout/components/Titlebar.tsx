@@ -1,5 +1,6 @@
 import React from 'react';
 import { ThemeToggle } from '../../settings/components/ThemeToggle';
+import { UpdaterWidget } from '../../updater/components/UpdaterWidget';
 
 export const Titlebar: React.FC = () => {
   return (
@@ -17,8 +18,9 @@ export const Titlebar: React.FC = () => {
         Lumus Control
       </div>
 
-      {/* Theme toggle widget on the right */}
-      <div className="flex items-center">
+      {/* Theme toggle and updater widget on the right */}
+      <div className="flex items-center gap-2">
+        <UpdaterWidget />
         <ThemeToggle />
       </div>
     </div>
