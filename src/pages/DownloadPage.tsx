@@ -3,6 +3,10 @@ import { LandingLayout } from '../layouts/LandingLayout';
 import { Apple, Terminal, Download, ShieldCheck, Check, Copy, AlertCircle } from 'lucide-react';
 
 export const DownloadPage: React.FC = () => {
+  React.useEffect(() => {
+    document.title = 'Descargar Lumus Control — App gratuita para macOS';
+  }, []);
+
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, id: string) => {

@@ -4,6 +4,11 @@ import { ArrowRight, Zap, Shield, Sparkles, Clock, Download, ChevronRight, Play 
 import { Link } from 'react-router-dom';
 
 export const LandingPage: React.FC = () => {
+  // Set page-specific document title for SEO
+  React.useEffect(() => {
+    document.title = 'Lumus Control — Control local de luces inteligentes para macOS';
+  }, []);
+
   // Simple interactive state for the Hero mockup
   const [lampOn, setLampOn] = useState(true);
   const [brightness, setBrightness] = useState(80);
