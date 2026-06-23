@@ -125,8 +125,8 @@ jobs:
           MAC_FILE=$(find artifacts -name "*.app.tar.gz" -exec basename {} \; | head -n 1)
           MAC_SIG_FILE=$(find artifacts -name "*.app.tar.gz.sig" -exec basename {} \; | head -n 1)
 
-          WIN_FILE=$(find artifacts -name "*-setup.nsis.zip" -exec basename {} \; | head -n 1)
-          WIN_SIG_FILE=$(find artifacts -name "*-setup.nsis.zip.sig" -exec basename {} \; | head -n 1)
+          WIN_FILE=$(find artifacts -name "*_x64-setup.exe" -exec basename {} \; | head -n 1)
+          WIN_SIG_FILE=$(find artifacts -name "*_x64-setup.exe.sig" -exec basename {} \; | head -n 1)
 
           MAC_SIG=""
           if [ -n "$MAC_SIG_FILE" ] && [ -f "artifacts/$MAC_SIG_FILE" ]; then
@@ -171,4 +171,4 @@ jobs:
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TAP_PAT }}

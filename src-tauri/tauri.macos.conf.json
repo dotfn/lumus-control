@@ -8,7 +8,7 @@
     ]
   },
   "bundle": {
-    "targets": ["dmg"],
+    "targets": ["dmg", "app"],
     "macOS": {
       "signingIdentity": "-",
       "hardenedRuntime": false,
