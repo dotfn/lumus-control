@@ -2,7 +2,6 @@ import React from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import { useDeviceStore } from '../../devices/store/deviceStore';
 import { useLightingStore } from '../../lighting/store/lightingStore';
-import { useCircadianAutoClear } from '../../lighting/hooks/useCircadianAutoClear';
 import { Sun, Moon, Info, RefreshCw, Sparkles, Check, Wifi, ShieldAlert } from 'lucide-react';
 import { kelvinToRgb } from '../../../utils/color';
 
@@ -10,7 +9,6 @@ export const SettingsView: React.FC = () => {
   const { theme, toggleTheme } = useSettingsStore();
   const { selectedIp, connectionStatus, scan, isScanning } = useDeviceStore();
   const { isConnected, refreshState, applyCircadianRhythm, circadianActive } = useLightingStore();
-  useCircadianAutoClear();
 
   const handleThemeChange = (selectedTheme: 'light' | 'dark') => {
     if (theme !== selectedTheme) {
