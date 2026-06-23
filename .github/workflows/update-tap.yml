@@ -32,7 +32,6 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
           ARM_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/lumus-control_${VERSION}_aarch64.dmg"
-          INTEL_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/lumus-control_${VERSION}_x86_64.dmg"
 
           echo "Downloading ARM64 DMG from: $ARM_URL"
           ARM_SHA=$(curl --fail --silent --location "$ARM_URL" | shasum -a 256 | cut -d' ' -f1)
@@ -41,28 +40,41 @@ jobs:
             exit 1
           fi
 
-          echo "Downloading x86_64 DMG from: $INTEL_URL"
-          INTEL_SHA=$(curl --fail --silent --location "$INTEL_URL" | shasum -a 256 | cut -d' ' -f1)
-          if [ -z "$INTEL_SHA" ]; then
-            echo "ERROR: x86_64 SHA256 is empty — DMG download may have failed" >&2
-            exit 1
-          fi
-
           echo "arm_sha256=$ARM_SHA" >> "$GITHUB_OUTPUT"
-          echo "intel_sha256=$INTEL_SHA" >> "$GITHUB_OUTPUT"
-
           echo "ARM64  SHA256: $ARM_SHA"
-          echo "x86_64 SHA256: $INTEL_SHA"
 
       - name: Update cask
-        # FIX: usar GNU sed (ubuntu) en lugar de BSD sed (macOS).
-        # GNU sed no requiere el argumento vacío después de -i.
+        # FIX: Generar el archivo Cask de forma robusta con template para evitar fallos de sed.
         run: |
           set -Eeuo pipefail
           cd homebrew-lumus
-          sed -i "s/version \".*\"/version \"${{ steps.shas.outputs.version }}\"/" Casks/lumus-control.rb
-          sed -i "/on_arm do/{n;s/sha256 :no_check/sha256 \"${{ steps.shas.outputs.arm_sha256 }}\"/;}" Casks/lumus-control.rb
-          sed -i "/on_intel do/{n;s/sha256 :no_check/sha256 \"${{ steps.shas.outputs.intel_sha256 }}\"/;}" Casks/lumus-control.rb
+          
+          cat << 'EOF' > Casks/lumus-control.rb
+cask "lumus-control" do
+  version "${{ steps.shas.outputs.version }}"
+  sha256 "${{ steps.shas.outputs.arm_sha256 }}"
+
+  url "https://github.com/dotfn/lumus-control/releases/download/v#{version}/lumus-control_#{version}_aarch64.dmg",
+      verified: "github.com/dotfn/lumus-control/"
+  name "Lumus Control"
+  desc "Desktop control application for Lumus devices"
+  homepage "https://github.com/dotfn/lumus-control"
+
+  depends_on arch: :arm64
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  app "lumus-control.app"
+
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/lumus-control.app"]
+  end
+end
+EOF
 
       - name: Commit and push
         run: |
@@ -71,5 +83,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add Casks/lumus-control.rb
-          git commit -m "chore: update to v${{ steps.shas.outputs.version }}"
+          git commit -m "chore: update to v${{ steps.shas.outputs.version }} (Apple Silicon only)"
           git push
