@@ -57,7 +57,7 @@ jobs:
 
       - name: Set up signing key file
         run: |
-          node -e "require('fs').writeFileSync(process.env.KEY_PATH, Buffer.from(process.env.RAW_KEY, 'base64'))"
+          node -e "require('fs').writeFileSync(process.env.KEY_PATH, process.env.RAW_KEY)"
         shell: bash
         env:
           RAW_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
