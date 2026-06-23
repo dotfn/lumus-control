@@ -1,5 +1,5 @@
 import { LightState } from '../types';
-import { PRESET_SCENES } from '../features/lighting/components/SceneSelector';
+import { PRESET_SCENES } from '../data/scenes';
 
 export function kelvinToRgb(kelvin: number): [number, number, number] {
   const temp = kelvin / 100;

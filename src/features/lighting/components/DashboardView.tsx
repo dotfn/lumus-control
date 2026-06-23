@@ -2,7 +2,7 @@ import React from 'react';
 import { LightState } from '../../../types';
 import { LightController } from './LightController';
 import { rgbToHex, getLampRgbColor } from '../../../utils/color';
-import { PRESET_SCENES } from './SceneSelector';
+import { PRESET_SCENES } from '../../../data/scenes';
 import { Sparkles } from 'lucide-react';
 
 interface DashboardViewProps {

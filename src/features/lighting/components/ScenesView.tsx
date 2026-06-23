@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { PRESET_SCENES } from './SceneSelector';
+import { PRESET_SCENES } from '../../../data/scenes';
 
 interface ScenesViewProps {
   currentSceneId?: number;
