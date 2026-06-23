@@ -62,13 +62,17 @@ jobs:
           key: ${{ matrix.target }}
 
       # cargo test solo en aarch64 — unit tests son independientes de arch y plataforma.
-      # Evita correr los mismos tests 3 veces.
+      # Evita correr los mismos tests en cada runner.
       - name: Run Rust tests
         if: matrix.target == 'aarch64-apple-darwin'
         run: cargo test --release --manifest-path src-tauri/Cargo.toml
 
       - name: Set up signing key file
         run: |
+          if [ -z "$RAW_KEY" ]; then
+            echo "ERROR: TAURI_SIGNING_PRIVATE_KEY secret is empty or not set"
+            exit 1
+          fi
           node -e "require('fs').writeFileSync(process.env.KEY_PATH, process.env.RAW_KEY.replace(/\s+/g, ''))"
         shell: bash
         env:
@@ -81,8 +85,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ github.workspace }}/tauri.key
 
       - name: Clean up signing key file
-        run: |
-          rm -f "${{ github.workspace }}/tauri.key"
+        if: always()  # limpiar incluso si el build falla — la key nunca debe quedar en disco
+        run: rm -f "${{ github.workspace }}/tauri.key"
         shell: bash
 
       - name: Upload installer
@@ -117,9 +121,9 @@ jobs:
           echo "" >> release_body.md
           PREVIOUS=$(git tag --sort=-version:refname | sed -n '2p')
           if [ -n "$PREVIOUS" ]; then
-            git log "$PREVIOUS..HEAD" --pretty=format:"- %s" >> release_body.md
+            git log "$PREVIOUS..HEAD" --no-merges --pretty=format:"- %s" >> release_body.md
           else
-            git log --pretty=format:"- %s" >> release_body.md
+            git log --no-merges --pretty=format:"- %s" >> release_body.md
           fi
 
       - name: Generate updater JSON
@@ -164,9 +168,9 @@ jobs:
             }
           }
           EOF
-          
+
           sed -i 's/^[[:space:]]*//' artifacts/update.json
-          
+
           echo "Generated update.json:"
           cat artifacts/update.json
 
@@ -177,4 +181,4 @@ jobs:
           files: artifacts/**
           draft: false
           prerelease: false
-          token: ${{ secrets.TAP_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}

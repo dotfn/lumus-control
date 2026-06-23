@@ -15,6 +15,11 @@ jobs:
           token: ${{ secrets.TAP_PAT }}
           path: homebrew-lumus
 
+      # El release se publica antes de que el CDN de GitHub propague los assets.
+      # 30s es suficiente para DMGs — ajustar si aparecen fallos de SHA256 vacío.
+      - name: Wait for release assets to be available
+        run: sleep 30
+
       - name: Compute SHA256 for Apple Silicon
         id: shas
         env:
@@ -39,7 +44,7 @@ jobs:
           echo "ARM64  SHA256: ${ARM_SHA}"
 
       - name: Update cask
-        # IMPORTANT: heredoc sin comillas ('EOF' → EOF) para que las variables
+        # IMPORTANT: heredoc sin comillas (EOF sin '') para que las variables
         # de shell se expandan. Las de GitHub Actions ya fueron interpoladas
         # antes de que el runner ejecute el script.
         env:

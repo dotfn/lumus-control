@@ -1,8 +1,8 @@
-name: Build (main)
+name: Build (macOS smoke test)
 
 on:
-  # Solo buildea en main cuando cambia código fuente relevante.
-  # Útil para detectar problemas de build antes de taggear un release.
+  # Smoke test de build en macOS Apple Silicon.
+  # Los builds multiplataforma reales (macOS + Windows) corren en release.yml.
   push:
     branches:
       - main
@@ -21,10 +21,6 @@ jobs:
   build:
     name: Build macOS (Apple Silicon)
     runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [aarch64]
     steps:
       - uses: actions/checkout@v4
 
@@ -43,20 +39,22 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.arch }}-apple-darwin
+          targets: aarch64-apple-darwin
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
-          key: ${{ matrix.arch }}
+          key: aarch64
 
-      # cargo test solo en aarch64 — unit tests son independientes de arch target
       - name: Run Rust tests
-        if: matrix.arch == 'aarch64'
         run: cargo test --release --manifest-path src-tauri/Cargo.toml
 
       - name: Set up signing key file
         run: |
+          if [ -z "$RAW_KEY" ]; then
+            echo "ERROR: TAURI_SIGNING_PRIVATE_KEY secret is empty or not set"
+            exit 1
+          fi
           node -e "require('fs').writeFileSync(process.env.KEY_PATH, process.env.RAW_KEY.replace(/\s+/g, ''))"
         shell: bash
         env:
@@ -64,19 +62,19 @@ jobs:
           KEY_PATH: ${{ github.workspace }}/tauri.key
 
       - name: Build Tauri app
-        run: pnpm tauri build --target ${{ matrix.arch }}-apple-darwin
+        run: pnpm tauri build --target aarch64-apple-darwin
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ github.workspace }}/tauri.key
 
       - name: Clean up signing key file
-        run: |
-          rm -f "${{ github.workspace }}/tauri.key"
+        if: always()  # limpiar incluso si el build falla
+        run: rm -f "${{ github.workspace }}/tauri.key"
         shell: bash
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
-          name: lumus-control-macos-${{ matrix.arch }}
+          name: lumus-control-macos-aarch64
           path: |
-            src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
             install.sh

@@ -28,12 +28,13 @@ concurrency:
 jobs:
   quality:
     name: Quality Checks
-    # FIX: usar ubuntu-latest — typecheck/lint son Node puro, no necesitan macOS.
+    # ubuntu-latest — typecheck/lint son Node puro, no necesitan macOS.
     # macos-latest consume 10× más minutos de GitHub Actions que ubuntu-latest.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      # Node + pnpm primero — son más rápidos y fallan antes si hay problema de deps.
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -43,9 +44,28 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-          # FIX: cache-dependency-path explícito mejora el hit ratio del cache
           cache-dependency-path: pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
+
+      # Deps de sistema necesarias para compilar crates de Tauri en Linux.
+      # Van antes del toolchain de Rust para que la instalación del compilador
+      # no bloquee si apt falla.
+      - name: Install Linux dependencies (for Tauri)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Cache de Rust inmediatamente después del toolchain — así el restore
+      # ocurre antes de cualquier compilación.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
       - run: pnpm typecheck
       - run: pnpm lint
