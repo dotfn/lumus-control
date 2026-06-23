@@ -2,7 +2,7 @@ import React from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import { useDeviceStore } from '../../devices/store/deviceStore';
 import { useLightingStore } from '../../lighting/store/lightingStore';
-import { Sun, Moon, Info, RefreshCw, Sparkles, Check, Wifi, ShieldAlert } from 'lucide-react';
+import { Sun, Moon, Info, RefreshCw, Sparkles, Check, Wifi, ShieldAlert, Github, Code2 } from 'lucide-react';
 import { kelvinToRgb } from '../../../utils/color';
 
 export const SettingsView: React.FC = () => {
@@ -220,6 +220,46 @@ export const SettingsView: React.FC = () => {
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {/* About Card */}
+      <div className="glass-card space-y-4">
+        <div className="flex items-center gap-2 border-b border-theme-border pb-3">
+          <Code2 className="w-5 h-5 text-theme-textSecondary" />
+          <div>
+            <h3 className="font-semibold text-xs text-theme-text uppercase tracking-wider">Acerca de</h3>
+            <p className="text-[10px] text-theme-textSecondary mt-0.5">Información de la aplicación y el desarrollador.</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between bg-theme-input/40 border border-theme-border rounded-xl p-3">
+            <div className="flex flex-col">
+              <span className="text-[10px] text-theme-textSecondary font-semibold uppercase tracking-wider">Lumus Control</span>
+              <span className="text-xs text-theme-text font-bold mt-0.5">v{__APP_VERSION__}</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-blue-500/10 text-blue-400 border-blue-500/30">
+              Tauri + React
+            </span>
+          </div>
+
+          <div className="bg-theme-input/40 border border-theme-border rounded-xl p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Github className="w-3.5 h-3.5 text-theme-textSecondary" />
+              <span className="text-[10px] text-theme-textSecondary font-semibold uppercase tracking-wider">Desarrollado por</span>
+            </div>
+            <p className="text-xs text-theme-text font-medium">
+              dotfn &mdash; <a href="https://github.com/dotfn" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors">github.com/dotfn</a>
+            </p>
+            <p className="text-[10px] text-theme-textSecondary">
+              <a href="https://github.com/dotfn/lumus-control" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">github.com/dotfn/lumus-control</a>
+            </p>
+          </div>
+
+          <p className="text-[9px] text-theme-textSecondary/60 text-center pt-1">
+            Panel local para controlar lámparas WiZ via UDP &mdash; Licencia MIT
+          </p>
         </div>
       </div>
     </div>
