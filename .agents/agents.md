@@ -159,9 +159,12 @@ pnpm dev               # App Tauri completa
 pnpm typecheck
 pnpm lint
 
-# Build
+# Build macOS
 pnpm tauri build --target aarch64-apple-darwin
 pnpm tauri build --target x86_64-apple-darwin
+
+# Build Windows (requiere Windows o cross-compilation)
+pnpm tauri build --target x86_64-pc-windows-msvc
 ```
 
 ---
@@ -177,7 +180,7 @@ lumus-control/
 │   └── workflows/
 │       ├── ci.yml          # Quality checks (typecheck + lint) — ubuntu-latest
 │       ├── build.yml       # Build en main con path filters — macos runners
-│       ├── release.yml     # Build + Release en tags v* — sin path filter
+│       ├── release.yml     # Build + Release en tags v* (macOS + Windows)
 │       └── update-tap.yml  # Homebrew tap auto-update — ubuntu-latest
 ├── src/                 # Frontend React/TypeScript
 │   ├── components/
@@ -186,6 +189,9 @@ lumus-control/
 │   ├── stores/          # Zustand stores
 │   └── index.css        # Sistema de design tokens (CSS custom properties)
 ├── src-tauri/           # Backend Rust (Tauri v2)
+│   ├── tauri.conf.json          # Base cross-platform
+│   ├── tauri.macos.conf.json    # Override macOS (titleBarStyle, signing)
+│   └── tauri.windows.conf.json  # Override Windows (native decorations, NSIS)
 ├── tailwind.config.js   # Configuración Tailwind + tema personalizado
 └── vercel.json          # Config deploy landing en Vercel
 ```
@@ -209,6 +215,40 @@ El proyecto usa **CSS custom properties** como fuente de verdad para el sistema 
 
 ---
 
+## Soporte Multi-Plataforma
+
+### Config Split de Tauri
+
+El proyecto usa el sistema de **config merging** de Tauri v2 para separar la estética por plataforma sin conditionals en código:
+
+| Archivo | Plataforma | Contenido |
+|---------|------------|-----------|
+| `tauri.conf.json` | Todas | Base: ventana, seguridad, iconos |
+| `tauri.macos.conf.json` | macOS | `titleBarStyle: Overlay`, `hiddenTitle`, signing, target `dmg` |
+| `tauri.windows.conf.json` | Windows | Decoraciones nativas, WebView2 bootstrapper, target `nsis` |
+
+El CLI de Tauri aplica el merge automáticamente según la plataforma de build. No se requiere código condicional en Rust ni en TypeScript.
+
+### Targets por Plataforma
+
+| Plataforma | Runner CI | Rust Target | Instalador |
+|------------|-----------|-------------|------------|
+| macOS Apple Silicon | `macos-latest` | `aarch64-apple-darwin` | `.dmg` |
+| macOS Intel | `macos-13` | `x86_64-apple-darwin` | `.dmg` |
+| Windows | `windows-latest` | `x86_64-pc-windows-msvc` | `.exe` (NSIS) |
+
+### Firma de Código
+- **macOS**: `signingIdentity: "-"` (firma ad-hoc) — suficiente para distribución directa
+- **Windows**: Sin firma de código — SmartScreen muestra advertencia "Unknown Publisher" en primera instalación. Aceptable para proyecto OSS sin presupuesto de certificado ($0).
+
+### Optimizaciones de Release
+El `[profile.release]` en `Cargo.toml` activa LTO + codegen-units=1 solo en builds de release:
+- **LTO**: reduce tamaño del binario ~20-30%
+- **codegen-units=1**: maximiza optimizaciones entre crates
+- **panic=abort**: elimina overhead de unwinding
+
+---
+
 ## Notas para Agentes IA
 
 - **Antes de modificar `tailwind.config.js` o `index.css`**, verificar el historial de commits reciente para no introducir regresiones visuales
@@ -216,3 +256,4 @@ El proyecto usa **CSS custom properties** como fuente de verdad para el sistema 
 - **Los componentes no deben compensar** defectos del sistema de temas — si un componente necesita workarounds, es señal de que el problema está en el sistema
 - **Branch de trabajo**: crear siempre desde `develop`, nunca desde `main`
 - **Commits**: seguir Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `style:`, `perf:`, `ci:`)
+- **Config Tauri**: modificar `tauri.macos.conf.json` o `tauri.windows.conf.json` para cambios platform-specific — nunca en `tauri.conf.json` base a menos que aplique a todas las plataformas

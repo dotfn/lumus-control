@@ -14,12 +14,33 @@ concurrency:
 
 jobs:
   build:
-    name: Build macOS (${{ matrix.arch == 'aarch64' && 'Apple Silicon' || 'Intel' }})
-    runs-on: ${{ matrix.arch == 'aarch64' && 'macos-latest' || 'macos-13' }}
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        arch: [aarch64, x86_64]
+        include:
+          # macOS Apple Silicon
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: lumus-control-macos-aarch64
+            bundle-path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+
+          # macOS Intel
+          - name: macOS (Intel)
+            os: macos-13
+            target: x86_64-apple-darwin
+            artifact: lumus-control-macos-x86_64
+            bundle-path: src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+
+          # Windows x86_64
+          - name: Windows (x86_64)
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: lumus-control-windows-x86_64
+            bundle-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+
     steps:
       - uses: actions/checkout@v4
 
@@ -38,26 +59,28 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.arch }}-apple-darwin
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
-          key: ${{ matrix.arch }}
+          key: ${{ matrix.target }}
 
-      # cargo test solo en aarch64 — unit tests son independientes de arch target
+      # cargo test solo en aarch64 — unit tests son independientes de arch y plataforma.
+      # Evita correr los mismos tests 3 veces.
       - name: Run Rust tests
-        if: matrix.arch == 'aarch64'
+        if: matrix.target == 'aarch64-apple-darwin'
         run: cargo test --release --manifest-path src-tauri/Cargo.toml
 
-      - run: pnpm tauri build --target ${{ matrix.arch }}-apple-darwin
+      - name: Build Tauri app
+        run: pnpm tauri build --target ${{ matrix.target }}
 
-      - name: Upload DMG
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: lumus-control-macos-${{ matrix.arch }}
+          name: ${{ matrix.artifact }}
           path: |
-            src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/dmg/*.dmg
+            ${{ matrix.bundle-path }}
             install.sh
 
   release:
@@ -71,15 +94,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download ARM64 DMG
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: lumus-control-macos-aarch64
-
-      - name: Download x86_64 DMG
-        uses: actions/download-artifact@v4
-        with:
-          name: lumus-control-macos-x86_64
+          path: artifacts/
+          merge-multiple: true
 
       - name: Generate changelog
         run: |
@@ -97,9 +116,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           body_path: release_body.md
-          files: |
-            ./*.dmg
-            install.sh
+          files: artifacts/**
           draft: false
           prerelease: false
         env:
