@@ -25,14 +25,14 @@ jobs:
             os: macos-latest
             target: aarch64-apple-darwin
             artifact: lumus-control-macos-aarch64
-            bundle-path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            bundle-path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg*
 
           # Windows x86_64
           - name: Windows (x86_64)
             os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact: lumus-control-windows-x86_64
-            bundle-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            bundle-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*
 
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +67,8 @@ jobs:
 
       - name: Build Tauri app
         run: pnpm tauri build --target ${{ matrix.target }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
@@ -104,6 +106,54 @@ jobs:
           else
             git log --pretty=format:"- %s" >> release_body.md
           fi
+
+      - name: Generate updater JSON
+        run: |
+          set -Eeuo pipefail
+
+          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          VERSION="${TAG#v}"
+
+          MAC_FILE=$(find artifacts -name "*_aarch64.dmg" -exec basename {} \; | head -n 1)
+          MAC_SIG_FILE=$(find artifacts -name "*_aarch64.dmg.sig" -exec basename {} \; | head -n 1)
+
+          WIN_FILE=$(find artifacts -name "*-setup.nsis.zip" -exec basename {} \; | head -n 1)
+          WIN_SIG_FILE=$(find artifacts -name "*-setup.nsis.zip.sig" -exec basename {} \; | head -n 1)
+
+          MAC_SIG=""
+          if [ -n "$MAC_SIG_FILE" ] && [ -f "artifacts/$MAC_SIG_FILE" ]; then
+            MAC_SIG=$(cat "artifacts/$MAC_SIG_FILE" | tr -d '\n\r ')
+          fi
+
+          WIN_SIG=""
+          if [ -n "$WIN_SIG_FILE" ] && [ -f "artifacts/$WIN_SIG_FILE" ]; then
+            WIN_SIG=$(cat "artifacts/$WIN_SIG_FILE" | tr -d '\n\r ')
+          fi
+
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          cat << EOF > artifacts/update.json
+          {
+            "version": "$VERSION",
+            "notes": "Lumus Control v$VERSION release. See GitHub Release for details.",
+            "pub_date": "$PUB_DATE",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "$MAC_SIG",
+                "url": "https://github.com/${{ github.repository }}/releases/download/$TAG/$MAC_FILE"
+              },
+              "windows-x86_64": {
+                "signature": "$WIN_SIG",
+                "url": "https://github.com/${{ github.repository }}/releases/download/$TAG/$WIN_FILE"
+              }
+            }
+          }
+          EOF
+          
+          sed -i 's/^[[:space:]]*//' artifacts/update.json
+          
+          echo "Generated update.json:"
+          cat artifacts/update.json
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
