@@ -1,13 +1,32 @@
 name: Update Homebrew Tap
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
 
 jobs:
   update-tap:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Get release tag
+        id: get_tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          TAG=$(gh api repos/${{ github.repository }}/releases/latest --jq '.tag_name')
+          if [ -z "${TAG}" ]; then
+            echo "ERROR: No latest release found" >&2
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Release: ${TAG} (version ${VERSION})"
+
       - name: Checkout tap repo
         uses: actions/checkout@v4
         with:
@@ -15,40 +34,41 @@ jobs:
           token: ${{ secrets.TAP_PAT }}
           path: homebrew-lumus
 
-      # El release se publica antes de que el CDN de GitHub propague los assets.
-      # 30s es suficiente para DMGs — ajustar si aparecen fallos de SHA256 vacío.
-      - name: Wait for release assets to be available
-        run: sleep 30
-
       - name: Compute SHA256 for Apple Silicon
         id: shas
         env:
-          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.get_tag.outputs.tag }}
+          VERSION: ${{ steps.get_tag.outputs.version }}
         run: |
           set -Eeuo pipefail
 
-          TAG="${{ github.event.release.tag_name }}"
-          VERSION="${TAG#v}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
           ARM_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/lumus-control_${VERSION}_aarch64.dmg"
-
           echo "Downloading ARM64 DMG from: ${ARM_URL}"
-          ARM_SHA=$(curl --fail --silent --location "${ARM_URL}" | shasum -a 256 | cut -d' ' -f1)
+
+          # Retry hasta 6 veces (30s entre intentos = 3 min total)
+          ARM_SHA=""
+          for i in $(seq 1 6); do
+            echo "Attempt ${i}/6..."
+            ARM_SHA=$(curl --fail --silent --location --max-time 60 "${ARM_URL}" 2>/dev/null | shasum -a 256 | cut -d' ' -f1)
+            if [ -n "${ARM_SHA}" ]; then
+              echo "SHA256 obtained on attempt ${i}"
+              break
+            fi
+            echo "Asset not ready yet, waiting 30s..."
+            sleep 30
+          done
+
           if [ -z "${ARM_SHA}" ]; then
-            echo "ERROR: ARM64 SHA256 is empty — DMG download may have failed" >&2
+            echo "ERROR: ARM64 SHA256 is empty — DMG download failed after 6 attempts" >&2
             exit 1
           fi
 
           echo "arm_sha256=${ARM_SHA}" >> "$GITHUB_OUTPUT"
-          echo "ARM64  SHA256: ${ARM_SHA}"
+          echo "ARM64 SHA256: ${ARM_SHA}"
 
       - name: Update cask
-        # IMPORTANT: heredoc sin comillas (EOF sin '') para que las variables
-        # de shell se expandan. Las de GitHub Actions ya fueron interpoladas
-        # antes de que el runner ejecute el script.
         env:
-          VERSION: ${{ steps.shas.outputs.version }}
+          VERSION: ${{ steps.get_tag.outputs.version }}
           ARM_SHA: ${{ steps.shas.outputs.arm_sha256 }}
         run: |
           set -Eeuo pipefail
@@ -86,14 +106,13 @@ EOF
 
       - name: Commit and push
         env:
-          VERSION: ${{ steps.shas.outputs.version }}
+          VERSION: ${{ steps.get_tag.outputs.version }}
         run: |
           set -Eeuo pipefail
           cd homebrew-lumus
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Casks/lumus-control.rb
-          # Si no hay cambios (re-run del mismo tag), el commit no falla
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           git commit -m "chore: update lumus-control to v${VERSION}"
           git push
