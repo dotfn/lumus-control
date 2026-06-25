@@ -88,7 +88,7 @@ jobs:
           cd src-tauri/target/${{ matrix.target }}/release/bundle/dmg/
           ORIGINAL_DMG=$(find . -name "*.dmg" | head -n 1)
           if [ -n "$ORIGINAL_DMG" ]; then
-            NEW_DMG=$(echo "$ORIGINAL_DMG" | sed -E 's/[Ll]umus[ .-_]+[Cc]ontrol/lumus-control/g')
+            NEW_DMG=$(echo "$ORIGINAL_DMG" | sed -E 's/[Ll]umus[ ._-]+[Cc]ontrol/lumus-control/g')
             if [ "$ORIGINAL_DMG" != "$NEW_DMG" ]; then
               echo "Renaming DMG: $ORIGINAL_DMG -> $NEW_DMG"
               mv "$ORIGINAL_DMG" "$NEW_DMG"
@@ -106,6 +106,7 @@ jobs:
               fi
             fi
           done
+          true
         shell: bash
 
       - name: Rename Windows artifacts for compatibility
@@ -121,6 +122,7 @@ jobs:
               fi
             fi
           done
+          true
         shell: bash
 
       - name: Clean up signing key file
