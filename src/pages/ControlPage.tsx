@@ -41,6 +41,18 @@ export const ControlPage: React.FC = () => {
   const selectDevice = useDeviceStore((s) => s.selectDevice);
   const updateDeviceName = useDeviceStore((s) => s.updateDeviceName);
   const scan = useDeviceStore((s) => s.scan);
+  const excludedIps = useDeviceStore((s) => s.excludedIps);
+  const excludeDevice = useDeviceStore((s) => s.excludeDevice);
+  const includeDevice = useDeviceStore((s) => s.includeDevice);
+  const deviceNames = useDeviceStore((s) => s.deviceNames);
+  const groups = useDeviceStore((s) => s.groups);
+  const selectedGroupId = useDeviceStore((s) => s.selectedGroupId);
+  const createGroup = useDeviceStore((s) => s.createGroup);
+  const updateGroup = useDeviceStore((s) => s.updateGroup);
+  const deleteGroup = useDeviceStore((s) => s.deleteGroup);
+  const selectGroup = useDeviceStore((s) => s.selectGroup);
+
+  const activeGroup = selectedGroupId ? groups.find((g) => g.id === selectedGroupId) : null;
 
   // Lighting store selector
   const lampState = useLightingStore((s) => s.lampState);
@@ -189,6 +201,16 @@ export const ControlPage: React.FC = () => {
                   onScan={scan}
                   isScanning={isScanning}
                   onUpdateDeviceName={updateDeviceName}
+                  excludedIps={excludedIps}
+                  onExcludeDevice={excludeDevice}
+                  onIncludeDevice={includeDevice}
+                  deviceNames={deviceNames}
+                  groups={groups}
+                  selectedGroupId={selectedGroupId}
+                  onCreateGroup={createGroup}
+                  onUpdateGroup={updateGroup}
+                  onDeleteGroup={deleteGroup}
+                  onSelectGroup={selectGroup}
                 />
               </aside>
             </div>
@@ -203,6 +225,16 @@ export const ControlPage: React.FC = () => {
               onScan={scan}
               isScanning={isScanning}
               onUpdateDeviceName={updateDeviceName}
+              excludedIps={excludedIps}
+              onExcludeDevice={excludeDevice}
+              onIncludeDevice={includeDevice}
+              deviceNames={deviceNames}
+              groups={groups}
+              selectedGroupId={selectedGroupId}
+              onCreateGroup={createGroup}
+              onUpdateGroup={updateGroup}
+              onDeleteGroup={deleteGroup}
+              onSelectGroup={selectGroup}
             />
           </aside>
 
@@ -235,7 +267,13 @@ export const ControlPage: React.FC = () => {
                     ) : (
                       <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
                     )}
-                    <span className="ml-1">{selectedIp ? `${connectionStatus} · ${selectedIp}` : connectionStatus}</span>
+                    <span className="ml-1">
+                      {activeGroup
+                        ? `Habitación: ${activeGroup.name} (${activeGroup.deviceIps.length} lámparas) · ${connectionStatus}`
+                        : selectedIp
+                          ? `${connectionStatus} · ${selectedIp}`
+                          : connectionStatus}
+                    </span>
                   </p>
                 </div>
               </div>

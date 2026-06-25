@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.10] — 2026-06-25
+
+### Features
+- **Habitaciones y Grupos**: Capacidad de agrupar lámparas por estancias (ej. "Living", "Dormitorio") para un control unificado y simultáneo.
+- **Control UDP en Paralelo**: Envío multicast de comandos de control a todos los dispositivos del grupo usando `Promise.allSettled` de forma no bloqueante.
+- **Persistencia Local**: Guardado automático de la estructura de habitaciones y asignaciones en el almacenamiento local (`localStorage`).
+
+### UX/UI
+- **Barra Lateral Organizada**: Estructura de barra lateral dividida en "Habitaciones" (acordeón expandible), "Lámparas sin asignar" y "Dispositivos excluidos".
+- **Botón de Creación Directa**: Agregado el botón "➕ Añadir" para crear grupos de manera intuitiva desde la barra lateral.
+- **Acciones Dinámicas sin Solapamiento**: Al hacer hover sobre las tarjetas, los metadatos secundarios (IP, estado y número de lámparas) se desvanecen suavemente para dar espacio a los botones de edición y exclusión/eliminación.
+- **Diseño Rectangular Unificado**: Eliminados los óvalos/cápsulas flotantes con bordes rotos, unificando los botones de acción como tarjetas rectangulares redondeadas (`rounded-xl`) integradas al tema.
+- **Scroll Natural**: Eliminado el scrollbox interno restringido (`max-h-20rem`); el listado fluye libremente y se desplaza usando el scroll principal de la barra lateral.
+
 ## [0.2.0] — 2026-06-21
 
 ### CI/CD

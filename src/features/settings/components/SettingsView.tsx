@@ -2,13 +2,22 @@ import React from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import { useDeviceStore } from '../../devices/store/deviceStore';
 import { useLightingStore } from '../../lighting/store/lightingStore';
-import { Sun, Moon, Info, RefreshCw, Sparkles, Check, Wifi, ShieldAlert, Github, Code2 } from 'lucide-react';
+import { Sun, Moon, Info, RefreshCw, Sparkles, Check, Wifi, ShieldAlert, Github, Code2, MapPin, Loader2 } from 'lucide-react';
 import { kelvinToRgb } from '../../../utils/color';
+import { getCircadianPoints, formatHour } from '../../lighting/utils/circadian';
 
 export const SettingsView: React.FC = () => {
   const { theme, toggleTheme } = useSettingsStore();
   const { selectedIp, connectionStatus, scan, isScanning } = useDeviceStore();
-  const { isConnected, refreshState, applyCircadianRhythm, circadianActive } = useLightingStore();
+  const { 
+    isConnected, 
+    refreshState, 
+    applyCircadianRhythm, 
+    circadianActive,
+    location,
+    isSyncingLocation,
+    syncLocationError 
+  } = useLightingStore();
 
   const handleThemeChange = (selectedTheme: 'light' | 'dark') => {
     if (theme !== selectedTheme) {
@@ -22,14 +31,10 @@ export const SettingsView: React.FC = () => {
     }
   };
 
-  // Circadian Rhythm timeline points
-  const circadianPoints = [
-    { time: '00:00 - 06:00', temp: 2200, dimming: 15, name: 'Madrugada', desc: 'Luz cálida y suave para descansar' },
-    { time: '06:00 - 09:00', temp: 3000, dimming: 60, name: 'Amanecer', desc: 'Luz moderada para despertar' },
-    { time: '09:00 - 17:00', temp: 5000, dimming: 100, name: 'Día', desc: 'Blanco frío para concentración' },
-    { time: '17:00 - 20:00', temp: 3500, dimming: 70, name: 'Tarde', desc: 'Temperatura y brillo medios' },
-    { time: '20:00 - 24:00', temp: 2700, dimming: 40, name: 'Noche', desc: 'Relajante antes de dormir' },
-  ];
+  // Circadian Rhythm timeline points (dynamically adapted from geolocation)
+  const sunriseHour = location ? location.sunriseHour : 6.0;
+  const sunsetHour = location ? location.sunsetHour : 19.0;
+  const circadianPoints = getCircadianPoints(sunriseHour, sunsetHour);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-fade-in pb-6">
@@ -167,14 +172,51 @@ export const SettingsView: React.FC = () => {
           {selectedIp && (
             <button
               onClick={applyCircadianRhythm}
-              disabled={circadianActive}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_2px_10px_rgba(59,130,246,0.2)]"
+              disabled={isSyncingLocation || circadianActive}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-700/50 disabled:text-white/60 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_2px_10px_rgba(59,130,246,0.2)]"
             >
-              <Sun className={`w-3.5 h-3.5 ${circadianActive ? 'animate-spin' : ''}`} />
-              Sincronizar Ahora
+              {isSyncingLocation ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sun className={`w-3.5 h-3.5 ${circadianActive ? 'animate-spin' : ''}`} />
+              )}
+              {isSyncingLocation ? 'Sincronizando...' : 'Sincronizar Ahora'}
             </button>
           )}
         </div>
+
+        {/* Geolocation status info */}
+        {location && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-theme-input/30 border border-theme-border rounded-xl text-[11px] justify-between">
+            <div className="flex items-center gap-2 text-theme-text font-medium">
+              <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span>
+                {location.city ? `${location.city}, ${location.country || ''}` : `Lat: ${location.latitude.toFixed(3)}, Lng: ${location.longitude.toFixed(3)}`}
+              </span>
+              <span className="text-[10px] text-theme-textSecondary font-normal font-mono">
+                (Sincronizado: {new Date(location.lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-theme-textSecondary font-mono font-semibold">
+              <span className="flex items-center gap-1">
+                <Sun className="w-3 h-3 text-amber-400 shrink-0" />
+                Amanecer: {formatHour(location.sunriseHour)}
+              </span>
+              <span className="text-theme-border font-normal">|</span>
+              <span className="flex items-center gap-1">
+                <Moon className="w-3 h-3 text-blue-400 shrink-0" />
+                Ocaso: {formatHour(location.sunsetHour)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {syncLocationError && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex items-center gap-2 animate-fade-in">
+            <ShieldAlert className="w-4 h-4 shrink-0" />
+            <span>{syncLocationError}</span>
+          </div>
+        )}
 
         {/* Informative description */}
         <div className="flex gap-2.5 p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-900 dark:text-blue-200">

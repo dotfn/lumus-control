@@ -184,3 +184,15 @@ input[type="range"]::-webkit-slider-thumb:active {
   transition: opacity 250ms ease-out, transform 250ms ease-out;
 }
 
+@keyframes float-glow-scene {
+  0%, 100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+  }
+  33% {
+    transform: translate(-18px, -22px) rotate(120deg) scale(1.4);
+  }
+  66% {
+    transform: translate(14px, -10px) rotate(240deg) scale(0.8);
+  }
+}
+

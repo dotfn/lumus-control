@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import { PRESET_SCENES } from '../../../data/scenes';
 
 interface ScenesViewProps {
@@ -34,6 +34,7 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<SceneCategory>('all');
+  const [hoveredSceneId, setHoveredSceneId] = useState<number | null>(null);
 
   const filteredScenes = PRESET_SCENES.filter((scene) => {
     const matchesSearch =
@@ -115,6 +116,7 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
         {filteredScenes.map((scene) => {
           const isSelected = scene.id === currentSceneId;
+          const isHovered = scene.id === hoveredSceneId;
           const bgGradient =
             scene.colors.length > 2
               ? `linear-gradient(135deg, ${scene.colors[0]}, ${scene.colors[1]}, ${scene.colors[2]})`
@@ -124,17 +126,63 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
             <button
               key={scene.id}
               onClick={() => onSelectScene(scene.id)}
+              onMouseEnter={() => setHoveredSceneId(scene.id)}
+              onMouseLeave={() => setHoveredSceneId(null)}
               className={`relative overflow-hidden p-4 rounded-2xl border text-left transition-all duration-300 group hover:scale-[1.02] flex flex-col justify-between min-h-[120px] ${
                 isSelected
                   ? 'border-blue-500/50 shadow-[0_4px_16px_rgba(0,122,255,0.18)] bg-theme-card'
-                  : 'border-theme-border bg-theme-card hover:bg-theme-input'
+                  : 'border-theme-border bg-theme-card'
               }`}
+              style={{
+                borderColor: isSelected
+                  ? undefined
+                  : isHovered
+                  ? `${scene.colors[0]}55` // ~33% de opacidad para el borde con el color principal de la escena
+                  : undefined,
+                boxShadow: isHovered && !isSelected
+                  ? `0 8px 24px -6px ${scene.colors[0]}26, 0 4px 12px -2px ${scene.colors[0]}1a`
+                  : undefined,
+              }}
             >
-              {/* Dynamic colored background glow */}
+              {/* Background gradient overlay on hover/active */}
               <div
-                className={`absolute right-[-10%] bottom-[-10%] w-20 h-20 rounded-full blur-2xl opacity-20 group-hover:scale-135 transition-transform duration-500`}
+                className={`absolute inset-0 transition-opacity duration-500 ease-out z-0 pointer-events-none
+                  ${isHovered 
+                    ? 'opacity-[0.06] dark:opacity-[0.09]' 
+                    : isSelected 
+                      ? 'opacity-[0.03] dark:opacity-[0.05]' 
+                      : 'opacity-0'
+                  }`}
                 style={{ background: bgGradient }}
               />
+
+              {/* Dynamic colored background glow wrapper */}
+              <div
+                className={`absolute -right-6 -bottom-6 w-28 h-28 rounded-full blur-3xl pointer-events-none transition-all duration-500 ease-out z-0
+                  ${isHovered 
+                    ? 'opacity-50' 
+                    : isSelected 
+                      ? 'opacity-25' 
+                      : 'opacity-12'
+                  }`}
+                style={{
+                  transform: isHovered 
+                    ? 'scale(1.45)' 
+                    : isSelected 
+                      ? 'scale(1.0)' 
+                      : 'scale(0.75)',
+                  willChange: 'transform, opacity',
+                }}
+              >
+                {/* Inner animating glow */}
+                <div
+                  className="w-full h-full rounded-full"
+                  style={{
+                    background: bgGradient,
+                    animation: isHovered ? 'float-glow-scene 4s ease-in-out infinite' : undefined,
+                  }}
+                />
+              </div>
 
               <div className="relative z-10 w-full">
                 {/* Scene badge header */}
@@ -147,8 +195,11 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
                     <span className="font-semibold text-xs text-theme-text truncate">{scene.name}</span>
                   </div>
                   {isSelected && (
-                    <span className="text-[9px] bg-blue-500/15 text-blue-500 border border-blue-500/30 px-1 rounded font-semibold flex items-center gap-0.5 animate-pulse shrink-0">
-                      <Sparkles className="w-2 h-2" />
+                    <span className="text-[9px] bg-theme-accent text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-1.5 shrink-0 shadow-sm shadow-theme-accent/20">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                      </span>
                       Activo
                     </span>
                   )}

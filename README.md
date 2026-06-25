@@ -11,7 +11,7 @@
 
 Aplicación de escritorio nativa para descubrir y controlar bombillas inteligentes en tu red local. Sin nube, sin intermediarios — comunicación directa mediante **UDP** en tiempo real.
 
-Disponible para **macOS** (Apple Silicon).
+Disponible para **macOS** (Apple Silicon) y **Windows** (x86_64).
 
 ---
 
@@ -19,42 +19,62 @@ Disponible para **macOS** (Apple Silicon).
 
 - **Descubrimiento automático** de bombillas en la red local vía broadcast UDP
 - **Control completo**: encendido/apagado, brillo, temperatura de color y RGB
+- **Habitaciones y Grupos** — Agrupá tus bombillas por estancias (ej. *Living*, *Dormitorio*) para controlarlas todas juntas en paralelo con un único clic
 - **Escenas dinámicas** — acceso a todos los modos de escena del protocolo
 - **Sleep timer** con fade progresivo del brillo hasta apagado
 - **Tema claro/oscuro** sincronizado con la ventana nativa
 - **Alias de dispositivos** — renombrá cada bombilla con un nombre personalizado
+- **Exclusión de dispositivos** — ocultá lámparas secundarias o de otros cuartos con un clic para no saturar tu panel
 - **Estado en tiempo real** — polling asíncrono cada 5 segundos con indicador online/offline
+- **Actualización automática** — detección, descarga e instalación automática de actualizaciones vía Tauri Updater
 - **Sin internet requerido** — la app funciona completamente offline
+
+---
 
 ---
 
 ## Arquitectura
 
-El proyecto está dividido en dos capas con responsabilidades estrictamente separadas.
+El proyecto está dividido en dos capas con responsabilidades estrictamente separadas y cuenta con soporte multiplataforma.
 
 ```
 lumus-control/
+├── .github/workflows/
+│   ├── ci.yml                    # Quality checks (typecheck + lint + Rust tests)
+│   └── release.yml               # Compilación paralela macOS & Windows y auto-release
 ├── src/                          # Frontend — React + Zustand
 │   ├── features/
 │   │   ├── devices/              # Descubrimiento UDP y selección de dispositivo
 │   │   ├── lighting/             # Control de luz (brillo, color, escenas)
 │   │   ├── settings/             # Tema claro/oscuro
 │   │   ├── timer/                # Sleep timer con fade
-│   │   └── layout/               # Titlebar nativa (Traffic Lights)
+│   │   ├── layout/               # Titlebar nativa (Traffic Lights) y widgets
+│   │   └── updater/              # Widget de actualización automática (Tauri Updater)
 │   ├── services/
 │   │   └── deviceService.ts      # Abstracción IPC — única puerta de entrada a Tauri
 │   └── types.ts
 │
-└── src-tauri/src/                # Backend — Rust
-    ├── lib.rs                    # Orquestador: estados, on_window_event, handlers
-    ├── commands.rs               # IPC handlers (#[tauri::command])
-    ├── network.rs                # UDP asíncrono con tokio::net
-    ├── config.rs                 # Persistencia con escritura atómica
-    ├── state.rs                  # ConfigState, ActiveDeviceState, ShutdownSignal
-    ├── monitor.rs                # Polling asíncrono (tokio::spawn)
-    ├── models.rs                 # Estructuras de datos compartidas
-    └── errors.rs                 # AppError centralizado
+└── src-tauri/                    # Backend — Rust (Tauri v2)
+    ├── tauri.conf.json           # Configuración base multiplataforma
+    ├── tauri.macos.conf.json     # Configuración específica para macOS (overlay, titlebar)
+    ├── tauri.windows.conf.json   # Configuración específica para Windows (decoraciones nativas)
+    └── src/
+        ├── main.rs               # Punto de entrada de la aplicación
+        ├── lib.rs                # Orquestador: estados, on_window_event, plugins y handlers
+        ├── commands.rs           # IPC handlers (#[tauri::command])
+        ├── network.rs            # UDP asíncrono con tokio::net
+        ├── config.rs             # Persistencia con escritura atómica
+        ├── state.rs              # ConfigState, ActiveDeviceState, ShutdownSignal
+        ├── monitor.rs            # Polling asíncrono (tokio::spawn)
+        ├── models.rs             # Estructuras de datos compartidas
+        └── errors.rs             # AppError centralizado
 ```
+
+### Soporte Multiplataforma (Tauri v2)
+
+- **Configuración dividida**: Uso de config merging nativo (`tauri.conf.json` base + `tauri.macos.conf.json` / `tauri.windows.conf.json` específicos) para lograr una estética nativa y pulida en cada sistema operativo sin condicionales en el código.
+- **Firma digital e instaladores**: Generación automática de archivos `.dmg` firmados ad-hoc para macOS Apple Silicon y ejecutables de instalación (`.exe` NSIS) para Windows.
+- **Auto-updater integrado**: El backend Rust carga el plugin `tauri-plugin-updater` permitiendo que el cliente reciba y aplique actualizaciones automáticas desde GitHub Releases.
 
 ### Backend Rust
 
@@ -68,10 +88,12 @@ lumus-control/
 
 ### Frontend React
 
-- **Stores Zustand** por dominio: `useDeviceStore`, `useLightingStore`, `useTimerStore`, `useSettingsStore`
+- **Stores Zustand** por dominio: `useDeviceStore`, `useLightingStore`, `useTimerStore`, `useSettingsStore` (definidos localmente dentro de cada feature)
 - **Capa de servicios** (`deviceService.ts`): los stores no conocen Tauri directamente
 - **Actualizaciones optimistas con rollback**: la UI responde instantáneamente; si el comando UDP falla, el estado revierte al valor anterior
-- **Custom hooks** para efectos de tiempo: `useLightEvents`, `useSleepTimerCountdown`
+- **Persistencia local de grupos**: Las habitaciones (`groups`) y sus asociaciones de IPs se guardan y cargan localmente desde `localStorage` (`device_groups`), manteniendo la lógica de grupos desconectada del backend Tauri.
+- **Control multicast paralelo**: Si se selecciona una habitación, el store de iluminación despacha las peticiones UDP de control en paralelo a todas las IPs del grupo usando `Promise.allSettled`, asegurando robustez y evitando bloqueos si alguna bombilla está desconectada.
+- **Custom hooks** para efectos de tiempo y actualización: `useLightEvents`, `useSleepTimerCountdown`, `useAppUpdater`
 
 ---
 
@@ -93,7 +115,7 @@ Las bombillas escuchan en el puerto **38899**. La app implementa el protocolo di
 
 ## Instalación
 
-### One-liner (recomendado)
+### One-liner (Recomendado para macOS Apple Silicon)
 
 Copia y pega esto en la Terminal:
 
@@ -101,9 +123,9 @@ Copia y pega esto en la Terminal:
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/dotfn/lumus-control/main/install.sh)"
 ```
 
-El script detecta automáticamente tu arquitectura (Apple Silicon / Intel), descarga el DMG correcto desde GitHub, lo instala en `/Applications` y remueve el atributo de cuarentena para evitar el bloqueo de Gatekeeper.
+El script detecta automáticamente tu arquitectura (Apple Silicon), descarga el DMG correcto desde GitHub, lo instala en `/Applications` y remueve el atributo de cuarentena para evitar el bloqueo de Gatekeeper. *(Nota: Intel Macs ya no son soportados oficialmente).*
 
-### Homebrew
+### Homebrew (macOS)
 
 ```bash
 brew tap dotfn/lumus
@@ -112,26 +134,26 @@ brew install --cask lumus-control
 
 ### Descarga manual
 
-Descargá el DMG desde la página de [**Releases**](../../releases).
+Descargá el instalador correspondiente desde la página de [**Releases**](../../releases).
 
-| Plataforma | Archivo |
-|---|---|
-| macOS (Apple Silicon) | `lumus-control_<version>_aarch64.dmg` |
-| macOS (Intel) | `lumus-control_<version>_x86_64.dmg` |
+| Plataforma | Archivo | Método / Instalador |
+|---|---|---|
+| macOS (Apple Silicon) | `lumus-control_<version>_aarch64.dmg` | DMG + `install.sh` o arrastrar a Aplicaciones |
+| Windows (x86_64) | `Lumus.Control_<version>_x64-setup.exe` | Instalador ejecutable (NSIS) |
 
-Luego ejecutá en la Terminal:
-
-```bash
-bash install.sh
-```
+> [!NOTE]
+> En macOS, si instalás manualmente el DMG arrastrándolo a la carpeta de Aplicaciones, es posible que debas remover el atributo de cuarentena ejecutando en tu terminal:
+> ```bash
+> xattr -rd com.apple.quarantine /Applications/lumus-control.app
+> ```
 
 ### Build local
 
 ```bash
 pnpm install
 pnpm tauri build
-bash install.sh
 ```
+*(Los instaladores compilados localmente se generarán en la carpeta `src-tauri/target/release/bundle/` según la plataforma de tu sistema).*
 
 ---
 
@@ -143,6 +165,7 @@ bash install.sh
 - [pnpm](https://pnpm.io/) v9+
 - [Rust](https://rustup.rs/) 1.77+ (vía `rustup`)
 - macOS: Xcode Command Line Tools
+- Windows: Build Tools para Visual Studio C++
 - Linux: `libwebkit2gtk-4.1-dev`, `pkg-config`, `libssl-dev`
 
 ### Comandos
@@ -151,24 +174,39 @@ bash install.sh
 # Instalar dependencias
 pnpm install
 
-# Modo desarrollo (hot reload)
-pnpm run dev
+# Iniciar entorno de desarrollo completo (Tauri + Frontend)
+pnpm dev
 
-# Verificación de tipos
-pnpm run typecheck
+# Iniciar únicamente el servidor dev de Frontend (Vite)
+pnpm dev:frontend
 
-# Linter
-pnpm run lint
+# Ejecutar todas las verificaciones locales (Quality Checks completos)
+pnpm verify
 
-# Compilar para producción
+# Verificación de tipos TypeScript
+pnpm typecheck
+
+# Linter de TypeScript/React (cero warnings permitidos)
+pnpm lint
+
+# Formatear código de Rust
+pnpm rust:format
+
+# Ejecutar clippy en Rust
+pnpm rust:clippy
+
+# Ejecutar tests unitarios de Rust (Backend)
+pnpm rust:test
+
+# Compilar la aplicación para producción localmente
 pnpm tauri build
 ```
-
-Los instaladores generados quedan en `src-tauri/target/release/bundle/`.
 
 ### Tests del backend
 
 ```bash
+pnpm rust:test
+# O directamente vía Cargo:
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
