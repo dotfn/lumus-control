@@ -1,5 +1,5 @@
 [package]
-name = "app"
+name = "lumus-control"
 version = "0.3.8"
 description = "A Tauri App"
 authors = ["you"]
