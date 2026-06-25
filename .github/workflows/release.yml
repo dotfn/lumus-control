@@ -81,16 +81,46 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ github.workspace }}/tauri.key
 
-      - name: Rename macOS DMG installer for Homebrew compatibility
+      - name: Rename macOS artifacts for compatibility
         if: matrix.os == 'macos-latest'
         run: |
+          # Rename DMG to lowercase and hyphen-separated format for Homebrew cask compatibility
           cd src-tauri/target/${{ matrix.target }}/release/bundle/dmg/
           ORIGINAL_DMG=$(find . -name "*.dmg" | head -n 1)
           if [ -n "$ORIGINAL_DMG" ]; then
-            NEW_DMG=$(echo "$ORIGINAL_DMG" | sed 's/Lumus\.Control/lumus-control/g')
-            echo "Renaming $ORIGINAL_DMG to $NEW_DMG"
-            mv "$ORIGINAL_DMG" "$NEW_DMG"
+            NEW_DMG=$(echo "$ORIGINAL_DMG" | sed -E 's/[Ll]umus[ .-_]+[Cc]ontrol/lumus-control/g')
+            if [ "$ORIGINAL_DMG" != "$NEW_DMG" ]; then
+              echo "Renaming DMG: $ORIGINAL_DMG -> $NEW_DMG"
+              mv "$ORIGINAL_DMG" "$NEW_DMG"
+            fi
           fi
+          
+          # Rename updater tar.gz and sig (replace spaces with dots to prevent normalization issues in download URLs)
+          cd ../macos/
+          for f in *Lumus*.tar.gz*; do
+            if [ -f "$f" ]; then
+              NEW_NAME=$(echo "$f" | sed 's/Lumus Control/Lumus.Control/g')
+              if [ "$f" != "$NEW_NAME" ]; then
+                echo "Renaming updater file: $f -> $NEW_NAME"
+                mv "$f" "$NEW_NAME"
+              fi
+            fi
+          done
+        shell: bash
+
+      - name: Rename Windows artifacts for compatibility
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd src-tauri/target/${{ matrix.target }}/release/bundle/nsis/
+          for f in *Lumus*.exe*; do
+            if [ -f "$f" ]; then
+              NEW_NAME=$(echo "$f" | sed 's/Lumus Control/Lumus.Control/g')
+              if [ "$f" != "$NEW_NAME" ]; then
+                echo "Renaming Windows file: $f -> $NEW_NAME"
+                mv "$f" "$NEW_NAME"
+              fi
+            fi
+          done
         shell: bash
 
       - name: Clean up signing key file
