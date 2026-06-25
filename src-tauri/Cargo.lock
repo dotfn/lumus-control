@@ -1902,7 +1902,7 @@ dependencies = [
 
 [[package]]
 name = "lumus-control"
-version = "0.3.10"
+version = "0.3.9"
 dependencies = [
  "log",
  "serde",
