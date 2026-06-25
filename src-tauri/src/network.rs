@@ -94,10 +94,22 @@ pub async fn discover_udp() -> Result<Vec<Value>, AppError> {
         match timeout(remaining, socket.recv_from(&mut buf)).await {
             Ok(Ok((amt, src))) => {
                 if let Ok(resp) = serde_json::from_slice::<Value>(&buf[..amt]) {
-                    found.push(serde_json::json!({
-                        "ip": src.ip().to_string(),
-                        "state": resp.get("result").unwrap_or(&serde_json::Value::Null)
-                    }));
+                    // Validate that the response follows the WiZ protocol structure.
+                    // A valid getPilot response must have method == "getPilot" and a
+                    // result object containing at least "state" and "dimming" fields.
+                    let is_wiz = resp.get("method").and_then(|m| m.as_str()) == Some("getPilot")
+                        && resp
+                            .get("result")
+                            .and_then(|r| r.as_object())
+                            .map(|r| r.contains_key("state") && r.contains_key("dimming"))
+                            .unwrap_or(false);
+
+                    if is_wiz {
+                        found.push(serde_json::json!({
+                            "ip": src.ip().to_string(),
+                            "state": resp["result"]
+                        }));
+                    }
                 }
             }
             // Timeout expirado o error de socket: terminamos la escucha.
