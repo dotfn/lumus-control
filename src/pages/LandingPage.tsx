@@ -180,6 +180,73 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* How it Works Section */}
+      <section className="py-20 px-6 max-w-5xl mx-auto">
+        <div className="text-center space-y-3 mb-16">
+          <h2 className="font-display font-extrabold text-3xl tracking-tight text-theme-text transition-colors">
+            Listo en menos de un minuto
+          </h2>
+          <p className="text-theme-textSecondary text-sm font-medium max-w-md mx-auto transition-colors">
+            Sin crear cuentas, sin configurar servidores. Solo descargá y controlá.
+          </p>
+        </div>
+
+        <div className="relative">
+          {/* Connector line (desktop only) */}
+          <div className="hidden md:block absolute top-10 left-[calc(16.66%+1rem)] right-[calc(16.66%+1rem)] h-px bg-gradient-to-r from-transparent via-theme-border to-transparent" />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
+            {/* Step 1 */}
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                  <Download className="w-8 h-8 text-blue-500" />
+                </div>
+                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg shadow-blue-500/30">1</span>
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="font-bold text-sm text-theme-text">Descargá la app</h3>
+                <p className="text-xs text-theme-textSecondary leading-relaxed max-w-[200px] mx-auto">
+                  Instalá Lumus Control en tu Mac vía Homebrew o con el instalador DMG. Gratis y open source.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                  <Zap className="w-8 h-8 text-purple-500" />
+                </div>
+                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-purple-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg shadow-purple-500/30">2</span>
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="font-bold text-sm text-theme-text">Detectá tus lámparas</h3>
+                <p className="text-xs text-theme-textSecondary leading-relaxed max-w-[200px] mx-auto">
+                  Lumus escanea tu red local automáticamente y encuentra tus lámparas WiZ en segundos.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-emerald-500" />
+                </div>
+                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg shadow-emerald-500/30">3</span>
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="font-bold text-sm text-theme-text">Controlá al instante</h3>
+                <p className="text-xs text-theme-textSecondary leading-relaxed max-w-[200px] mx-auto">
+                  Ajustá brillo, temperatura y escenas directamente desde tu escritorio. Sin app móvil, sin nube.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid Section */}
       <section id="features" className="py-20 px-6 bg-theme-sidebar/10 border-y border-theme-border transition-colors duration-300">
         <div className="max-w-7xl mx-auto space-y-16">
