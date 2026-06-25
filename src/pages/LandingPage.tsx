@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 export const LandingPage: React.FC = () => {
   // Set page-specific document title for SEO
   React.useEffect(() => {
-    document.title = 'Lumus Control — Control local de luces inteligentes para macOS';
+    document.title = 'Lumus Control — Control local de luces inteligentes para macOS y Windows';
   }, []);
 
   // Simple interactive state for the Hero mockup
@@ -58,7 +58,7 @@ export const LandingPage: React.FC = () => {
 
           <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs text-theme-textSecondary font-semibold">
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> macOS Nativo (compilable en Windows/Linux)
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> macOS y Windows Nativos (código abierto)
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> 100% de código abierto
@@ -207,7 +207,7 @@ export const LandingPage: React.FC = () => {
               <div className="space-y-1.5">
                 <h3 className="font-bold text-sm text-theme-text">Descargá la app</h3>
                 <p className="text-xs text-theme-textSecondary leading-relaxed max-w-[200px] mx-auto">
-                  Instalá Lumus Control en tu Mac vía Homebrew o con el instalador DMG. Gratis y open source.
+                  Instalá Lumus Control en tu Mac o Windows de forma nativa. Gratis y de código abierto.
                 </p>
               </div>
             </div>

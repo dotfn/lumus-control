@@ -81,6 +81,18 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ github.workspace }}/tauri.key
 
+      - name: Rename macOS DMG installer for Homebrew compatibility
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd src-tauri/target/${{ matrix.target }}/release/bundle/dmg/
+          ORIGINAL_DMG=$(find . -name "*.dmg" | head -n 1)
+          if [ -n "$ORIGINAL_DMG" ]; then
+            NEW_DMG=$(echo "$ORIGINAL_DMG" | sed 's/Lumus\.Control/lumus-control/g')
+            echo "Renaming $ORIGINAL_DMG to $NEW_DMG"
+            mv "$ORIGINAL_DMG" "$NEW_DMG"
+          fi
+        shell: bash
+
       - name: Clean up signing key file
         if: always()  # limpiar incluso si el build falla — la key nunca debe quedar en disco
         run: rm -f "${{ github.workspace }}/tauri.key"
@@ -247,11 +259,11 @@ jobs:
             echo "    strategy :github_latest"
             echo "  end"
             echo ""
-            echo '  app "lumus-control.app"'
+            echo '  app "Lumus Control.app"'
             echo ""
             echo "  postflight do"
             echo '    system_command "/usr/bin/xattr",'
-            echo '                   args: ["-dr", "com.apple.quarantine", "#{appdir}/lumus-control.app"]'
+            echo '                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Lumus Control.app"]'
             echo "  end"
             echo "end"
           } > Casks/lumus-control.rb

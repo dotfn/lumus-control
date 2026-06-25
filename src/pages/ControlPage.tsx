@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, Sun, LayoutDashboard, Palette, Clock, Settings, Laptop, X, Wifi } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { Link } from 'react-router-dom';
 import { getLampRgbColor } from '../utils/color';
 import { isTauri } from '../utils/tauri';
 import { useDemo } from '../context/DemoContext';
@@ -135,12 +136,23 @@ export const ControlPage: React.FC = () => {
                 <strong>Modo Demo Activo:</strong> Estás explorando la interfaz con un dispositivo virtual.
               </span>
             </div>
-            <a
-              href="/download"
-              className="text-[10px] bg-blue-500 hover:bg-blue-600 text-white font-bold px-2 py-0.5 rounded transition-all flex items-center gap-1"
-            >
-              <Laptop className="w-3 h-3" /> Descargar App
-            </a>
+            {isTauri() ? (
+              <a
+                href="https://lumuscontrol.app/download"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] bg-blue-500 hover:bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap shadow-sm shadow-blue-500/10 active:scale-95"
+              >
+                <Laptop className="w-3 h-3" /> Descargar App
+              </a>
+            ) : (
+              <Link
+                to="/download"
+                className="text-[10px] bg-blue-500 hover:bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap shadow-sm shadow-blue-500/10 active:scale-95"
+              >
+                <Laptop className="w-3 h-3" /> Descargar App
+              </Link>
+            )}
           </div>
         )}
 
@@ -246,7 +258,7 @@ export const ControlPage: React.FC = () => {
                 { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
                 { id: 'scenes', label: 'Escenas', icon: Palette },
                 { id: 'timer', label: 'Temporizador', icon: Clock },
-                { id: 'settings', label: 'Configuración', icon: Settings },
+                { id: 'settings', label: 'Ajustes', icon: Settings },
               ] as const).map((tab) => {
                 const TabIcon = tab.icon;
                 const isActive = activeTab === tab.id;
