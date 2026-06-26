@@ -175,19 +175,19 @@ jobs:
           VERSION="${TAG#v}"
 
           MAC_FILE=$(find artifacts -name "*.app.tar.gz" -exec basename {} \; | head -n 1)
-          MAC_SIG_FILE=$(find artifacts -name "*.app.tar.gz.sig" -exec basename {} \; | head -n 1)
+          MAC_SIG_PATH=$(find artifacts -name "*.app.tar.gz.sig" | head -n 1)
 
           WIN_FILE=$(find artifacts -name "*_x64-setup.exe" -exec basename {} \; | head -n 1)
-          WIN_SIG_FILE=$(find artifacts -name "*_x64-setup.exe.sig" -exec basename {} \; | head -n 1)
+          WIN_SIG_PATH=$(find artifacts -name "*_x64-setup.exe.sig" | head -n 1)
 
           MAC_SIG=""
-          if [ -n "$MAC_SIG_FILE" ] && [ -f "artifacts/$MAC_SIG_FILE" ]; then
-            MAC_SIG=$(cat "artifacts/$MAC_SIG_FILE" | tr -d '\n\r ')
+          if [ -n "$MAC_SIG_PATH" ] && [ -f "$MAC_SIG_PATH" ]; then
+            MAC_SIG=$(cat "$MAC_SIG_PATH" | tr -d '\n\r ')
           fi
 
           WIN_SIG=""
-          if [ -n "$WIN_SIG_FILE" ] && [ -f "artifacts/$WIN_SIG_FILE" ]; then
-            WIN_SIG=$(cat "artifacts/$WIN_SIG_FILE" | tr -d '\n\r ')
+          if [ -n "$WIN_SIG_PATH" ] && [ -f "$WIN_SIG_PATH" ]; then
+            WIN_SIG=$(cat "$WIN_SIG_PATH" | tr -d '\n\r ')
           fi
 
           PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
