@@ -27,7 +27,12 @@ import { SettingsView } from '../features/settings/components/SettingsView';
 
 type TabId = 'dashboard' | 'scenes' | 'timer' | 'settings';
 
-export const ControlPage: React.FC = () => {
+type ControlPageProps = {
+  hideTitlebar?: boolean;
+  onBack?: () => void;
+};
+
+export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, onBack }) => {
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDemo } = useDemo();
@@ -126,7 +131,7 @@ export const ControlPage: React.FC = () => {
 
   return (
     <div className="w-full h-full bg-theme-bg flex flex-col overflow-hidden text-theme-text font-sans antialiased relative select-none transition-colors duration-300">
-      <Titlebar />
+      {!hideTitlebar && <Titlebar onBack={onBack} />}
 
       {/* Dynamic Background Glow Layer */}
       <div
@@ -138,7 +143,7 @@ export const ControlPage: React.FC = () => {
       />
 
       {/* Main Container - Split View (Sidebar + Main Pane) */}
-      <div className="flex-1 flex overflow-hidden pt-12 flex-col">
+      <div className={`flex-1 flex overflow-hidden flex-col ${hideTitlebar ? 'pt-0' : 'pt-12'}`}>
         {/* Banner de simulación interactiva si está en modo demo */}
         {isDemo && (
           <div className="bg-theme-accent/10 border-b border-theme-border text-theme-accent px-5 py-2 text-xs flex justify-between items-center z-40 animate-fade-in">
