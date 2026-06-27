@@ -18,6 +18,7 @@
     "verify": "pnpm typecheck && pnpm lint && pnpm rust:format && pnpm rust:clippy && pnpm rust:test && pnpm rust:check-release"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
