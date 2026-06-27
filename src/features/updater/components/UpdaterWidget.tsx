@@ -107,7 +107,7 @@ export const UpdaterWidget: React.FC = () => {
         aria-expanded={isOpen}
         aria-label={`Actualización disponible. Versión ${updateInfo?.version || ''}`}
         title="Actualización disponible"
-        className={`relative p-2 rounded-lg text-theme-textSecondary hover:text-theme-text hover:bg-theme-input transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-accent ${
+        className={`relative p-2 rounded-lg text-theme-textSecondary hover:text-theme-text hover:bg-theme-input transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-accent ${
           status === 'downloading' ? 'animate-pulse text-theme-accent' : ''
         }`}
       >
@@ -119,7 +119,7 @@ export const UpdaterWidget: React.FC = () => {
         )}
         
         {status === 'downloading' && (
-          <span className="absolute -bottom-1 -right-1 bg-theme-accent text-[8px] font-bold text-white px-1 rounded-full font-mono scale-90">
+          <span className="absolute -bottom-1 -right-1 bg-theme-accent text-[8px] font-bold text-white px-1 rounded-full  scale-90">
             {progress}%
           </span>
         )}
@@ -130,7 +130,7 @@ export const UpdaterWidget: React.FC = () => {
         <div
           role="menu"
           aria-label="Menú de actualización"
-          className="absolute right-0 top-10 w-80 glass-card bg-theme-card/95 border border-theme-border backdrop-blur-2xl rounded-xl shadow-2xl p-4 flex flex-col gap-4 z-50 animate-fade-in text-left select-text"
+          className="absolute right-0 top-10 w-80 glass-card bg-theme-card/95 border border-theme-border backdrop-blur-2xl rounded-[28px] shadow-none p-4 flex flex-col gap-4 z-50 animate-fade-in text-left select-text"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-theme-border pb-3">
@@ -200,11 +200,11 @@ export const UpdaterWidget: React.FC = () => {
               <div className="flex flex-col gap-2 my-1">
                 <div className="flex justify-between items-center text-xs font-semibold">
                   <span className="text-theme-text">Descargando actualización...</span>
-                  <span className="text-theme-accent font-mono">{progress}%</span>
+                  <span className="text-theme-accent ">{progress}%</span>
                 </div>
                 <div className="w-full h-1.5 bg-theme-input rounded-full overflow-hidden border border-theme-border">
                   <div
-                    className="h-full bg-theme-accent rounded-full transition-all duration-300 ease-out shadow-[0_0_8px_rgba(0,122,255,0.4)]"
+                    className="h-full bg-theme-accent rounded-full transition-[width] duration-300 ease-out shadow-none"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -253,7 +253,7 @@ export const UpdaterWidget: React.FC = () => {
                 </button>
                 <button
                   onClick={downloadAndInstall}
-                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-theme-accent text-white hover:bg-theme-accent/90 transition-colors flex items-center gap-1.5 shadow-[0_2px_4px_rgba(0,122,255,0.2)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme-accent"
+                  className="px-3.5 py-1.5 text-xs font-semibold rounded-full bg-theme-accent text-white hover:bg-theme-accent/90 transition-colors flex items-center gap-1.5 shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme-accent"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Instalar ahora
