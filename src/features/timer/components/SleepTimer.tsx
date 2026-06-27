@@ -30,14 +30,14 @@ export const SleepTimer: React.FC<SleepTimerProps> = ({
   };
 
   return (
-    <div className="space-y-3.5 p-4 bg-theme-input border border-theme-border rounded-2xl transition-colors duration-300">
+    <div className="space-y-3.5 p-4 bg-theme-input border border-theme-border rounded-[28px] transition-colors duration-300">
       <div className="flex items-center justify-between">
         <label className="text-[11px] font-semibold uppercase tracking-wider text-theme-textSecondary flex items-center gap-1.5 font-display transition-colors duration-300">
           <Moon className="w-3.5 h-3.5 text-indigo-400" />
           Temporizador de apagado
         </label>
         {isActive && (
-          <span className="text-xs font-mono text-indigo-400 animate-pulse">
+          <span className="text-xs  text-indigo-400 animate-pulse">
             Activo · {formatTime(remainingSeconds)}
           </span>
         )}
@@ -50,7 +50,7 @@ export const SleepTimer: React.FC<SleepTimerProps> = ({
               <button
                 key={t}
                 onClick={() => setMinutes(t)}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                   minutes === t
                     ? 'bg-indigo-500/10 border-indigo-400/30 text-indigo-200'
                     : 'bg-theme-input border border-theme-border text-theme-textSecondary hover:bg-theme-border hover:text-theme-text'
@@ -76,7 +76,7 @@ export const SleepTimer: React.FC<SleepTimerProps> = ({
 
           <button
             onClick={handleStart}
-            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_12px_rgba(99,102,241,0.2)]"
+            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-none"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             Iniciar temporizador
@@ -91,7 +91,7 @@ export const SleepTimer: React.FC<SleepTimerProps> = ({
           </p>
           <button
             onClick={onCancelTimer}
-            className="w-full py-2 bg-theme-input hover:bg-theme-border border border-theme-border text-theme-text rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+            className="w-full py-2 bg-theme-input hover:bg-theme-border border border-theme-border text-theme-text rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-none"
           >
             <Square className="w-3.5 h-3.5 fill-current" />
             Cancelar temporizador

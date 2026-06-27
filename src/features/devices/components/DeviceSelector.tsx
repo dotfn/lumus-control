@@ -205,12 +205,12 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
   return (
     <div className="space-y-4">
       {/* Header section */}
-      <div className="flex items-center justify-between gap-2 border-b border-theme-border pb-3 transition-colors duration-300">
-        <h2 className="text-[10px] font-bold uppercase tracking-wider text-theme-textSecondary font-display flex items-center gap-1.5 transition-colors duration-300 whitespace-nowrap flex-shrink-0">
+      <div className="flex items-center justify-between gap-2 border-b border-theme-border/60 pb-3 transition-colors duration-300">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-theme-textSecondary font-display flex items-center gap-1.5 transition-colors duration-300 whitespace-nowrap flex-shrink-0">
           <Radio
             className={`w-3.5 h-3.5 ${isScanning
-                ? 'animate-pulse text-theme-accent'
-                : 'text-theme-textSecondary opacity-60'
+              ? 'animate-pulse text-theme-accent'
+              : 'text-theme-textSecondary opacity-60'
               }`}
           />
           Dispositivos en red
@@ -218,9 +218,9 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
         <button
           onClick={onScan}
           disabled={isScanning}
-          className={`w-20 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all flex items-center justify-center flex-shrink-0 active:scale-95 disabled:opacity-75 ${isScanning
-              ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
-              : 'bg-theme-input hover:bg-theme-border border-theme-border text-theme-text'
+          className={`px-4 py-1.5 text-[11px] font-semibold rounded-full border transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 active:scale-95 disabled:opacity-75 ${isScanning
+            ? 'bg-theme-text/10 border-theme-text/20 text-theme-text'
+            : 'bg-theme-card hover:bg-theme-input border-theme-border text-theme-text'
             }`}
         >
           {isScanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Buscar'}
@@ -229,9 +229,9 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
 
       {/* Formulario de Habitación (Crear / Editar) */}
       {(isCreatingGroup || editingGroupId) && (
-        <div className="p-3 bg-theme-input border border-theme-border rounded-2xl space-y-3 transition-all">
-          <div className="flex items-center justify-between border-b border-theme-border pb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-theme-accent">
+        <div className="p-3 bg-theme-input border border-theme-border rounded-[28px] space-y-3 transition-colors">
+          <div className="flex items-center justify-between border-b border-theme-border/60 pb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-theme-accent">
               {editingGroupId ? 'Editar Habitación' : 'Nueva Habitación'}
             </span>
             <button
@@ -244,7 +244,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
           </div>
 
           <div className="space-y-1">
-            <label className="text-[9px] font-bold uppercase tracking-wider text-theme-textSecondary/80">Nombre</label>
+            <label className="text-[10px] font-semibold uppercase tracking-[0.05em] text-theme-textSecondary/80">Nombre</label>
             <input
               type="text"
               value={groupNameInput}
@@ -255,7 +255,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[9px] font-bold uppercase tracking-wider text-theme-textSecondary/80 block">Dispositivos a incluir</label>
+            <label className="text-[10px] font-semibold uppercase tracking-[0.05em] text-theme-textSecondary/80 block">Lámparas a incluir</label>
             <div className="max-h-32 overflow-y-auto custom-scrollbar border border-theme-border rounded-xl p-1 bg-theme-bg/50 space-y-0.5">
               {devices
                 .filter((d) => !excludedIps.includes(d.ip))
@@ -276,7 +276,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                         <div className="font-semibold truncate text-[11px] leading-tight text-theme-text">
                           {device.name || 'Lámpara inteligente'}
                         </div>
-                        <div className="font-mono text-[8px] text-theme-textSecondary/60 truncate">
+                        <div className="text-[10px] text-theme-textSecondary/60 truncate">
                           {device.ip}
                         </div>
                       </div>
@@ -295,7 +295,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
             <button
               type="button"
               onClick={handleCancelGroupForm}
-              className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-theme-border text-theme-textSecondary hover:bg-theme-border transition-all"
+              className="px-3 py-1.5 text-[10px] font-semibold rounded-full border border-theme-border text-theme-textSecondary hover:bg-theme-input transition-colors"
             >
               Cancelar
             </button>
@@ -303,7 +303,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
               type="button"
               onClick={handleSaveGroup}
               disabled={!groupNameInput.trim()}
-              className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-theme-accent text-white hover:opacity-90 disabled:opacity-50 transition-all shadow-sm"
+              className="px-4 py-1.5 text-[10px] font-semibold rounded-full bg-theme-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity shadow-none"
             >
               Guardar
             </button>
@@ -315,8 +315,8 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
       <div className="space-y-4 pt-1 pr-1">
         {/* Rooms / Groups section */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between border-b border-theme-border pb-2 transition-colors">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-theme-textSecondary flex items-center gap-1.5">
+          <div className="flex items-center justify-between border-b border-theme-border/60 pb-2 transition-colors">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-theme-textSecondary flex items-center gap-1.5">
               <Home className="w-3.5 h-3.5 text-theme-textSecondary opacity-80" />
               Habitaciones
             </h3>
@@ -324,7 +324,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
               <button
                 type="button"
                 onClick={handleStartCreateGroup}
-                className="px-2 py-0.5 bg-theme-bg hover:bg-theme-border border border-theme-border rounded-lg text-[9px] font-bold uppercase tracking-wider text-theme-textSecondary hover:text-theme-accent transition-all flex items-center gap-1 active:scale-95 shadow-sm"
+                className="px-3 py-1.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-[10px] font-semibold text-theme-textSecondary hover:text-theme-text transition-colors flex items-center gap-1.5 active:scale-95 shadow-none"
                 title="Añadir Habitación"
               >
                 <Plus className="w-3 h-3 text-theme-accent" />
@@ -335,14 +335,14 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
 
           {groups.length === 0 ? (
             !isCreatingGroup && !editingGroupId && (
-              <div className="p-3.5 border border-dashed border-theme-border rounded-2xl bg-theme-input/40 space-y-2.5 text-center transition-all duration-300">
-                <p className="text-[10px] text-theme-textSecondary leading-relaxed">
+              <div className="p-4 border border-dashed border-theme-border rounded-[28px] bg-theme-card/30 space-y-2.5 text-center transition-colors duration-300">
+                <p className="text-[10px] text-theme-textSecondary/90 font-medium leading-relaxed">
                   Crea una habitación para agrupar tus lámparas (ej. Living, Dormitorio) y controlarlas todas juntas.
                 </p>
                 <button
                   type="button"
                   onClick={handleStartCreateGroup}
-                  className="mx-auto px-3 py-1.5 bg-theme-bg border border-theme-border hover:bg-theme-input text-[9px] font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-1 text-theme-text active:scale-95"
+                  className="mx-auto px-4 py-1.5 bg-theme-card hover:bg-theme-input border border-theme-border text-[10px] font-semibold rounded-full transition-colors duration-344 flex items-center gap-1.5 text-theme-text active:scale-95"
                 >
                   <Plus className="w-3 h-3 text-theme-accent" />
                   Crear Habitación
@@ -360,96 +360,84 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                   <div key={group.id} className="space-y-1.5">
                     {/* Group Header Card */}
                     <div
-                      className={`group/room relative z-0 flex items-center justify-between p-2.5 rounded-2xl border transition-all duration-300 cursor-pointer ${
-                        isSelected
-                          ? 'border-blue-500/30 bg-blue-500/5 dark:bg-blue-500/10 shadow-[0_2px_10px_rgba(0,122,255,0.06)]'
-                          : 'border-theme-border bg-theme-input hover:bg-theme-border'
-                      }`}
-                      onClick={() => onSelectGroup(group.id)}
+                      className={`group/room relative flex items-center gap-3 p-4 rounded-[28px] border transition-colors duration-300 cursor-pointer shadow-none ${isSelected
+                          ? 'border-theme-border bg-theme-card ring-1 ring-inset ring-theme-text/20'
+                          : 'border-theme-border/30 bg-theme-card hover:bg-theme-input'
+                        }`}
+                      onClick={() => { onSelectGroup(group.id); toggleGroupExpanded(group.id); }}
                     >
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      {/* Room icon — light, same proportions as device rows */}
+                      <div className="flex-shrink-0 p-1.5 bg-theme-card rounded-full border border-theme-border/60 flex items-center justify-center">
+                        <Home className="w-3 h-3 text-theme-textSecondary/60" />
+                      </div>
+
+                      {/* Name + device count — gets all remaining space */}
+                      <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-[13px] leading-snug text-theme-text truncate block">
+                          {group.name}
+                        </span>
+                        <span className="text-[10px] text-theme-textSecondary block mt-0.5">
+                          {roomDevices.length} {roomDevices.length === 1 ? 'lámpara' : 'lámparas'}
+                        </span>
+                      </div>
+
+                      {/* Edit/delete — absolute so they never compress the name */}
+                      <div className="absolute right-10 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/room:opacity-100 transition-opacity duration-150 pointer-events-none group-hover/room:pointer-events-auto">
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleGroupExpanded(group.id);
-                          }}
-                          className="p-1 hover:bg-theme-border rounded-lg text-theme-textSecondary transition-colors"
+                          onClick={(e) => { e.stopPropagation(); handleStartEditGroup(group); }}
+                          className="p-1.5 rounded-full border border-theme-border bg-theme-card hover:bg-theme-input text-theme-textSecondary hover:text-theme-text transition-colors duration-150 active:scale-95"
+                          title="Editar Habitación"
                         >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id); }}
+                          className="p-1.5 rounded-full border border-theme-border bg-theme-card hover:bg-theme-input text-theme-textSecondary hover:text-red-400 transition-colors duration-150 active:scale-95"
+                          title="Eliminar Habitación"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      {/* Permanent right: selected dot + chevron */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {isSelected && (
+                          <span className="group-hover/room:opacity-0 transition-opacity duration-150 w-1.5 h-1.5 rounded-full bg-theme-accent animate-pulse" />
+                        )}
+                        <span className="text-theme-textSecondary/40">
                           {expanded ? (
                             <ChevronDown className="w-3.5 h-3.5" />
                           ) : (
                             <ChevronRight className="w-3.5 h-3.5" />
                           )}
-                        </button>
-                        <Home className="w-3.5 h-3.5 text-theme-textSecondary opacity-70 flex-shrink-0" />
-                        <div className="min-w-0 pr-2">
-                          <span className="font-bold text-xs text-theme-text truncate block leading-tight">
-                            {group.name}
-                          </span>
-                          <span className="text-[9px] text-theme-textSecondary font-mono block mt-0.5 transition-opacity duration-200 group-hover/room:opacity-0">
-                            {roomDevices.length} {roomDevices.length === 1 ? 'lámpara' : 'lámparas'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
-                        <div className="opacity-0 group-hover/room:opacity-100 flex items-center gap-1.5 transition-all duration-200">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartEditGroup(group);
-                            }}
-                            className="p-1.5 bg-theme-bg hover:bg-theme-border border border-theme-border rounded-xl text-theme-textSecondary hover:text-theme-text shadow-sm transition-all duration-150 active:scale-95"
-                            title="Editar Habitación"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteGroup(group.id);
-                            }}
-                            className="p-1.5 bg-theme-bg hover:bg-theme-border border border-theme-border rounded-xl text-theme-textSecondary hover:text-red-400 shadow-sm transition-all duration-150 active:scale-95"
-                            title="Eliminar Habitación"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-
-                        {isSelected && (
-                          <span className="group-hover/room:hidden transition-all duration-200 flex items-center justify-center w-7 h-7">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ring-4 ring-blue-400/20 animate-pulse" />
-                          </span>
-                        )}
+                        </span>
                       </div>
                     </div>
 
                     {/* Group Inner Devices List */}
                     {expanded && roomDevices.length > 0 && (
-                      <div className="pl-3.5 space-y-1.5 border-l border-theme-border ml-4.5 py-1">
+                      <div className="pl-3.5 space-y-1.5 border-l border-theme-border ml-[18px] py-1">
                         {roomDevices.map((device) => {
-                          const isDeviceSelected = device.ip === selectedIp && !selectedGroupId;
+                          const isDeviceSelected = device.ip === selectedIp && (!selectedGroupId || selectedGroupId === group.id);
                           const isEditing = device.ip === editingIp;
                           const iconStyle = getDeviceIconStyle(device);
 
                           return (
                             <div
                               key={device.ip}
-                              className={`group relative z-0 flex items-center gap-2.5 p-2.5 rounded-2xl border transition-all duration-200 ${
-                                isDeviceSelected
-                                  ? 'border-blue-500/20 bg-blue-500/5'
-                                  : 'border-transparent bg-theme-input/40 hover:bg-theme-border/40'
-                              }`}
+                              className={`group relative z-0 flex items-center gap-2.5 p-3 rounded-[28px] border transition-colors duration-300 shadow-none ${isDeviceSelected
+                                  ? 'border-theme-text/40 bg-theme-text/[0.04]'
+                                  : 'border-theme-border/20 bg-theme-card/50 hover:bg-theme-input'
+                                }`}
                             >
                               <div
-                                className="flex-shrink-0 p-1.5 bg-theme-bg rounded-xl border border-theme-border flex items-center justify-center cursor-pointer"
+                                className="flex-shrink-0 p-1.5 bg-theme-card rounded-full border border-theme-border flex items-center justify-center cursor-pointer"
                                 onClick={() => !isEditing && onSelect(device.ip)}
                               >
                                 <Lightbulb
-                                  className={`w-3.5 h-3.5 transition-all duration-300 ${iconStyle.className}`}
+                                  className={`w-3.5 h-3.5 transition-[color,filter] duration-300 ${iconStyle.className}`}
                                   style={iconStyle.style}
                                 />
                               </div>
@@ -466,14 +454,14 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                                       value={tempName}
                                       onChange={(e) => setTempName(e.target.value)}
                                       onKeyDown={(e) => handleEditKeyDown(e, device.ip)}
-                                      className="flex-1 min-w-0 bg-theme-input border border-theme-border rounded-xl px-2 py-0.5 text-xs text-theme-text outline-none focus:border-theme-accent transition-colors"
+                                      className="flex-1 min-w-0 bg-theme-input border border-theme-border rounded-full px-2 py-0.5 text-xs text-theme-text outline-none focus:border-theme-accent transition-colors"
                                     />
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         saveName(device.ip);
                                       }}
-                                      className="p-1 hover:bg-theme-border rounded-lg text-theme-green transition-all"
+                                      className="p-1 hover:bg-theme-input rounded-full text-theme-green transition-colors"
                                     >
                                       <Check className="w-3 h-3" />
                                     </button>
@@ -482,17 +470,17 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                                         e.stopPropagation();
                                         cancelEditing();
                                       }}
-                                      className="p-1 hover:bg-theme-border rounded-lg text-theme-textSecondary transition-all"
+                                      className="p-1 hover:bg-theme-input rounded-full text-theme-textSecondary transition-colors"
                                     >
                                       <X className="w-3 h-3" />
                                     </button>
                                   </div>
                                 ) : (
                                   <div className="flex flex-col min-w-0 pr-2">
-                                    <span className="font-bold text-xs text-theme-text truncate block leading-tight">
+                                    <span className="font-bold text-xs text-theme-text truncate block leading-tight tracking-apple-body">
                                       {device.name || 'Lámpara inteligente'}
                                     </span>
-                                    <span className="font-mono text-[9px] text-theme-textSecondary/60 mt-0.5 truncate transition-opacity duration-200 group-hover:opacity-0">
+                                    <span className="text-[10px] text-theme-textSecondary/60 mt-0.5 truncate transition-opacity duration-200 group-hover:opacity-0">
                                       {device.ip}
                                     </span>
                                   </div>
@@ -500,14 +488,14 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                               </div>
 
                               {!isEditing && (
-                                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
-                                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 transition-all duration-200">
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
+                                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 transition-opacity duration-200">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         startEditing(device.ip, device.name);
                                       }}
-                                      className="p-1.5 bg-theme-bg hover:bg-theme-border border border-theme-border rounded-xl text-theme-textSecondary hover:text-theme-text shadow-sm transition-all duration-150 active:scale-95"
+                                      className="p-1.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-theme-textSecondary hover:text-theme-text transition-colors duration-150 active:scale-95"
                                       title="Editar"
                                     >
                                       <Edit2 className="w-3 h-3" />
@@ -517,7 +505,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                                         e.stopPropagation();
                                         onExcludeDevice(device.ip);
                                       }}
-                                      className="p-1.5 bg-theme-bg hover:bg-theme-border border border-theme-border rounded-xl text-theme-textSecondary hover:text-red-400 shadow-sm transition-all duration-150 active:scale-95"
+                                      className="p-1.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-theme-textSecondary hover:text-red-400 transition-colors duration-150 active:scale-95"
                                       title="Excluir"
                                     >
                                       <EyeOff className="w-3.5 h-3.5" />
@@ -525,7 +513,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                                   </div>
                                   {isDeviceSelected && (
                                     <span className="group-hover:hidden flex items-center justify-center w-7 h-7">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ring-4 ring-emerald-400/20 animate-pulse" />
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                     </span>
                                   )}
                                 </div>
@@ -545,7 +533,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
         {/* Individual devices section (unassigned) */}
         {individualDevices.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-theme-textSecondary flex items-center gap-1.5 border-b border-theme-border pb-2 transition-colors">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-theme-textSecondary flex items-center gap-1.5 border-b border-theme-border/60 pb-2 transition-colors">
               <Radio className="w-3.5 h-3.5 text-theme-textSecondary opacity-60" />
               Lámparas sin asignar
             </h3>
@@ -559,18 +547,17 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                 return (
                   <div
                     key={device.ip}
-                    className={`group relative z-0 flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300 ${
-                      isSelected
-                        ? 'border-blue-500/30 bg-blue-500/5 dark:bg-blue-500/10 shadow-[0_2px_10px_rgba(0,122,255,0.06)]'
-                        : 'border-theme-border bg-theme-input hover:bg-theme-border'
-                    }`}
+                    className={`group relative z-0 flex items-center gap-2.5 p-3 rounded-[28px] border transition-colors duration-300 shadow-none ${isSelected
+                        ? 'border-theme-text/40 bg-theme-text/[0.04]'
+                        : 'border-theme-border/30 bg-theme-card hover:bg-theme-input'
+                      }`}
                   >
                     <div
-                      className="flex-shrink-0 p-2 bg-theme-bg rounded-xl border border-theme-border flex items-center justify-center cursor-pointer"
+                      className="flex-shrink-0 p-1.5 bg-theme-card rounded-full border border-theme-border flex items-center justify-center cursor-pointer"
                       onClick={() => !isEditing && onSelect(device.ip)}
                     >
                       <Lightbulb
-                        className={`w-4 h-4 transition-all duration-300 ${iconStyle.className}`}
+                        className={`w-3.5 h-3.5 transition-[color,filter] duration-300 ${iconStyle.className}`}
                         style={iconStyle.style}
                       />
                     </div>
@@ -587,14 +574,14 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                             value={tempName}
                             onChange={(e) => setTempName(e.target.value)}
                             onKeyDown={(e) => handleEditKeyDown(e, device.ip)}
-                            className="flex-1 min-w-0 bg-theme-input border border-theme-border rounded-xl px-2.5 py-1 text-xs text-theme-text outline-none focus:border-theme-accent transition-colors"
+                            className="flex-1 min-w-0 bg-theme-input border border-theme-border rounded-full px-2.5 py-1 text-xs text-theme-text outline-none focus:border-theme-accent transition-colors"
                           />
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               saveName(device.ip);
                             }}
-                            className="p-1.5 hover:bg-theme-border rounded-lg text-theme-green transition-all"
+                            className="p-1.5 hover:bg-theme-input rounded-full text-theme-green transition-colors"
                           >
                             <Check className="w-3.5 h-3.5" />
                           </button>
@@ -603,22 +590,22 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                               e.stopPropagation();
                               cancelEditing();
                             }}
-                            className="p-1.5 hover:bg-theme-border rounded-lg text-theme-textSecondary transition-all"
+                            className="p-1.5 hover:bg-theme-input rounded-full text-theme-textSecondary transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ) : (
                         <div className="flex flex-col min-w-0 pr-2">
-                          <span className="font-bold text-xs text-theme-text truncate">
+                          <span className="font-bold text-xs text-theme-text truncate tracking-apple-body">
                             {device.name || 'Lámpara inteligente'}
                           </span>
-                          <div className="font-mono text-[9px] text-theme-textSecondary mt-0.5 flex items-center gap-1 min-w-0 transition-opacity duration-200 group-hover:opacity-0">
+                          <div className="text-[10px] text-theme-textSecondary mt-0.5 flex items-center gap-1 min-w-0 transition-opacity duration-200 group-hover:opacity-0">
                             <span className="truncate">{device.ip}</span>
                             {device.state?.state !== undefined && (
                               <>
                                 <span className="flex-shrink-0">·</span>
-                                <span className={`flex-shrink-0 ${device.state.state ? 'text-amber-400' : 'text-theme-textSecondary'}`}>
+                                <span className={`flex-shrink-0 font-sans tracking-apple-body-sm ${device.state.state ? 'text-amber-500' : 'text-theme-textSecondary'}`}>
                                   {device.state.state ? 'Encendida' : 'Apagada'}
                                 </span>
                               </>
@@ -629,14 +616,14 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                     </div>
 
                     {!isEditing && (
-                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
-                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 transition-all duration-200">
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
+                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 transition-opacity duration-200">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               startEditing(device.ip, device.name);
                             }}
-                            className="p-1.5 bg-theme-bg hover:bg-theme-border border border-theme-border rounded-xl text-theme-textSecondary hover:text-theme-text shadow-sm transition-all duration-150 active:scale-95"
+                            className="p-1.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-theme-textSecondary hover:text-theme-text transition-colors duration-150 active:scale-95"
                             title="Editar"
                           >
                             <Edit2 className="w-3 h-3" />
@@ -646,15 +633,15 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                               e.stopPropagation();
                               onExcludeDevice(device.ip);
                             }}
-                            className="p-1.5 bg-theme-bg hover:bg-theme-border border border-theme-border rounded-xl text-theme-textSecondary hover:text-red-400 shadow-sm transition-all duration-150 active:scale-95"
+                            className="p-1.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-theme-textSecondary hover:text-red-400 transition-colors duration-150 active:scale-95"
                             title="Excluir"
                           >
                             <EyeOff className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         {isSelected && (
-                          <span className="group-hover:hidden flex items-center justify-center w-7 h-7 bg-theme-input/40 backdrop-blur-sm rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ring-4 ring-emerald-400/20 animate-pulse" />
+                          <span className="group-hover:hidden flex items-center justify-center w-7 h-7 bg-theme-input/40 backdrop-blur-md rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           </span>
                         )}
                       </div>
@@ -668,15 +655,15 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
 
         {/* Global Empty State (no rooms and no individual devices) */}
         {groups.length === 0 && individualDevices.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 px-4 text-center border border-dashed border-theme-border rounded-2xl bg-theme-input space-y-3 transition-all duration-300">
-            <div className="p-3 bg-theme-input rounded-full border border-theme-border flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center py-10 px-6 text-center border border-dashed border-theme-border rounded-[28px] bg-theme-input/20 space-y-4 transition-colors duration-300 shadow-none">
+            <div className="p-3 bg-theme-card rounded-full border border-theme-border flex items-center justify-center">
               <Network className="w-5 h-5 text-theme-textSecondary opacity-40 animate-pulse" />
             </div>
             <div className="space-y-1">
-              <h4 className="text-[11px] font-bold text-theme-text uppercase tracking-wider">
+              <h4 className="text-[11px] font-semibold text-theme-text uppercase tracking-[0.06em]">
                 {devices.length > 0 ? 'Dispositivos ocultos' : 'Sin dispositivos'}
               </h4>
-              <p className="text-[10px] text-theme-textSecondary leading-relaxed max-w-[200px] mx-auto">
+              <p className="text-[10px] text-theme-textSecondary leading-relaxed max-w-[200px] mx-auto tracking-apple-body-sm">
                 {devices.length > 0
                   ? 'Todas las lámparas detectadas han sido excluidas de la vista.'
                   : 'Haz clic en "Buscar" para rastrear lámparas inteligentes Wi-Fi en tu red.'}
@@ -686,7 +673,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
               <button
                 type="button"
                 onClick={handleStartCreateGroup}
-                className="px-3 py-1.5 bg-theme-input hover:bg-theme-border border border-theme-border text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-1 text-theme-text"
+                className="px-4 py-2 bg-theme-card hover:bg-theme-input border border-theme-border text-[10px] font-semibold rounded-full transition-colors flex items-center gap-1.5 text-theme-text shadow-none"
               >
                 <Plus className="w-3 h-3" />
                 Crear Habitación
@@ -698,11 +685,11 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
 
       {/* Collapsible excluded devices section */}
       {excludedIps.length > 0 && (
-        <div className="border-t border-theme-border pt-3">
+        <div className="border-t border-theme-border/60 pt-3">
           <button
             type="button"
             onClick={() => setShowExcluded(!showExcluded)}
-            className="w-full flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-theme-textSecondary hover:text-theme-text transition-colors pb-1 outline-none focus:text-theme-text"
+            className="w-full flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.06em] text-theme-textSecondary hover:text-theme-text transition-colors pb-1 outline-none focus:text-theme-text"
           >
             <span className="flex items-center gap-1.5">
               <EyeOff className="w-3.5 h-3.5 opacity-60" />
@@ -725,20 +712,23 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
                 return (
                   <div
                     key={ip}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-theme-input border border-theme-border text-xs transition-colors hover:bg-theme-border"
+                    className="flex items-center gap-2.5 p-3 rounded-[28px] bg-theme-card border border-theme-border/30 text-xs transition-colors hover:bg-theme-input shadow-none"
                   >
-                    <div className="min-w-0 flex-1 pr-2">
-                      <div className="font-bold text-theme-text/80 truncate text-[11px] leading-tight">
+                    <div className="flex-shrink-0 p-1.5 bg-theme-card rounded-full border border-theme-border flex items-center justify-center">
+                      <Lightbulb className="w-3.5 h-3.5 text-theme-textSecondary opacity-30" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-theme-text/60 truncate text-[11px] leading-tight">
                         {device.name || 'Lámpara inteligente'}
                       </div>
-                      <div className="font-mono text-[9px] text-theme-textSecondary/50 truncate mt-0.5">
+                      <div className="text-[10px] text-theme-textSecondary/50 truncate mt-0.5">
                         {device.ip}
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => onIncludeDevice(ip)}
-                      className="p-1.5 hover:bg-theme-border rounded-lg text-theme-textSecondary hover:text-theme-accent transition-all flex-shrink-0"
+                      className="p-1.5 hover:bg-theme-input rounded-full text-theme-textSecondary hover:text-theme-accent transition-colors flex-shrink-0"
                       title="Restaurar dispositivo"
                       aria-label={`Restaurar dispositivo ${device.name || device.ip}`}
                     >
@@ -766,13 +756,13 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
           value={manualIp}
           onChange={(e) => setManualIp(e.target.value)}
           placeholder="Añadir IP manualmente..."
-          className="w-full bg-theme-input border border-theme-border rounded-2xl pl-9 pr-10 py-2.5 text-xs font-mono text-theme-text placeholder-theme-textSecondary/60 outline-none focus:border-theme-accent transition-all duration-300"
+          className="w-full bg-theme-input border border-theme-border rounded-full pl-9 pr-12 py-2.5 text-xs  text-theme-text placeholder-theme-textSecondary/60 outline-none focus:border-theme-accent transition-colors duration-300 shadow-none"
         />
         <button
           type="submit"
           disabled={!isValidIp(manualIp.trim())}
           aria-label="Añadir dispositivo por IP"
-          className="absolute right-1.5 p-1.5 bg-theme-input hover:bg-theme-border border border-theme-border text-theme-text rounded-xl transition-all duration-200 flex items-center justify-center active:scale-90 disabled:opacity-30 disabled:pointer-events-none"
+          className="absolute right-1.5 p-1.5 bg-theme-card hover:bg-theme-input border border-theme-border text-theme-text rounded-full transition-[color,opacity] duration-200 flex items-center justify-center active:scale-90 disabled:opacity-30 disabled:pointer-events-none shadow-none"
         >
           <Plus className="w-3.5 h-3.5" aria-hidden="true" />
         </button>

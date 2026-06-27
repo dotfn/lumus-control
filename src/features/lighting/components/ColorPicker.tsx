@@ -39,8 +39,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             <button
               key={color.name}
               onClick={() => onChange(color.r, color.g, color.b)}
-              className={`w-9 h-9 rounded-full border-2 transition-all active:scale-95 duration-150 hover:scale-110 ${
-                isSelected ? 'border-theme-text scale-105 shadow-sm' : 'border-theme-border'
+              className={`w-9 h-9 rounded-full border transition-[border-color,transform] active:scale-95 duration-300 hover:scale-110 ${
+                isSelected ? 'border-theme-text ring-1 ring-theme-text/20 shadow-none' : 'border-theme-border/60'
               }`}
               style={{ backgroundColor: `rgb(${color.r},${color.g},${color.b})` }}
               aria-label={`Color ${color.name}`}
@@ -50,7 +50,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 
         {/* Custom Color Selector Swatch */}
         <label
-          className="relative w-9 h-9 rounded-full border-2 border-theme-border overflow-hidden cursor-pointer hover:scale-110 transition-transform active:scale-95 flex items-center justify-center"
+          className="relative w-9 h-9 rounded-full border border-theme-border overflow-hidden cursor-pointer hover:scale-110 transition-transform active:scale-95 flex items-center justify-center"
           style={{
             background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
           }}

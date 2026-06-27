@@ -65,22 +65,22 @@ export const TimerView: React.FC<TimerViewProps> = ({
   return (
     <div className="max-w-md mx-auto space-y-6 animate-fade-in">
       {!isActive ? (
-        <div className="glass-card space-y-5">
+        <div className="glass-card space-y-5 shadow-none">
           {/* Header Block with Ambient Glow */}
           <div className="flex items-center gap-3.5 border-b border-theme-border pb-4 relative overflow-hidden">
             <div className="absolute top-1/2 left-4 -translate-y-1/2 w-10 h-10 bg-indigo-500/15 dark:bg-indigo-500/20 rounded-full blur-md -z-10 animate-pulse" />
-            <div className="p-2.5 bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/20 rounded-2xl flex items-center justify-center">
+            <div className="p-2.5 bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/20 rounded-full flex items-center justify-center">
               <Moon className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-theme-text tracking-tight">Temporizador de Apagado</h3>
-              <p className="text-[11px] text-theme-textSecondary mt-0.5">Apaga tu lámpara gradualmente para conciliar el sueño.</p>
+              <h3 className="font-bold text-sm text-theme-text tracking-apple-body">Temporizador de Apagado</h3>
+              <p className="text-[11px] text-theme-textSecondary mt-0.5 tracking-apple-body-sm">Apaga tu lámpara gradualmente para conciliar el sueño.</p>
             </div>
           </div>
 
           {/* Quick presets grid */}
           <div className="space-y-2.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-theme-textSecondary block">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-theme-textSecondary block tracking-apple-body-sm">
               Seleccionar Tiempo
             </label>
             <div className="grid grid-cols-3 gap-2.5">
@@ -91,13 +91,13 @@ export const TimerView: React.FC<TimerViewProps> = ({
                     key={t}
                     type="button"
                     onClick={() => setMinutes(t)}
-                    className={`py-3 px-2 text-xs font-semibold rounded-xl border transition-all duration-200 flex flex-col items-center justify-center gap-1.5 active:scale-[0.97] hover:scale-[1.02] ${
+                    className={`py-3 px-2 text-xs font-semibold rounded-[28px] border transition-[color,transform] duration-300 flex flex-col items-center justify-center gap-1.5 active:scale-[0.97] hover:scale-[1.02] shadow-none ${
                       isSelected
-                        ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-200 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
-                        : 'bg-theme-input/40 border-theme-border text-theme-textSecondary hover:bg-theme-input/70 hover:text-theme-text hover:border-theme-textSecondary/20'
+                        ? 'bg-theme-text/5 border-theme-text/40 text-theme-text'
+                        : 'bg-theme-card border-theme-border/0 text-theme-textSecondary hover:bg-theme-input hover:text-theme-text'
                     }`}
                   >
-                    <Clock className={`w-3.5 h-3.5 transition-transform duration-300 ${isSelected ? 'scale-110 text-indigo-400' : 'opacity-70'}`} />
+                    <Clock className={`w-3.5 h-3.5 transition-transform duration-300 ${isSelected ? 'scale-110 text-theme-text' : 'opacity-70'}`} />
                     <span className={isSelected ? 'font-bold' : ''}>{t} min</span>
                   </button>
                 );
@@ -106,17 +106,17 @@ export const TimerView: React.FC<TimerViewProps> = ({
           </div>
 
           {/* Custom Duration Input */}
-          <div className="space-y-3 bg-theme-input/20 p-4 border border-theme-border rounded-2xl transition-colors duration-300">
-            <div className="flex justify-between items-center text-[10px] text-theme-textSecondary font-bold uppercase tracking-wider">
+          <div className="space-y-3 bg-theme-card/30 p-4 border border-theme-border rounded-[28px] transition-colors duration-300 shadow-none">
+            <div className="flex justify-between items-center text-[10px] text-theme-textSecondary font-bold uppercase tracking-wider tracking-apple-body-sm">
               <label htmlFor="custom-time">Duración Personalizada</label>
-              <span className="text-indigo-400 font-mono text-xs lowercase first-letter:uppercase">{minutes} {minutes === 1 ? 'minuto' : 'minutos'}</span>
+              <span className="text-indigo-500 dark:text-indigo-400  text-xs lowercase first-letter:uppercase font-bold">{minutes} {minutes === 1 ? 'minuto' : 'minutos'}</span>
             </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleDecrement}
                 disabled={minutes <= 1}
-                className="p-2 bg-theme-input hover:bg-theme-border border border-theme-border rounded-xl text-theme-textSecondary hover:text-theme-text transition-all disabled:opacity-40 disabled:pointer-events-none active:scale-90"
+                className="p-2.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-theme-textSecondary hover:text-theme-text transition-colors disabled:opacity-40 disabled:pointer-events-none active:scale-90 shadow-none"
                 aria-label="Disminuir 1 minuto"
               >
                 <Minus className="w-3.5 h-3.5" />
@@ -132,7 +132,7 @@ export const TimerView: React.FC<TimerViewProps> = ({
                   style={{
                     background: `linear-gradient(to right, rgb(99, 102, 241) 0%, rgb(99, 102, 241) ${percent}%, var(--slider-track) ${percent}%, var(--slider-track) 100%)`
                   }}
-                  className="w-full h-1.5 cursor-pointer appearance-none rounded-full outline-none transition-all duration-150"
+                  className="w-full h-1.5 cursor-pointer appearance-none rounded-full outline-none transition-[background] duration-150"
                   aria-label={`Duración: ${minutes} minutos`}
                 />
               </div>
@@ -140,7 +140,7 @@ export const TimerView: React.FC<TimerViewProps> = ({
                 type="button"
                 onClick={handleIncrement}
                 disabled={minutes >= 180}
-                className="p-2 bg-theme-input hover:bg-theme-border border border-theme-border rounded-xl text-theme-textSecondary hover:text-theme-text transition-all disabled:opacity-40 disabled:pointer-events-none active:scale-90"
+                className="p-2.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-theme-textSecondary hover:text-theme-text transition-colors disabled:opacity-40 disabled:pointer-events-none active:scale-90 shadow-none"
                 aria-label="Aumentar 1 minuto"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -151,15 +151,15 @@ export const TimerView: React.FC<TimerViewProps> = ({
           {/* iOS-style toggle switch wrapper */}
           <div
             onClick={() => setFadeOut(!fadeOut)}
-            className="flex items-center justify-between p-4 bg-theme-input/20 border border-theme-border rounded-2xl cursor-pointer select-none hover:bg-theme-input/30 transition-all duration-300"
+           className="flex items-center justify-between p-5 bg-theme-card/30 border border-theme-border rounded-[28px] cursor-pointer select-none hover:bg-theme-input/10 transition-colors duration-300 shadow-none"
           >
             <div className="flex items-start gap-3.5 mr-4">
-              <div className="mt-0.5 p-1.5 bg-indigo-500/10 rounded-lg">
+              <div className="mt-0.5 p-1.5 bg-indigo-500/10 rounded-full">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
               </div>
               <div>
-                <span className="font-bold text-xs text-theme-text">Desvanecimiento gradual</span>
-                <p className="text-[10px] text-theme-textSecondary mt-0.5 leading-relaxed">La intensidad de la luz disminuirá progresivamente hasta apagarse.</p>
+                <span className="font-bold text-xs text-theme-text tracking-apple-body">Desvanecimiento gradual</span>
+                <p className="text-[10px] text-theme-textSecondary mt-0.5 leading-relaxed tracking-apple-body-sm">La intensidad de la luz disminuirá progresivamente hasta apagarse.</p>
               </div>
             </div>
             {/* Custom switch */}
@@ -177,21 +177,21 @@ export const TimerView: React.FC<TimerViewProps> = ({
           {/* Action button */}
           <button
             onClick={handleStart}
-            className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-[0_4px_16px_rgba(99,102,241,0.25)] hover:shadow-[0_4px_20px_rgba(99,102,241,0.35)] active:scale-[0.98]"
+            className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-none active:scale-[0.98]"
           >
             <Play className="w-4 h-4 fill-current" />
             Iniciar Temporizador
           </button>
         </div>
       ) : (
-        <div className="glass-card flex flex-col items-center justify-center text-center p-6 space-y-6 animate-fade-in">
+        <div className="glass-card flex flex-col items-center justify-center text-center p-7 space-y-6 animate-fade-in shadow-none">
           {/* Active Timer Header */}
           <div className="flex items-center justify-between w-full border-b border-theme-border pb-3 mb-1">
-            <span className="text-xs font-bold text-theme-textSecondary uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-xs font-bold text-theme-textSecondary uppercase tracking-wider flex items-center gap-1.5 tracking-apple-body">
               <Moon className="w-4 h-4 text-indigo-400 animate-pulse" />
               Temporizador Activo
             </span>
-            <span className="text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full font-bold animate-pulse">
+            <span className="text-[10px] bg-indigo-500/15 text-indigo-400 dark:text-indigo-300 border border-indigo-500/20 px-2.5 py-0.5 rounded-full font-bold">
               En Progreso
             </span>
           </div>
@@ -199,7 +199,7 @@ export const TimerView: React.FC<TimerViewProps> = ({
           {/* Radial Progress Circle Countdown */}
           <div className="relative flex items-center justify-center my-6">
             <div className="absolute inset-0 w-full h-full rounded-full bg-indigo-500/5 blur-xl scale-75 animate-pulse" />
-            <svg height={radius * 2} width={radius * 2} className="transform -rotate-90 relative z-10 drop-shadow-[0_0_8px_rgba(99,102,241,0.25)]">
+            <svg height={radius * 2} width={radius * 2} className="transform -rotate-90 relative z-10">
               {/* Background circle track */}
               <circle
                 stroke="var(--border-color)"
@@ -221,11 +221,11 @@ export const TimerView: React.FC<TimerViewProps> = ({
                 r={normalizedRadius}
                 cx={radius}
                 cy={radius}
-                className="transition-all duration-1000 ease-linear"
+                className="transition-[stroke-dashoffset] duration-1000 ease-linear"
               />
             </svg>
             <div className="absolute flex flex-col items-center justify-center z-20">
-              <span className="text-3xl font-extrabold font-mono text-theme-text tracking-tight tabular-nums select-all">
+              <span className="text-3xl font-extrabold  text-theme-text tracking-tight tabular-nums select-all">
                 {formatTime(remainingSeconds)}
               </span>
               <span className="text-[9px] text-theme-textSecondary uppercase font-bold tracking-wider mt-1">
@@ -235,25 +235,25 @@ export const TimerView: React.FC<TimerViewProps> = ({
           </div>
 
           {/* Details info block */}
-          <div className="w-full bg-theme-input/20 border border-theme-border/60 rounded-2xl p-4 text-xs text-left space-y-3 transition-colors duration-300">
+          <div className="w-full bg-theme-card/30 border border-theme-border rounded-[28px] p-5 text-xs text-left space-y-3 transition-colors duration-300 shadow-none">
             <div className="flex justify-between items-center border-b border-theme-border pb-2.5">
-              <span className="text-theme-textSecondary font-semibold flex items-center gap-2">
+              <span className="text-theme-textSecondary font-semibold flex items-center gap-2 tracking-apple-body">
                 <Moon className="w-3.5 h-3.5 text-indigo-400" />
                 Apagado Programado
               </span>
-              <span className="font-bold text-theme-text font-mono text-[13px]">{estimatedOffTime}</span>
+              <span className="font-bold text-theme-text  text-[13px]">{estimatedOffTime}</span>
             </div>
             <div className="flex justify-between items-center border-b border-theme-border pb-2.5">
-              <span className="text-theme-textSecondary font-semibold flex items-center gap-2">
+              <span className="text-theme-textSecondary font-semibold flex items-center gap-2 tracking-apple-body">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                 Desvanecimiento
               </span>
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${fadeOutEnabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-theme-input text-theme-textSecondary border border-theme-border'}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${fadeOutEnabled ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-none' : 'bg-theme-input text-theme-textSecondary border border-theme-border shadow-none'}`}>
                 {fadeOutEnabled ? 'Activo' : 'Inactivo'}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-theme-textSecondary font-semibold flex items-center gap-2">
+              <span className="text-theme-textSecondary font-semibold flex items-center gap-2 tracking-apple-body">
                 <Clock className="w-3.5 h-3.5 text-indigo-400" />
                 Duración Total
               </span>
@@ -264,7 +264,7 @@ export const TimerView: React.FC<TimerViewProps> = ({
           {/* Stop / Cancel button */}
           <button
             onClick={onCancelTimer}
-            className="w-full py-3 px-4 bg-theme-input hover:bg-theme-border/60 border border-theme-border text-theme-text hover:text-red-400 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            className="w-full py-3.5 px-4 bg-theme-input hover:bg-theme-input/80 border border-theme-border text-theme-text hover:text-red-400 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-colors active:scale-[0.98] shadow-none"
           >
             <Square className="w-3.5 h-3.5 fill-current text-red-500/80" />
             Cancelar Temporizador
@@ -274,3 +274,4 @@ export const TimerView: React.FC<TimerViewProps> = ({
     </div>
   );
 };
+

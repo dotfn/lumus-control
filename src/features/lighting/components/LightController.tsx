@@ -44,9 +44,9 @@ export const LightController: React.FC<LightControllerProps> = ({
           <div className="flex items-center justify-between">
             <button
               onClick={handlePower}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-xs transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-xs transition-colors duration-200 ${
                 state.state
-                  ? 'bg-theme-green border-transparent text-white shadow-[0_4px_12px_rgba(52,199,89,0.25)]'
+                  ? 'bg-theme-green border-theme-border/0 text-white ring-2 ring-theme-green/30'
                   : 'bg-theme-input border-theme-border text-theme-textSecondary hover:opacity-85'
               }`}
             >
@@ -75,13 +75,13 @@ export const LightController: React.FC<LightControllerProps> = ({
       )}
 
       {/* Mode Tabs */}
-      <div className="flex bg-theme-input border border-theme-border rounded-lg p-0.5 transition-colors duration-300">
+      <div className="flex bg-theme-bg/60 border border-theme-border rounded-full p-1 gap-1 transition-colors duration-300">
         <button
           onClick={() => setActiveTab('color')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all duration-150 ${
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-full flex items-center justify-center gap-1.5 transition-colors duration-150 ${
             activeTab === 'color'
-              ? 'bg-theme-card text-theme-text shadow-sm'
-              : 'text-theme-textSecondary hover:text-theme-text font-normal'
+              ? 'bg-theme-card text-theme-text border border-theme-border'
+              : 'text-theme-textSecondary hover:text-theme-text font-normal border border-theme-border/0'
           }`}
         >
           <Palette className="w-3.5 h-3.5" />
@@ -89,10 +89,10 @@ export const LightController: React.FC<LightControllerProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('white')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all duration-150 ${
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-full flex items-center justify-center gap-1.5 transition-colors duration-150 ${
             activeTab === 'white'
-              ? 'bg-theme-card text-theme-text shadow-sm'
-              : 'text-theme-textSecondary hover:text-theme-text font-normal'
+              ? 'bg-theme-card text-theme-text border border-theme-border'
+              : 'text-theme-textSecondary hover:text-theme-text font-normal border border-theme-border/0'
           }`}
         >
           <Thermometer className="w-3.5 h-3.5" />
@@ -101,7 +101,7 @@ export const LightController: React.FC<LightControllerProps> = ({
       </div>
 
       {/* Tab Contents */}
-      <div className="transition-all duration-300">
+      <div className="transition-opacity duration-300">
         {activeTab === 'color' ? (
           <ColorPicker
             currentR={state.r}
@@ -115,7 +115,7 @@ export const LightController: React.FC<LightControllerProps> = ({
               <label className="text-[11px] font-semibold uppercase tracking-wider text-theme-textSecondary">
                 Temperatura de blanco
               </label>
-              <span className="font-mono text-[10px] text-theme-textSecondary">{state.temp || 4000}K</span>
+              <span className=" text-[10px] text-theme-textSecondary">{state.temp || 4000}K</span>
             </div>
             <input
               type="range"
@@ -129,7 +129,7 @@ export const LightController: React.FC<LightControllerProps> = ({
                 background: 'linear-gradient(to right, #ff9b34, #ffe7d0, #ffffff, #c7dfff, #6ab1ff)',
               }}
             />
-            <div className="flex justify-between text-[10px] text-theme-textSecondary font-mono transition-colors duration-300">
+            <div className="flex justify-between text-[10px] text-theme-textSecondary  transition-colors duration-300">
               <span>2200K cálido</span>
               <span>6500K frío</span>
             </div>

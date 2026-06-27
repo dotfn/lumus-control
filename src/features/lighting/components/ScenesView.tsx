@@ -55,9 +55,9 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header controls: Search & Category tabs */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-theme-input/30 p-3.5 border border-theme-border rounded-2xl">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-theme-input/40 p-4 border border-theme-border rounded-[28px] shadow-none">
         {/* Category switcher */}
-        <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+        <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
           {(['all', 'relax', 'party', 'focus'] as SceneCategory[]).map((cat) => {
             const label = {
               all: 'Todas',
@@ -71,15 +71,15 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all duration-200 shrink-0 flex items-center gap-1.5 ${
+                className={`px-4 py-2 text-xs font-semibold rounded-full border transition-colors duration-200 shrink-0 flex items-center gap-2 shadow-none ${
                   isActive
-                    ? 'bg-theme-accent border-transparent text-white shadow-sm'
-                    : 'bg-theme-input border-theme-border text-theme-textSecondary hover:bg-theme-border hover:text-theme-text'
+                    ? 'bg-theme-accent border-theme-border/0 text-white'
+                    : 'bg-theme-card border-theme-border text-theme-textSecondary hover:bg-theme-input hover:text-theme-text'
                 }`}
               >
                 <span>{label}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  className={`text-[10px] px-2 py-0.2 rounded-full  font-bold ${
                     isActive ? 'bg-white/20 text-white' : 'bg-theme-input text-theme-textSecondary'
                   }`}
                 >
@@ -98,17 +98,17 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar escena..."
-            className="w-full bg-theme-input border border-theme-border rounded-xl pl-10 pr-4 py-1.5 text-xs text-theme-text placeholder-theme-textSecondary/70 outline-none focus:border-theme-accent/50 transition-colors"
+            className="w-full bg-theme-input border border-theme-border rounded-full pl-10 pr-4 py-2 text-xs text-theme-text placeholder-theme-textSecondary/70 outline-none focus:border-theme-accent transition-colors shadow-none"
           />
         </div>
       </div>
 
       {/* Empty State */}
       {filteredScenes.length === 0 && (
-        <div className="text-center py-16 bg-theme-input/20 border border-dashed border-theme-border rounded-2xl">
+        <div className="text-center py-20 bg-theme-input/20 border border-dashed border-theme-border rounded-[28px] shadow-none">
           <SlidersHorizontal className="w-8 h-8 text-theme-textSecondary/40 mx-auto mb-2" />
-          <p className="text-xs text-theme-textSecondary font-semibold">No se encontraron escenas</p>
-          <p className="text-[11px] text-theme-textSecondary/75 mt-0.5">Intenta buscar con otros términos o cambia la categoría.</p>
+          <p className="text-xs text-theme-textSecondary font-bold tracking-apple-body">No se encontraron escenas</p>
+          <p className="text-[11px] text-theme-textSecondary/70 mt-0.5 tracking-apple-body-sm">Intenta buscar con otros términos o cambia la categoría.</p>
         </div>
       )}
 
@@ -128,20 +128,16 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
               onClick={() => onSelectScene(scene.id)}
               onMouseEnter={() => setHoveredSceneId(scene.id)}
               onMouseLeave={() => setHoveredSceneId(null)}
-              className={`relative overflow-hidden p-4 rounded-2xl border text-left transition-all duration-300 group hover:scale-[1.02] flex flex-col justify-between min-h-[120px] ${
+              className={`relative overflow-hidden p-5 rounded-[28px] border text-left transition-[border-color,transform] duration-300 group hover:scale-[1.02] flex flex-col justify-between min-h-[130px] shadow-none ${
                 isSelected
-                  ? 'border-blue-500/50 shadow-[0_4px_16px_rgba(0,122,255,0.18)] bg-theme-card'
-                  : 'border-theme-border bg-theme-card'
+                  ? 'border-theme-text bg-theme-card'
+                  : 'border-theme-border/0 bg-theme-card'
               }`}
               style={{
-                borderColor: isSelected
-                  ? undefined
-                  : isHovered
-                  ? `${scene.colors[0]}55` // ~33% de opacidad para el borde con el color principal de la escena
+                borderColor: isHovered
+                  ? `${scene.colors[0]}66`
                   : undefined,
-                boxShadow: isHovered && !isSelected
-                  ? `0 8px 24px -6px ${scene.colors[0]}26, 0 4px 12px -2px ${scene.colors[0]}1a`
-                  : undefined,
+                boxShadow: 'none',
               }}
             >
               {/* Background gradient overlay on hover/active */}
@@ -158,7 +154,7 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
 
               {/* Dynamic colored background glow wrapper */}
               <div
-                className={`absolute -right-6 -bottom-6 w-28 h-28 rounded-full blur-3xl pointer-events-none transition-all duration-500 ease-out z-0
+                className={`absolute -right-6 -bottom-6 w-28 h-28 rounded-full blur-3xl pointer-events-none transition-[opacity,transform] duration-500 ease-out z-0
                   ${isHovered 
                     ? 'opacity-50' 
                     : isSelected 
@@ -189,13 +185,13 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span
-                      className="w-3 h-3 rounded-full border border-white/20 shrink-0 shadow-sm"
+                      className="w-3 h-3 rounded-full border border-theme-border/60 shrink-0"
                       style={{ background: bgGradient }}
                     />
                     <span className="font-semibold text-xs text-theme-text truncate">{scene.name}</span>
                   </div>
                   {isSelected && (
-                    <span className="text-[9px] bg-theme-accent text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-1.5 shrink-0 shadow-sm shadow-theme-accent/20">
+                    <span className="text-[9px] bg-theme-accent text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-1.5 shrink-0 shadow-none">
                       <span className="relative flex h-1.5 w-1.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
@@ -216,7 +212,7 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
                 {scene.colors.map((color, idx) => (
                   <span
                     key={idx}
-                    className="w-2 h-2 rounded-full border border-white/10"
+                    className="w-2 h-2 rounded-full border border-theme-border/60"
                     style={{ backgroundColor: color }}
                   />
                 ))}

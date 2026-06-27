@@ -59,7 +59,7 @@ export const DownloadPage: React.FC = () => {
       <div className="max-w-5xl mx-auto px-6 py-16 space-y-12 relative">
         {/* Decorative background glow behind the active card */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] pointer-events-none -z-10 filter blur-[120px] opacity-40 transition-all duration-700"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] pointer-events-none -z-10 filter blur-[120px] opacity-40 transition-[background,opacity] duration-700"
           style={{
             background: activeTab === 'mac'
               ? 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)'
@@ -71,27 +71,27 @@ export const DownloadPage: React.FC = () => {
 
         {/* Header */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-bold tracking-wider uppercase font-mono shadow-sm">
-            <Sparkles className="w-3 h-3 text-blue-500 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-theme-accent/10 border border-theme-accent/20 text-theme-accent text-[10px] font-bold tracking-wider uppercase  shadow-none">
+            <Sparkles className="w-3 h-3 text-theme-accent animate-pulse" />
             {loading ? 'Obteniendo última versión...' : `Versión actual: ${latestTag}`}
           </div>
-          <h1 className="font-display font-extrabold text-4xl sm:text-5xl tracking-tight text-theme-text transition-colors">
+          <h1 className="font-display font-bold text-4xl sm:text-5xl tracking-tight text-theme-text transition-colors">
             Descarga Lumus Control
           </h1>
-          <p className="text-theme-textSecondary font-medium text-xs sm:text-sm leading-relaxed max-w-lg mx-auto transition-colors">
+          <p className="text-theme-textSecondary font-light text-xs sm:text-sm leading-relaxed max-w-lg mx-auto transition-colors">
             Instala la aplicación nativa para controlar tus luces Wi-Fi de forma local, instantánea y con un diseño de primer nivel.
           </p>
         </div>
 
         {/* Platform Selector Segmented Control */}
         <div className="flex justify-center">
-          <div className="bg-theme-input/60 border border-theme-border/80 rounded-2xl p-1 flex gap-1 shadow-inner relative max-w-md w-full">
+          <div className="bg-theme-bg/60 border border-theme-border rounded-full p-1 flex gap-1 relative max-w-md w-full">
             <button
               onClick={() => setActiveTab('mac')}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+              className={`flex-1 py-3 px-4 rounded-full text-xs flex items-center justify-center gap-2 transition-colors active:scale-[0.98] border ${
                 activeTab === 'mac'
-                  ? 'bg-theme-card text-theme-text border border-theme-border/40 shadow-md shadow-black/5'
-                  : 'text-theme-textSecondary hover:text-theme-text'
+                  ? 'bg-theme-card text-theme-text font-bold border-theme-border shadow-none'
+                  : 'text-theme-textSecondary hover:text-theme-text font-normal border-transparent'
               }`}
             >
               <Apple className="w-4 h-4" />
@@ -99,10 +99,10 @@ export const DownloadPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('win')}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+              className={`flex-1 py-3 px-4 rounded-full text-xs flex items-center justify-center gap-2 transition-colors active:scale-[0.98] border ${
                 activeTab === 'win'
-                  ? 'bg-theme-card text-theme-text border border-theme-border/40 shadow-md shadow-black/5'
-                  : 'text-theme-textSecondary hover:text-theme-text'
+                  ? 'bg-theme-card text-theme-text font-bold border-theme-border shadow-none'
+                  : 'text-theme-textSecondary hover:text-theme-text font-normal border-transparent'
               }`}
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
@@ -112,10 +112,10 @@ export const DownloadPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('source')}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+              className={`flex-1 py-3 px-4 rounded-full text-xs flex items-center justify-center gap-2 transition-colors active:scale-[0.98] border ${
                 activeTab === 'source'
-                  ? 'bg-theme-card text-theme-text border border-theme-border/40 shadow-md shadow-black/5'
-                  : 'text-theme-textSecondary hover:text-theme-text'
+                  ? 'bg-theme-card text-theme-text font-bold border-theme-border shadow-none'
+                  : 'text-theme-textSecondary hover:text-theme-text font-normal border-transparent'
               }`}
             >
               <Code2 className="w-4 h-4" />
@@ -129,25 +129,25 @@ export const DownloadPage: React.FC = () => {
           {activeTab === 'mac' && (
             <div className="space-y-8">
               {/* macOS Hero Card */}
-              <div className="glass-card max-w-3xl mx-auto p-8 border-theme-border relative overflow-hidden flex flex-col md:flex-row items-center gap-8 shadow-2xl">
+              <div className="glass-card max-w-3xl mx-auto p-8 border-theme-border relative overflow-hidden flex flex-col md:flex-row items-center gap-8 shadow-none">
                 <div className="flex-1 space-y-4 text-center md:text-left">
-                  <div className="w-14 h-14 rounded-2xl bg-theme-input border border-theme-border flex items-center justify-center text-theme-text shadow-sm mx-auto md:mx-0">
+                  <div className="w-14 h-14 rounded-full bg-theme-input/40 border border-theme-border flex items-center justify-center text-theme-text shadow-none mx-auto md:mx-0">
                     <Apple className="w-7 h-7" />
                   </div>
                   <div className="space-y-1">
                     <h3 className="font-extrabold text-xl text-theme-text">macOS Apple Silicon</h3>
-                    <p className="text-[10px] font-bold text-blue-500 font-mono uppercase tracking-wider">
+                    <p className="text-[10px] font-bold text-theme-accent  uppercase tracking-wider">
                       Instalador Nativo (.DMG) · M1 / M2 / M3 / M4
                     </p>
                   </div>
-                  <p className="text-xs text-theme-textSecondary leading-relaxed">
+                  <p className="text-xs text-theme-textSecondary leading-relaxed font-medium">
                     Aplicación nativa compilada y optimizada al 100% para computadoras Mac con chips Apple Silicon. Proporciona un rendimiento insuperable y optimización de energía.
                   </p>
                 </div>
                 <div className="flex-shrink-0 w-full md:w-auto text-center space-y-3">
                   <a
                     href={macDmgUrl}
-                    className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-xs"
+                    className="w-full md:w-auto px-8 py-4 bg-theme-accent hover:opacity-90 text-white font-bold rounded-full flex items-center justify-center gap-2.5 active:scale-95 transition-colors text-xs tracking-apple-body shadow-none"
                     id="btn-download-mac-hero"
                   >
                     <Download className="w-4 h-4" />
@@ -169,15 +169,15 @@ export const DownloadPage: React.FC = () => {
                   <div className="glass-card p-6 border-theme-border flex flex-col justify-between space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Terminal className="w-4 h-4 text-blue-500" />
+                        <Terminal className="w-4 h-4 text-theme-accent" />
                         <h5 className="font-bold text-xs text-theme-text">Instalación Automática One-Liner</h5>
                       </div>
-                      <p className="text-[11px] text-theme-textSecondary leading-relaxed">
+                      <p className="text-[11px] text-theme-textSecondary leading-relaxed font-medium">
                         Ejecuta este comando en tu terminal para descargar, instalar y autorizar la ejecución en Gatekeeper de forma automática.
                       </p>
                     </div>
                     {/* Mock Terminal UI */}
-                    <div className="bg-[#151517] border border-zinc-800 rounded-xl overflow-hidden font-mono text-[10px] text-zinc-300 shadow-lg">
+                    <div className="bg-[#151517] border border-zinc-800 rounded-[28px] overflow-hidden  text-[10px] text-zinc-300 shadow-none">
                       <div className="bg-[#0b0b0c] px-3 py-2 flex items-center justify-between border-b border-zinc-900 select-none">
                         <div className="flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-red-500/50" />
@@ -190,7 +190,7 @@ export const DownloadPage: React.FC = () => {
                         <span className="truncate mr-2"><span className="text-blue-400 select-none">$</span> {oneLinerCmd}</span>
                         <button
                           onClick={() => copyToClipboard(oneLinerCmd, 'oneliner')}
-                          className="p-1.5 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 rounded-md transition-all flex-shrink-0"
+                          className="p-1.5 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 rounded-full transition-colors flex-shrink-0"
                           aria-label="Copiar script"
                         >
                           {copiedText === 'oneliner' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -206,12 +206,12 @@ export const DownloadPage: React.FC = () => {
                         <Apple className="w-4 h-4 text-amber-600" />
                         <h5 className="font-bold text-xs text-theme-text">Instalación vía Homebrew Cask</h5>
                       </div>
-                      <p className="text-[11px] text-theme-textSecondary leading-relaxed">
+                      <p className="text-[11px] text-theme-textSecondary leading-relaxed font-medium">
                         Instala el cask oficial y mantén la aplicación actualizada de forma nativa mediante el comando `brew upgrade`.
                       </p>
                     </div>
                     {/* Mock Terminal UI */}
-                    <div className="bg-[#151517] border border-zinc-800 rounded-xl overflow-hidden font-mono text-[10px] text-zinc-300 shadow-lg space-y-1">
+                    <div className="bg-[#151517] border border-zinc-800 rounded-[28px] overflow-hidden  text-[10px] text-zinc-300 shadow-none space-y-1">
                       <div className="bg-[#0b0b0c] px-3 py-2 flex items-center justify-between border-b border-zinc-900 select-none">
                         <div className="flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-red-500/50" />
@@ -225,7 +225,7 @@ export const DownloadPage: React.FC = () => {
                           <span className="truncate mr-2"><span className="text-blue-400 select-none">$</span> {brewTapCmd}</span>
                           <button
                             onClick={() => copyToClipboard(brewTapCmd, 'brewtap')}
-                            className="p-1.5 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 rounded-md transition-all flex-shrink-0"
+                            className="p-1.5 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 rounded-full transition-colors flex-shrink-0"
                             aria-label="Copiar tap"
                           >
                             {copiedText === 'brewtap' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -235,7 +235,7 @@ export const DownloadPage: React.FC = () => {
                           <span className="truncate mr-2"><span className="text-blue-400 select-none">$</span> {brewInstallCmd}</span>
                           <button
                             onClick={() => copyToClipboard(brewInstallCmd, 'brewinst')}
-                            className="p-1.5 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 rounded-md transition-all flex-shrink-0"
+                            className="p-1.5 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 rounded-full transition-colors flex-shrink-0"
                             aria-label="Copiar cask"
                           >
                             {copiedText === 'brewinst' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -252,27 +252,27 @@ export const DownloadPage: React.FC = () => {
           {activeTab === 'win' && (
             <div className="space-y-8">
               {/* Windows Hero Card */}
-              <div className="glass-card max-w-3xl mx-auto p-8 border-theme-border relative overflow-hidden flex flex-col md:flex-row items-center gap-8 shadow-2xl">
+              <div className="glass-card max-w-3xl mx-auto p-8 border-theme-border relative overflow-hidden flex flex-col md:flex-row items-center gap-8 shadow-none">
                 <div className="flex-1 space-y-4 text-center md:text-left">
-                  <div className="w-14 h-14 rounded-2xl bg-theme-input border border-theme-border flex items-center justify-center text-blue-500 shadow-sm mx-auto md:mx-0">
+                  <div className="w-14 h-14 rounded-full bg-theme-input/40 border border-theme-border flex items-center justify-center text-theme-accent shadow-none mx-auto md:mx-0">
                     <svg className="w-7 h-7 fill-current" viewBox="0 0 24 24">
                       <path d="M0 0h11.4v11.4H0V0zm12.6 0H24v11.4H12.6V0zM0 12.6h11.4V24H0V12.6zm12.6 0H24V24H12.6V12.6z" />
                     </svg>
                   </div>
                   <div className="space-y-1">
                     <h3 className="font-extrabold text-xl text-theme-text">Windows 10 / 11</h3>
-                    <p className="text-[10px] font-bold text-blue-500 font-mono uppercase tracking-wider">
+                    <p className="text-[10px] font-bold text-theme-accent  uppercase tracking-wider">
                       Instalador Nivel Sistema (.EXE) · x64
                     </p>
                   </div>
-                  <p className="text-xs text-theme-textSecondary leading-relaxed">
+                  <p className="text-xs text-theme-textSecondary leading-relaxed font-medium">
                     Instalador autoejecutable nativo (NSIS) de alto rendimiento para computadoras de 64 bits. Cero dependencias externas o configuraciones en la nube.
                   </p>
                 </div>
                 <div className="flex-shrink-0 w-full md:w-auto text-center space-y-3">
                   <a
                     href={winExeUrl}
-                    className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-xs"
+                    className="w-full md:w-auto px-8 py-4 bg-theme-accent hover:opacity-90 text-white font-bold rounded-full flex items-center justify-center gap-2.5 active:scale-95 transition-colors text-xs tracking-apple-body shadow-none"
                     id="btn-download-win-hero"
                   >
                     <Download className="w-4 h-4" />
@@ -285,13 +285,13 @@ export const DownloadPage: React.FC = () => {
               </div>
 
               {/* Windows Help / SmartScreen Warning Tip */}
-              <div className="glass-card max-w-3xl mx-auto p-6 border-amber-500/10 bg-amber-500/5 rounded-2xl flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0">
+              <div className="glass-card max-w-3xl mx-auto p-6 border-amber-500/10 bg-amber-500/5 rounded-[28px] flex items-start gap-4 shadow-none">
+                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0">
                   <AlertCircle className="w-5 h-5" />
                 </div>
                 <div className="space-y-1.5 text-left">
                   <h5 className="font-bold text-xs text-theme-text">Nota de Seguridad (Windows SmartScreen)</h5>
-                  <p className="text-[11px] text-theme-textSecondary leading-relaxed">
+                  <p className="text-[11px] text-theme-textSecondary leading-relaxed font-medium">
                     Dado que Lumus Control es un proyecto Open Source de descarga gratuita, las compilaciones automatizadas se firman de forma ad-hoc (sin un costoso certificado comercial de Microsoft). 
                     Por ello, Windows SmartScreen podría mostrar una pantalla azul de aviso al ejecutar el archivo por primera vez.
                   </p>
@@ -306,13 +306,13 @@ export const DownloadPage: React.FC = () => {
           {activeTab === 'source' && (
             <div className="space-y-8">
               {/* Build from Source Card */}
-              <div className="glass-card max-w-3xl mx-auto p-8 border-theme-border space-y-6 shadow-2xl text-left">
+              <div className="glass-card max-w-3xl mx-auto p-8 border-theme-border space-y-6 shadow-none text-left">
                 <div className="space-y-2">
-                  <div className="w-14 h-14 rounded-2xl bg-theme-input border border-theme-border flex items-center justify-center text-emerald-500 shadow-sm">
+                  <div className="w-14 h-14 rounded-full bg-theme-input/40 border border-theme-border flex items-center justify-center text-emerald-500 shadow-none">
                     <Code2 className="w-7 h-7" />
                   </div>
                   <h3 className="font-extrabold text-xl text-theme-text">Compilar desde Origen</h3>
-                  <p className="text-xs text-theme-textSecondary leading-relaxed">
+                  <p className="text-xs text-theme-textSecondary leading-relaxed font-medium">
                     Lumus Control está construido en Tauri y Rust. Si tienes una arquitectura diferente (como Intel Mac o Linux) o simplemente deseas compilar la aplicación tú mismo con total transparencia, puedes hacerlo de forma nativa.
                   </p>
                 </div>
@@ -322,7 +322,7 @@ export const DownloadPage: React.FC = () => {
                     Comandos de Compilación
                   </span>
                   {/* Mock Terminal UI */}
-                  <div className="bg-[#151517] border border-zinc-800 rounded-xl overflow-hidden font-mono text-[10px] text-zinc-300 shadow-lg">
+                  <div className="bg-[#151517] border border-zinc-800 rounded-[28px] overflow-hidden  text-[10px] text-zinc-300 shadow-none">
                     <div className="bg-[#0b0b0c] px-3 py-2 flex items-center justify-between border-b border-zinc-900 select-none">
                       <div className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-red-500/50" />
@@ -354,26 +354,26 @@ export const DownloadPage: React.FC = () => {
         {/* Security & Verification Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {/* Security Banner Card */}
-          <div className="glass-card p-6 border-theme-border flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 flex-shrink-0 shadow-sm">
+          <div className="glass-card p-6 border-theme-border flex items-start gap-4 shadow-none">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 flex-shrink-0 shadow-none">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div className="space-y-1 text-left">
               <h4 className="font-bold text-xs text-theme-text">Código Abierto Verificado</h4>
-              <p className="text-[11px] text-theme-textSecondary leading-relaxed">
+              <p className="text-[11px] text-theme-textSecondary leading-relaxed font-medium">
                 Nuestros instaladores se compilan de forma automatizada mediante flujos de trabajo transparentes en GitHub Actions, asegurando que el ejecutable corresponde exactamente con el código público.
               </p>
             </div>
           </div>
 
           {/* Local network Card */}
-          <div className="glass-card p-6 border-theme-border flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 flex-shrink-0 shadow-sm">
+          <div className="glass-card p-6 border-theme-border flex items-start gap-4 shadow-none">
+            <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 flex-shrink-0 shadow-none">
               <AlertCircle className="w-5 h-5" />
             </div>
             <div className="space-y-1 text-left">
               <h4 className="font-bold text-xs text-theme-text">Sin Nube, Sin Cuentas</h4>
-              <p className="text-[11px] text-theme-textSecondary leading-relaxed">
+              <p className="text-[11px] text-theme-textSecondary leading-relaxed font-medium">
                 Lumus Control no requiere telemetría ni conexión a internet tras su descarga. Se conecta a tus lámparas a nivel de red interna usando paquetes UDP directos para total privacidad y velocidad.
               </p>
             </div>

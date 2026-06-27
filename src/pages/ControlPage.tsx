@@ -84,7 +84,7 @@ export const ControlPage: React.FC = () => {
     // que el usuario vea el flash blanco del primer paint.
     if (isTauri()) {
       try {
-        getCurrentWebviewWindow().show().catch(() => {});
+        getCurrentWebviewWindow().show().catch(() => { });
       } catch (e) {
         console.warn('Tauri window show is not available', e);
       }
@@ -130,7 +130,7 @@ export const ControlPage: React.FC = () => {
 
       {/* Dynamic Background Glow Layer */}
       <div
-        className="absolute inset-0 pointer-events-none transition-all duration-1000 -z-10"
+        className="absolute inset-0 pointer-events-none transition-opacity duration-1000 -z-10"
         style={{
           background: `radial-gradient(circle at 50% 0%, var(--glow-color) 0%, transparent 65%)`,
           opacity: `calc(0.04 * var(--glow-strength-multiplier, 1.0))`
@@ -141,9 +141,9 @@ export const ControlPage: React.FC = () => {
       <div className="flex-1 flex overflow-hidden pt-12 flex-col">
         {/* Banner de simulación interactiva si está en modo demo */}
         {isDemo && (
-          <div className="bg-blue-500/10 border-b border-theme-border text-blue-400 px-5 py-2 text-xs flex justify-between items-center z-40 animate-fade-in">
+          <div className="bg-theme-accent/10 border-b border-theme-border text-theme-accent px-5 py-2 text-xs flex justify-between items-center z-40 animate-fade-in">
             <div className="flex items-center gap-2 font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+              <Sparkles className="w-3.5 h-3.5 text-theme-accent animate-pulse" />
               <span>
                 <strong>Modo Demo Activo:</strong> Estás explorando la interfaz con un dispositivo virtual.
               </span>
@@ -153,14 +153,14 @@ export const ControlPage: React.FC = () => {
                 href="https://lumuscontrol.app/download"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] bg-blue-500 hover:bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap shadow-sm shadow-blue-500/10 active:scale-95"
+                className="text-[10px] bg-theme-accent hover:opacity-90 text-white font-bold px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap shadow-none active:scale-95"
               >
                 <Laptop className="w-3 h-3" /> Descargar App
               </a>
             ) : (
               <Link
                 to="/download"
-                className="text-[10px] bg-blue-500 hover:bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap shadow-sm shadow-blue-500/10 active:scale-95"
+                className="text-[10px] bg-theme-accent hover:opacity-90 text-white font-bold px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap shadow-none active:scale-95"
               >
                 <Laptop className="w-3 h-3" /> Descargar App
               </Link>
@@ -179,7 +179,7 @@ export const ControlPage: React.FC = () => {
               />
 
               {/* Sidebar content drawer */}
-              <aside className="relative w-[280px] max-w-[85vw] h-full bg-theme-sidebar border-r border-theme-border flex flex-col p-5 overflow-y-auto space-y-6 transition-transform duration-300 ease-out shadow-2xl">
+              <aside className="relative w-[280px] max-w-[85vw] h-full bg-theme-sidebar border-r border-theme-border flex flex-col p-5 overflow-y-auto space-y-6 transition-transform duration-300 ease-out shadow-none">
                 {/* Close button inside Drawer header */}
                 <div className="flex justify-between items-center pb-2 border-b border-theme-border">
                   <span className="text-xs font-bold text-theme-text uppercase tracking-wider">Menú de Red</span>
@@ -239,35 +239,35 @@ export const ControlPage: React.FC = () => {
           </aside>
 
           {/* Right Main Pane: Active Controls */}
-          <main className="flex-1 flex flex-col overflow-hidden p-6 space-y-6 bg-theme-main transition-colors duration-300">
+          <main className="flex-1 flex flex-col overflow-hidden p-6 pb-0 space-y-6 bg-theme-main transition-colors duration-300">
             {/* Header Section */}
-            <header className="flex items-center justify-between pb-4 border-b border-theme-border transition-colors duration-300">
+            <header className="flex items-center justify-between pb-4 border-b border-theme-border/60 transition-colors duration-300">
               <div className="flex items-center gap-3">
                 {/* Botón Wifi responsivo para abrir el menú lateral en móvil */}
                 <button
                   onClick={() => setSidebarOpen(true)}
-                  className="md:hidden p-2 hover:bg-theme-input rounded-xl border border-theme-border text-theme-text transition-all active:scale-95 flex items-center justify-center"
+                  className="md:hidden p-2 hover:bg-theme-input rounded-full border border-theme-border text-theme-text transition-colors active:scale-95 flex items-center justify-center"
                   aria-label="Abrir lista de dispositivos"
                 >
                   <Wifi className="w-4 h-4" />
                 </button>
                 <div>
-                  <h1 className="font-display font-bold text-xl tracking-tight text-theme-text flex items-center gap-2 transition-colors duration-300">
+                  <h1 className="font-display font-bold text-2xl tracking-apple-heading text-theme-text flex items-center gap-2 transition-colors duration-300">
                     Lumus Control
                     {circadianActive && (
-                      <span className="text-[10px] bg-blue-500/15 text-blue-500 border border-blue-500/30 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 animate-bounce">
-                        <Sparkles className="w-2.5 h-2.5" />
+                      <span className="text-[10px] bg-theme-accent/10 text-theme-accent border border-theme-accent/20 px-2 py-0.5 rounded-full flex items-center gap-0.5 font-medium tracking-apple-body-sm">
+                        <Sparkles className="w-2.5 h-2.5 text-theme-accent" />
                         Sincronizado
                       </span>
                     )}
                   </h1>
-                  <p className="text-[10px] text-theme-textSecondary font-mono mt-0.5 flex items-center gap-1.5 font-semibold transition-colors duration-300">
+                  <p className="text-[10px] text-theme-textSecondary font-sans mt-0.5 flex items-center gap-1.5 font-medium tracking-apple-body-sm transition-colors duration-300">
                     {selectedIp && isConnected ? (
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                     ) : (
-                      <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
+                      <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
                     )}
-                    <span className="ml-1">
+                    <span>
                       {activeGroup
                         ? `Habitación: ${activeGroup.name} (${activeGroup.deviceIps.length} lámparas) · ${connectionStatus}`
                         : selectedIp
@@ -282,16 +282,19 @@ export const ControlPage: React.FC = () => {
                 <button
                   onClick={applyCircadianRhythm}
                   title="Sincronizar ritmo circadiano"
-                  className="p-2 hover:opacity-80 active:scale-95 rounded-xl border border-theme-border text-theme-accent bg-theme-input transition-all flex items-center gap-1.5 text-xs"
+                  className={`px-4 py-2 active:scale-95 rounded-full border transition-colors duration-200 flex items-center gap-1.5 text-xs font-medium tracking-apple-body shadow-none ${circadianActive
+                    ? 'bg-theme-accent/15 border-theme-accent/30 text-theme-accent'
+                    : 'bg-theme-card border-theme-border text-theme-textSecondary hover:bg-theme-input hover:text-theme-text'
+                    }`}
                 >
-                  <Sun className="w-4 h-4" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider">Circadiano</span>
+                  <Sun className={`w-3.5 h-3.5 ${circadianActive ? 'animate-pulse' : ''}`} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Circadiano</span>
                 </button>
               )}
             </header>
 
-            {/* Navigation Bar */}
-            <nav className="flex bg-theme-input border border-theme-border rounded-xl p-0.5 gap-0.5 max-w-md w-full transition-colors duration-300" role="tablist" aria-label="Secciones de control">
+            {/* Navigation Bar (Frosted Pill Selector) */}
+            <nav className="flex bg-theme-bg/60 border border-theme-border rounded-full p-1 gap-1 max-w-md w-full transition-colors duration-300 shadow-none" role="tablist" aria-label="Secciones de control">
               {([
                 { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
                 { id: 'scenes', label: 'Escenas', icon: Palette },
@@ -308,11 +311,10 @@ export const ControlPage: React.FC = () => {
                     aria-selected={isActive}
                     aria-controls={`tabpanel-${tab.id}`}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all duration-150 ${
-                      isActive
-                        ? 'bg-theme-card text-theme-text shadow-sm'
-                        : 'text-theme-textSecondary hover:text-theme-text font-normal'
-                    }`}
+                    className={`flex-1 py-2 px-3 text-xs font-semibold rounded-full flex items-center justify-center gap-1.5 transition-colors duration-150 tracking-apple-body shadow-none ${isActive
+                      ? 'bg-theme-card text-theme-text border border-theme-border shadow-none'
+                      : 'text-theme-textSecondary hover:text-theme-text font-normal border border-theme-border/0'
+                      }`}
                   >
                     <TabIcon className="w-3.5 h-3.5" aria-hidden="true" />
                     <span className="hidden min-[400px]:inline">{tab.label}</span>
@@ -322,7 +324,7 @@ export const ControlPage: React.FC = () => {
             </nav>
 
             {/* Tab Content Panel */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 overflow-visible">
               {activeTab === 'settings' ? (
                 <div role="tabpanel" id="tabpanel-settings" aria-labelledby="tab-settings">
                   <SettingsView />
@@ -362,13 +364,13 @@ export const ControlPage: React.FC = () => {
                 </>
               ) : (
                 <div role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
-                  <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 border border-dashed border-theme-border rounded-2xl bg-theme-input animate-fade-in">
-                    <p className="text-sm text-theme-textSecondary text-center max-w-sm transition-colors duration-300">
+                  <div className="flex-1 flex flex-col items-center justify-center py-24 px-6 border border-dashed border-theme-border rounded-[28px] bg-theme-input/30 animate-fade-in shadow-none">
+                    <p className="text-xs text-theme-textSecondary text-center max-w-xs tracking-apple-body leading-relaxed transition-colors duration-300">
                       Selecciona una lámpara de la lista o introduce una dirección en el panel izquierdo para comenzar a controlarla.
                     </p>
                     <button
                       onClick={() => setActiveTab('settings')}
-                      className="mt-4 px-4 py-2 bg-theme-input hover:bg-theme-border border border-theme-border rounded-xl text-xs font-semibold text-theme-text transition-all active:scale-95"
+                      className="mt-6 px-5 py-2.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-xs font-semibold text-theme-text tracking-apple-body transition-colors duration-200 active:scale-95 shadow-none"
                     >
                       Ir a Configuración de Red
                     </button>

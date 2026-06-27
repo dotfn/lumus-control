@@ -10,13 +10,13 @@ export const ThemeToggle: React.FC = () => {
   return (
     <button
       onClick={() => toggleTheme(selectedIp)}
-      className="p-1.5 rounded-lg border border-theme-border bg-theme-input hover:bg-theme-border text-theme-textSecondary hover:text-theme-text transition-all duration-200 active:scale-95 flex items-center justify-center relative overflow-hidden group shadow-sm"
+      className="p-1.5 rounded-lg border border-theme-border bg-theme-input hover:bg-theme-border text-theme-textSecondary hover:text-theme-text transition-colors duration-200 active:scale-95 flex items-center justify-center relative overflow-hidden group shadow-none"
       aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
     >
       <div className="relative w-4 h-4 flex items-center justify-center">
         {/* Sun Icon for switching to light mode */}
         <Sun
-          className={`w-4 h-4 absolute transition-all duration-300 ${
+          className={`w-4 h-4 absolute transition-[opacity,transform] duration-300 ${
             theme === 'dark'
               ? 'opacity-100 rotate-0 scale-100'
               : 'opacity-0 -rotate-90 scale-50 pointer-events-none'
@@ -25,7 +25,7 @@ export const ThemeToggle: React.FC = () => {
         />
         {/* Moon Icon for switching to dark mode */}
         <Moon
-          className={`w-4 h-4 absolute transition-all duration-300 ${
+          className={`w-4 h-4 absolute transition-[opacity,transform] duration-300 ${
             theme === 'light'
               ? 'opacity-100 rotate-0 scale-100'
               : 'opacity-0 rotate-90 scale-50 pointer-events-none'

@@ -27,10 +27,10 @@ export const SceneSelector: React.FC<SceneSelectorProps> = ({
             <button
               key={scene.id}
               onClick={() => onSelectScene(scene.id)}
-              className={`relative overflow-hidden p-3 rounded-xl border text-left transition-all duration-300 group ${
+              className={`relative overflow-hidden p-3 rounded-xl border text-left transition-colors duration-300 group ${
                 isSelected
-                  ? 'border-blue-500/50 shadow-[0_0_12px_rgba(0,122,255,0.15)] bg-theme-card'
-                  : 'border-theme-border bg-theme-input hover:bg-theme-border'
+                  ? 'border-theme-text bg-theme-card shadow-none'
+                  : 'border-theme-border/0 bg-theme-input hover:bg-theme-border'
               }`}
             >
               {/* Colored background glow on hover or when selected */}
@@ -42,7 +42,7 @@ export const SceneSelector: React.FC<SceneSelectorProps> = ({
               <div className="relative z-10 flex flex-col justify-between h-full min-h-[50px]">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0"
+                    className="w-2.5 h-2.5 rounded-full border border-theme-border/60 shrink-0"
                     style={{ background: bgGradient }}
                   />
                   <span className="font-semibold text-xs text-theme-text truncate transition-colors duration-300">{scene.name}</span>

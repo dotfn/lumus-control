@@ -4,47 +4,89 @@
 
 @layer base {
   :root {
-    /* Light Mode Variables */
-    --bg-app: #f5f5f7;
-    --bg-sidebar: rgba(238, 240, 243, 0.8);
-    --bg-card: #ffffff;
-    --bg-main: rgba(255, 255, 255, 0.45);
-    --border-color: rgba(0, 0, 0, 0.08);
-    --text-primary: #1d1d1f;
-    --text-secondary: #6e6e73;
-    --bg-input: rgba(0, 0, 0, 0.03);
-    --border-input: rgba(0, 0, 0, 0.08);
+    /* Apple Light Mode Design Tokens (RGB format for opacity modifiers) */
+    --bg-app: 245, 245, 247;            /* Fog */
+    --bg-sidebar: 245, 245, 247;        /* Fog */
+    --bg-card: 255, 255, 255;           /* Snow */
+    --bg-main: 245, 245, 247;           /* Fog */
+    --border-color: 232, 232, 237;      /* Silver Mist/Border */
+    --text-primary: 29, 29, 31;         /* Ink */
+    --text-secondary: 112, 112, 112;    /* Graphite */
+    --text-slate: 71, 71, 71;          /* Slate */
+    --text-ash: 51, 51, 51;            /* Ash */
+    --bg-input: 232, 232, 237;          /* Silver Mist */
+    --border-input: 232, 232, 237;      /* Silver Mist */
     
-    --accent-blue: #007aff;
-    --accent-green: #34c759;
+    --accent-blue: 0, 113, 227;         /* Azure */
+    --accent-green: 52, 199, 89;
     --glow-strength-multiplier: 0.55;
     
-    --scrollbar-thumb: rgba(0, 0, 0, 0.15);
-    --slider-track: rgba(0, 0, 0, 0.08);
+    --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+    --slider-track: #e8e8ed;
     --slider-thumb-bg: #ffffff;
     --slider-thumb-border: rgba(0, 0, 0, 0.15);
+
+    /* Apple-specific semantic named variables */
+    --color-ink: #1d1d1f;
+    --color-graphite: #707070;
+    --color-slate: #474747;
+    --color-ash: #333333;
+    --color-fog: #f5f5f7;
+    --color-snow: #ffffff;
+    --color-obsidian: #000000;
+    --color-silver-mist: #e8e8ed;
+    --color-azure: #0071e3;
+    --color-cobalt-link: #0066cc;
+    --color-citrus-gradient: #dddc8c;
+    --color-indigo-gradient: #2535e2;
+    --color-blush-gradient: #cc29bc;
+    --color-citrus-finish: #dddc8c;
+    --color-blush-finish: #e8d0d0;
+    --color-indigo-finish: #596680;
+    --color-caution: #b64400;
   }
 
   .dark {
-    /* Dark Mode Variables */
-    --bg-app: #141416;
-    --bg-sidebar: rgba(26, 26, 28, 0.75);
-    --bg-card: rgba(28, 28, 30, 0.5);
-    --bg-main: rgba(28, 28, 30, 0.2);
-    --border-color: rgba(255, 255, 255, 0.06);
-    --text-primary: #f5f2ea;
-    --text-secondary: #9a968c;
-    --bg-input: rgba(255, 255, 255, 0.04);
-    --border-input: rgba(255, 255, 255, 0.06);
+    /* Apple Obsidian Dark Mode Design Tokens (RGB format for opacity modifiers) */
+    --bg-app: 0, 0, 0;                  /* Obsidian */
+    --bg-sidebar: 18, 18, 18;           /* Slightly lighter than black canvas */
+    --bg-card: 28, 28, 30;              /* Space Gray Dark Card */
+    --bg-main: 0, 0, 0;                 /* Obsidian */
+    --border-color: 44, 44, 46;         /* Dark Border */
+    --text-primary: 245, 245, 247;      /* Ink equivalent (Fog) */
+    --text-secondary: 142, 142, 147;    /* Graphite equivalent */
+    --text-slate: 174, 174, 178;        /* Slate equivalent */
+    --text-ash: 199, 199, 204;          /* Ash equivalent */
+    --bg-input: 44, 44, 46;             /* Dark input bg */
+    --border-input: 44, 44, 46;         /* Dark input border */
     
-    --accent-blue: #007aff;
-    --accent-green: #34c759;
-    --glow-strength-multiplier: 1.0;
+    --accent-blue: 10, 132, 255;        /* Brighter Azure for dark contrast */
+    --accent-green: 48, 209, 88;
+    --glow-strength-multiplier: 0.95;
     
-    --scrollbar-thumb: rgba(255, 255, 255, 0.12);
-    --slider-track: rgba(255, 255, 255, 0.12);
-    --slider-thumb-bg: #f5f2ea;
-    --slider-thumb-border: #0b0b0e;
+    --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+    --slider-track: #2c2c2e;
+    --slider-thumb-bg: #ffffff;
+    --slider-thumb-border: #1c1c1e;
+
+    /* Apple-specific semantic named variables (Dark mappings) */
+    --color-ink: #f5f5f7;
+    --color-graphite: #8e8e93;
+    --color-slate: #aeaeb2;
+    --color-ash: #c7c7cc;
+    --color-fog: #000000;
+    --color-snow: #1c1c1e;
+    --color-obsidian: #000000;
+    --color-silver-mist: #2c2c2e;
+    --color-azure: #0a84ff;
+    --color-cobalt-link: #0a84ff;
+    --color-citrus-gradient: #dddc8c;
+    --color-indigo-gradient: #2535e2;
+    --color-blush-gradient: #cc29bc;
+    --color-citrus-finish: #dddc8c;
+    --color-blush-finish: #e8d0d0;
+    --color-indigo-finish: #596680;
+    --color-caution: #ff453a;
   }
 
   body {
@@ -104,7 +146,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%;
   background: var(--slider-thumb-bg);
   border: 3px solid var(--slider-thumb-border);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: none;
   cursor: pointer;
   transition: transform 0.1s ease, background 0.3s ease, border-color 0.3s ease;
 }
@@ -156,21 +198,13 @@ input[type="range"]::-webkit-slider-thumb:active {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Glassmorphism card styles */
+/* Apple Flat-Lit Cards — elevation via background-color differential only */
 .glass-card {
   background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 1rem;
-  padding: 1.25rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-card:hover {
-  border-color: var(--border-input);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: none !important;
+  transition: background-color 0.3s ease;
 }
 
 /* Custom styles for tab transitions */
@@ -182,6 +216,18 @@ input[type="range"]::-webkit-slider-thumb:active {
   opacity: 1;
   transform: translateY(0);
   transition: opacity 250ms ease-out, transform 250ms ease-out;
+}
+
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; background-size: 100% 100%; }
+  25% { background-position: 100% 0%; background-size: 120% 120%; }
+  50% { background-position: 50% 100%; background-size: 110% 110%; }
+  75% { background-position: 0% 100%; background-size: 120% 120%; }
+  100% { background-position: 0% 50%; background-size: 100% 100%; }
+}
+
+.animate-gradient-flow {
+  animation: gradient-flow 12s ease-in-out infinite;
 }
 
 @keyframes float-glow-scene {

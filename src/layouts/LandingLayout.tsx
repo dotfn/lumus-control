@@ -32,14 +32,14 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/10 group-hover:scale-105 transition-all">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-none group-hover:scale-105 transition-transform">
               <Sparkles className="w-5 h-5 text-white animate-pulse" />
             </div>
             <div>
               <span className="font-display font-bold text-base tracking-tight text-theme-text transition-colors">
                 Lumus Control
               </span>
-              <span className="block text-[9px] text-theme-textSecondary font-mono -mt-0.5 tracking-wider uppercase">
+              <span className="block text-[9px] text-theme-textSecondary  -mt-0.5 tracking-wider uppercase">
                 Open Source
               </span>
             </div>
@@ -65,14 +65,14 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
               href="https://github.com/dotfn/lumus-control"
               target="_blank"
               rel="noreferrer"
-              className="p-2 hover:bg-theme-input text-theme-textSecondary hover:text-theme-text rounded-xl border border-theme-border transition-all"
+              className="p-2 hover:bg-theme-input text-theme-textSecondary hover:text-theme-text rounded-full border border-theme-border transition-colors"
               aria-label="Repositorio en GitHub"
             >
               <Github className="w-4 h-4" aria-hidden="true" />
             </a>
             <Link
               to="/download"
-              className="flex items-center gap-1.5 px-4 py-2 bg-theme-accent hover:opacity-90 active:scale-95 text-white font-semibold text-xs rounded-xl transition-all shadow-md shadow-blue-500/15"
+              className="flex items-center gap-1.5 px-4 py-2 bg-theme-accent hover:opacity-90 active:scale-95 text-white font-semibold text-xs rounded-full transition-colors shadow-none"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Instalar</span>
@@ -85,7 +85,7 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
             <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 hover:bg-theme-input text-theme-text rounded-xl border border-theme-border transition-all"
+              className="p-2 hover:bg-theme-input text-theme-text rounded-full border border-theme-border transition-colors"
               aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
             >
               {mobileMenuOpen ? <X className="w-4 h-4" aria-hidden="true" /> : <Menu className="w-4 h-4" aria-hidden="true" />}
@@ -112,14 +112,14 @@ export const LandingLayout: React.FC<LandingLayoutProps> = ({ children }) => {
                   href="https://github.com/dotfn/lumus-control"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 text-sm text-theme-textSecondary hover:text-theme-text transition-all"
+                  className="flex items-center gap-2 text-sm text-theme-textSecondary hover:text-theme-text transition-colors"
                 >
                   <Github className="w-4 h-4" /> GitHub Project
                 </a>
                 <Link
                   to="/download"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="ml-auto flex items-center gap-1.5 px-4 py-2 bg-theme-accent text-white font-semibold text-xs rounded-xl transition-all"
+                  className="ml-auto flex items-center gap-1.5 px-4 py-2 bg-theme-accent text-white font-semibold text-xs rounded-full transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Descargar</span>

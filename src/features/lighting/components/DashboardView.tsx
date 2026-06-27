@@ -41,6 +41,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return 'Luz encendida';
   };
 
+  const dimmingFactor = lampState.state ? lampState.dimming / 100 : 0;
+
   const handlePower = () => setLampState({ state: !lampState.state });
 
   const handleBrightnessInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,70 +53,70 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="flex flex-col gap-4 animate-fade-in">
 
       {/* Hero Card — orb + state + primary controls */}
-      <div className="glass-card flex items-center gap-6 p-5">
+      <div className="glass-card flex flex-col sm:flex-row items-center gap-8 p-7 shadow-none">
 
         {/* Orb */}
         <div className="flex-shrink-0 flex items-center justify-center">
           <div
-            className={`w-24 h-24 rounded-full border transition-all duration-700 ${
+            className={`w-28 h-28 rounded-full border transition-[background,border-color,filter] duration-700 ${
               lampState.state ? 'animate-breathe' : ''
             }`}
             style={{
               background: lampState.state
-                ? `radial-gradient(circle at 38% 32%, ${currentRgbString()} 0%, rgba(var(--glow-color), 0.3) 60%, rgba(255,255,255,0.01) 100%)`
+                ? `radial-gradient(circle at 38% 32%, ${currentRgbString()} 0%, rgba(var(--glow-color), ${0.25 * dimmingFactor}) 60%, rgba(255,255,255,0.01) 100%)`
                 : 'radial-gradient(circle at 38% 32%, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
               borderColor: lampState.state ? currentRgbString() : 'var(--border-color)',
-              boxShadow: lampState.state
-                ? `0 0 calc((20px + 40px * var(--glow-strength)) * var(--glow-strength-multiplier, 1.0)) calc((2px + 10px * var(--glow-strength)) * var(--glow-strength-multiplier, 1.0)) rgba(var(--glow-color), 0.4)`
+              filter: lampState.state
+                ? `drop-shadow(0 4px 16px rgba(var(--glow-color), ${0.35 * dimmingFactor}))`
                 : 'none',
             }}
           />
         </div>
 
         {/* Right: state info + controls */}
-        <div className="flex-1 min-w-0 flex flex-col gap-3">
+        <div className="flex-1 min-w-0 flex flex-col gap-4 w-full">
 
           {/* Status row */}
           <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-base font-bold tracking-tight transition-colors ${lampState.state ? 'text-theme-text' : 'text-theme-textSecondary'}`}>
+            <span className={`text-xl font-bold tracking-apple-heading transition-colors ${lampState.state ? 'text-theme-text' : 'text-theme-textSecondary'}`}>
               {lampState.state ? 'Encendida' : 'Apagada'}
             </span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 tracking-apple-body-sm ${
               isConnected
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-                : 'bg-red-500/10 text-red-400 border-red-500/25'
+                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                : 'bg-red-500/10 text-red-500 border-red-500/20'
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
               {isConnected ? 'En línea' : 'Desconectada'}
             </span>
             {circadianActive && (
-              <span className="text-[10px] bg-blue-500/15 text-blue-500 border border-blue-500/30 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                <Sparkles className="w-2.5 h-2.5" />
+              <span className="text-[10px] bg-theme-accent/10 text-theme-accent border border-theme-accent/20 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold tracking-apple-body-sm">
+                <Sparkles className="w-2.5 h-2.5 text-theme-accent" />
                 Circadiano
               </span>
             )}
           </div>
 
           {/* Mode label */}
-          <p className="text-xs text-theme-textSecondary font-medium truncate">
+          <p className="text-xs text-theme-textSecondary font-medium tracking-apple-body">
             {getModeLabel()}
           </p>
 
           {/* Power + brightness row */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <button
               onClick={handlePower}
-              className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all duration-200 active:scale-95 ${
+              className={`flex-shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border text-xs font-bold transition-colors duration-200 active:scale-95 shadow-none ${
                 lampState.state
-                  ? 'bg-theme-green border-transparent text-white shadow-[0_2px_8px_rgba(52,199,89,0.25)]'
-                  : 'bg-theme-input border-theme-border text-theme-textSecondary hover:opacity-85'
+                  ? 'bg-theme-green border-theme-border/0 text-white'
+                  : 'bg-theme-card border-theme-border text-theme-textSecondary hover:bg-theme-input'
               }`}
             >
-              <Power className="w-3.5 h-3.5" />
+              <Power className="w-4 h-4" />
               {lampState.state ? 'Apagar' : 'Encender'}
             </button>
-            <div className="flex-1 flex items-center gap-3 min-w-0">
-              <span className="text-[11px] font-mono text-theme-textSecondary flex-shrink-0">
+            <div className="flex-1 flex items-center gap-3.5 min-w-0 w-full">
+              <span className="text-[11px]  text-theme-textSecondary font-semibold flex-shrink-0">
                 {lampState.dimming}%
               </span>
               <input
@@ -123,7 +125,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 max="100"
                 value={lampState.dimming}
                 onChange={handleBrightnessInput}
-                className="flex-1"
+                className="flex-1 cursor-pointer"
                 aria-label={`Brillo: ${lampState.dimming}%`}
               />
             </div>
@@ -132,11 +134,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Bottom grid — color controls + readout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* Color / White mode controls */}
-        <div className="glass-card">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-theme-textSecondary border-b border-theme-border pb-2 mb-4">
+        <div className="glass-card shadow-none">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-theme-textSecondary border-b border-theme-border/60 pb-2.5 mb-4 tracking-apple-body-sm">
             Modo de color
           </div>
           <LightController
@@ -147,8 +149,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Readout stats */}
-        <div className="glass-card">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-theme-textSecondary border-b border-theme-border pb-2 mb-4">
+        <div className="glass-card shadow-none">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-theme-textSecondary border-b border-theme-border/60 pb-2.5 mb-4 tracking-apple-body-sm">
             Estado
           </div>
           <div className="space-y-0">
@@ -158,9 +160,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               { label: 'Modo activo', value: getModeLabel() },
               { label: 'Conexión', value: isConnected ? 'En línea' : 'Desconectada' },
             ].map(({ label, value }) => (
-              <div key={label} className="flex justify-between items-center py-2.5 border-b border-theme-border last:border-0 text-xs">
+              <div key={label} className="flex justify-between items-center py-3 border-b border-theme-border/60 last:border-0 text-xs tracking-apple-body">
                 <span className="text-theme-textSecondary font-medium">{label}</span>
-                <span className="font-semibold text-theme-text max-w-[160px] truncate text-right" title={value}>{value}</span>
+                <span className="font-bold text-theme-text max-w-[180px] truncate text-right" title={value}>{value}</span>
               </div>
             ))}
           </div>
@@ -169,3 +171,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     </div>
   );
 };
+
+
+

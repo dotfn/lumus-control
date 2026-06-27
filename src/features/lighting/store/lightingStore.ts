@@ -58,7 +58,7 @@ export const useLightingStore = create<LightingState>((set, get) => ({
           const results = await Promise.allSettled(
             group.deviceIps.map((ip) => deviceService.control(ip, updates))
           );
-          
+
           const anySuccess = results.some((r) => r.status === 'fulfilled');
           if (anySuccess) {
             set({ isConnected: true });
@@ -224,3 +224,4 @@ export const useLightingStore = create<LightingState>((set, get) => ({
   setIsConnected: (connected) => set({ isConnected: connected }),
   setCircadianActive: (active) => set({ circadianActive: active }),
 }));
+

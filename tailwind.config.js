@@ -1,3 +1,12 @@
+const withOpacity = (variableName) => {
+  return ({ opacityValue }) => {
+    if (opacityValue !== undefined) {
+      return `rgba(var(${variableName}), ${opacityValue})`;
+    }
+    return `rgb(var(${variableName}))`;
+  };
+};
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -8,23 +17,35 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'system-ui', 'sans-serif'],
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'system-ui', 'sans-serif'],
-        mono: ['SF Mono', 'Monaco', 'Consolas', 'monospace'],
+        display: ['Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        text: ['Inter', 'SF Pro Text', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'SF Pro Text', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        mono: ['Inter', 'SF Pro Text', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+      },
+      letterSpacing: {
+        'apple-display': '-0.022em',
+        'apple-heading-lg': '-0.016em',
+        'apple-heading': '-0.015em',
+        'apple-subheading': '-0.010em',
+        'apple-body': '-0.006em',
+        'apple-body-sm': '-0.003em',
+        'apple-caption': '-0.022em',
       },
       colors: {
         theme: {
-          bg: 'var(--bg-app)',
-          sidebar: 'var(--bg-sidebar)',
-          card: 'var(--bg-card)',
-          main: 'var(--bg-main)',
-          border: 'var(--border-color)',
-          text: 'var(--text-primary)',
-          textSecondary: 'var(--text-secondary)',
-          accent: 'var(--accent-blue)',
-          green: 'var(--accent-green)',
-          input: 'var(--bg-input)',
-          inputBorder: 'var(--border-input)',
+          bg: withOpacity('--bg-app'),
+          sidebar: withOpacity('--bg-sidebar'),
+          card: withOpacity('--bg-card'),
+          main: withOpacity('--bg-main'),
+          border: withOpacity('--border-color'),
+          text: withOpacity('--text-primary'),
+          textSecondary: withOpacity('--text-secondary'),
+          textSlate: withOpacity('--text-slate'),
+          textAsh: withOpacity('--text-ash'),
+          accent: withOpacity('--accent-blue'),
+          green: withOpacity('--accent-green'),
+          input: withOpacity('--bg-input'),
+          inputBorder: withOpacity('--border-input'),
         }
       }
     },
