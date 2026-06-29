@@ -2,99 +2,132 @@ import { create } from 'zustand';
 import { LightDevice } from '../../../types';
 import { deviceService } from '../../../services/deviceService';
 import { useSettingsStore } from '../../settings/store/settingsStore';
+import { useLightingStore } from '../../lighting/store/lightingStore';
 
 export interface DeviceGroup {
   id: string;
   name: string;
-  deviceIps: string[];
+  deviceMacs: string[];
 }
 
 interface DeviceState {
   devices: LightDevice[];
-  selectedIp: string | null;
+  selectedMac: string | null;
   isScanning: boolean;
   connectionStatus: string;
   deviceNames: Record<string, string>;
-  excludedIps: string[];
+  excludedMacs: string[];
   groups: DeviceGroup[];
   selectedGroupId: string | null;
+  macToIp: Record<string, string>;
 
-  // Actions
   loadPreferences: () => Promise<string | null>;
   scan: () => Promise<void>;
   loadPreferencesAndScan: () => Promise<void>;
-  selectDevice: (ip: string) => void;
-  updateDeviceName: (ip: string, name: string) => Promise<void>;
+  selectDevice: (mac: string, ipOverride?: string) => void;
+  updateDeviceName: (mac: string, name: string) => Promise<void>;
   setConnectionStatus: (status: string) => void;
-  excludeDevice: (ip: string) => void;
-  includeDevice: (ip: string) => void;
-  createGroup: (name: string, deviceIps: string[]) => void;
-  updateGroup: (id: string, name: string, deviceIps: string[]) => void;
+  excludeDevice: (mac: string) => void;
+  includeDevice: (mac: string) => void;
+  createGroup: (name: string, deviceMacs: string[]) => void;
+  updateGroup: (id: string, name: string, deviceMacs: string[]) => void;
   deleteGroup: (id: string) => void;
   selectGroup: (id: string | null) => void;
 }
 
+function migrateExcludedIps(): string[] {
+  try {
+    const ips = localStorage.getItem('excluded_ips');
+    if (ips) {
+      localStorage.removeItem('excluded_ips');
+      const parsed = JSON.parse(ips);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        localStorage.setItem('excluded_macs', JSON.stringify(parsed));
+        return parsed;
+      }
+    }
+  } catch {}
+  try {
+    const macs = localStorage.getItem('excluded_macs');
+    return macs ? JSON.parse(macs) : [];
+  } catch {
+    return [];
+  }
+}
+
+function migrateGroups(): DeviceGroup[] {
+  try {
+    const saved = localStorage.getItem('device_groups');
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((g: Record<string, unknown>) => ({
+      id: (g.id as string) || Math.random().toString(36).substring(2, 9),
+      name: (g.name as string) || '',
+      deviceMacs: (g.deviceMacs as string[]) || (g.deviceIps as string[]) || [],
+    }));
+  } catch {
+    return [];
+  }
+}
+
+let _savePrefTimer: ReturnType<typeof setTimeout> | null = null;
+
 export const useDeviceStore = create<DeviceState>((set, get) => ({
   devices: [],
-  selectedIp: null,
+  selectedMac: null,
   isScanning: false,
   connectionStatus: 'Buscando dispositivos...',
   deviceNames: {},
-  excludedIps: (() => {
-    try {
-      const saved = localStorage.getItem('excluded_ips');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  })(),
-  groups: (() => {
-    try {
-      const saved = localStorage.getItem('device_groups');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  })(),
+  excludedMacs: migrateExcludedIps(),
+  groups: migrateGroups(),
   selectedGroupId: null,
+  macToIp: {},
 
   loadPreferences: async () => {
-    let savedIp: string | null = null;
+    let savedMac: string | null = null;
     try {
       const prefs = await deviceService.getPreferences();
-      savedIp = prefs.last_ip;
+      savedMac = prefs.last_mac;
       set({ deviceNames: prefs.device_names });
-
-      // Sincroniza el tema del backend solo si localStorage está vacío
       useSettingsStore.getState().syncThemeFromBackend(prefs.theme ?? null);
     } catch (e) {
       console.error('Failed to load preferences', e);
     }
-    return savedIp;
+    return savedMac;
   },
 
   loadPreferencesAndScan: async () => {
-    const savedIp = await get().loadPreferences();
+    const savedMac = await get().loadPreferences();
     await get().scan();
 
     const currentDevices = get().devices;
-    const excluded = get().excludedIps;
+    const excluded = get().excludedMacs;
     if (currentDevices.length > 0) {
-      const nonExcluded = currentDevices.filter((d) => !excluded.includes(d.ip));
-      const targetIp = savedIp && nonExcluded.some((d) => d.ip === savedIp)
-        ? savedIp
+      const nonExcluded = currentDevices.filter((d) => !excluded.includes(d.mac));
+      const targetMac = savedMac && nonExcluded.some((d) => d.mac === savedMac)
+        ? savedMac
         : nonExcluded.length > 0
-          ? nonExcluded[0].ip
+          ? nonExcluded[0].mac
           : null;
 
-      if (targetIp && !get().selectedIp) {
-        get().selectDevice(targetIp);
+      if (targetMac && !get().selectedMac) {
+        get().selectDevice(targetMac);
+
+        const device = currentDevices.find((d) => d.mac === targetMac);
+        if (device?.state) {
+          useLightingStore.setState({
+            lampState: { ...device.state },
+            isConnected: true,
+          });
+        }
       }
-    } else if (savedIp && !excluded.includes(savedIp)) {
+    } else if (savedMac && !excluded.includes(savedMac)) {
       set({
-        devices: [{ ip: savedIp, name: get().deviceNames[savedIp] || 'Lámpara guardada' }],
+        devices: [{ ip: '', mac: savedMac, name: get().deviceNames[savedMac] || 'Lámpara guardada' }],
       });
-      get().selectDevice(savedIp);
+      get().selectDevice(savedMac);
     }
   },
 
@@ -103,20 +136,29 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
     try {
       const data = await deviceService.discover();
       const names = get().deviceNames;
-      const formatted: LightDevice[] = data.map((d) => ({
-        ip: d.ip,
-        name: names[d.ip] || undefined,
-        state: d.state ? {
-          state: !!d.state.state,
-          dimming: typeof d.state.dimming === 'number' ? d.state.dimming : 60,
-          r: d.state.r,
-          g: d.state.g,
-          b: d.state.b,
-          temp: d.state.temp,
-          sceneId: d.state.sceneId,
-        } : undefined,
-      }));
-      set({ devices: formatted });
+      const prevDevices = get().devices;
+      const macToIp: Record<string, string> = {};
+
+      const formatted: LightDevice[] = data.map((d) => {
+        macToIp[d.mac] = d.ip;
+        const existing = prevDevices.find((e) => e.mac === d.mac);
+        return {
+          ip: d.ip,
+          mac: d.mac,
+          name: names[d.mac] || existing?.name || undefined,
+          state: d.state ? {
+            state: !!d.state.state,
+            dimming: typeof d.state.dimming === 'number' ? d.state.dimming : (existing?.state?.dimming ?? 60),
+            r: d.state.r ?? existing?.state?.r,
+            g: d.state.g ?? existing?.state?.g,
+            b: d.state.b ?? existing?.state?.b,
+            temp: d.state.temp ?? existing?.state?.temp,
+            sceneId: d.state.sceneId ?? existing?.state?.sceneId,
+          } : existing?.state,
+        };
+      });
+
+      set({ devices: formatted, macToIp });
     } catch (e) {
       set({ connectionStatus: 'Error al buscar lámparas' });
     } finally {
@@ -124,66 +166,71 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
     }
   },
 
-  selectDevice: (ip) => {
-    set({ selectedIp: ip, selectedGroupId: null });
-    deviceService.savePreferences(ip).catch(() => {});
+  selectDevice: (mac, ipOverride?: string) => {
+    set({ selectedMac: mac, selectedGroupId: null });
+    if (_savePrefTimer) clearTimeout(_savePrefTimer);
+    _savePrefTimer = setTimeout(() => {
+      deviceService.savePreferences(mac).catch(() => {});
+    }, 400);
 
-    // If it was excluded, automatically include it back
-    if (get().excludedIps.includes(ip)) {
-      get().includeDevice(ip);
+    // Update macToIp if an IP override is provided (e.g. manual entry)
+    if (ipOverride) {
+      set((s) => ({ macToIp: { ...s.macToIp, [mac]: ipOverride } }));
     }
-    
-    // Add to device list if it's manual and not there
+
+    if (get().excludedMacs.includes(mac)) {
+      get().includeDevice(mac);
+    }
+
     const currentDevices = get().devices;
-    if (!currentDevices.some((d) => d.ip === ip)) {
+    if (!currentDevices.some((d) => d.mac === mac)) {
+      const ip = ipOverride || get().macToIp[mac] || '';
       set({
-        devices: [...currentDevices, { ip, name: get().deviceNames[ip] || 'Lámpara manual' }],
+        devices: [...currentDevices, { ip, mac, name: get().deviceNames[mac] || 'Lámpara manual' }],
       });
     }
   },
 
-  excludeDevice: (ip) => {
-    const nextExcluded = [...get().excludedIps, ip];
-    set({ excludedIps: nextExcluded });
+  excludeDevice: (mac) => {
+    const nextExcluded = [...get().excludedMacs, mac];
+    set({ excludedMacs: nextExcluded });
     try {
-      localStorage.setItem('excluded_ips', JSON.stringify(nextExcluded));
+      localStorage.setItem('excluded_macs', JSON.stringify(nextExcluded));
     } catch (e) {
-      console.error('Failed to save excluded_ips to localStorage', e);
+      console.error('Failed to save excluded_macs to localStorage', e);
     }
 
-    // If we just excluded the selected device, select another one that isn't excluded
-    if (get().selectedIp === ip) {
-      const remaining = get().devices.filter((d) => !nextExcluded.includes(d.ip));
+    if (get().selectedMac === mac) {
+      const remaining = get().devices.filter((d) => !nextExcluded.includes(d.mac));
       if (remaining.length > 0) {
-        get().selectDevice(remaining[0].ip);
+        get().selectDevice(remaining[0].mac);
       } else {
-        set({ selectedIp: null });
+        set({ selectedMac: null });
       }
     }
   },
 
-  includeDevice: (ip) => {
-    const nextExcluded = get().excludedIps.filter((x) => x !== ip);
-    set({ excludedIps: nextExcluded });
+  includeDevice: (mac) => {
+    const nextExcluded = get().excludedMacs.filter((x) => x !== mac);
+    set({ excludedMacs: nextExcluded });
     try {
-      localStorage.setItem('excluded_ips', JSON.stringify(nextExcluded));
+      localStorage.setItem('excluded_macs', JSON.stringify(nextExcluded));
     } catch (e) {
-      console.error('Failed to save excluded_ips to localStorage', e);
+      console.error('Failed to save excluded_macs to localStorage', e);
     }
 
-    // If no device is currently selected, select this one
-    if (!get().selectedIp) {
-      get().selectDevice(ip);
+    if (!get().selectedMac) {
+      get().selectDevice(mac);
     }
   },
 
-  updateDeviceName: async (ip, name) => {
-    const updatedDevices = get().devices.map((d) => (d.ip === ip ? { ...d, name } : d));
-    const nextNames = { ...get().deviceNames, [ip]: name };
+  updateDeviceName: async (mac, name) => {
+    const updatedDevices = get().devices.map((d) => (d.mac === mac ? { ...d, name } : d));
+    const nextNames = { ...get().deviceNames, [mac]: name };
     set({ devices: updatedDevices, deviceNames: nextNames });
-    
+
     try {
-      await deviceService.saveDeviceName(ip, name);
+      await deviceService.saveDeviceName(mac, name);
     } catch (e) {
       console.error('Failed to save device name to config', e);
     }
@@ -191,11 +238,11 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
 
   setConnectionStatus: (status) => set({ connectionStatus: status }),
 
-  createGroup: (name, deviceIps) => {
+  createGroup: (name, deviceMacs) => {
     const newGroup: DeviceGroup = {
       id: Math.random().toString(36).substring(2, 9),
       name,
-      deviceIps,
+      deviceMacs,
     };
     const nextGroups = [...get().groups, newGroup];
     set({ groups: nextGroups });
@@ -206,9 +253,9 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
     }
   },
 
-  updateGroup: (id, name, deviceIps) => {
+  updateGroup: (id, name, deviceMacs) => {
     const nextGroups = get().groups.map((g) =>
-      g.id === id ? { ...g, name, deviceIps } : g
+      g.id === id ? { ...g, name, deviceMacs } : g
     );
     set({ groups: nextGroups });
     try {
@@ -234,12 +281,12 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
     if (get().selectedGroupId === id) {
       set({ selectedGroupId: null });
       const currentDevices = get().devices;
-      const excluded = get().excludedIps;
-      const nonExcluded = currentDevices.filter((d) => !excluded.includes(d.ip));
+      const excluded = get().excludedMacs;
+      const nonExcluded = currentDevices.filter((d) => !excluded.includes(d.mac));
       if (nonExcluded.length > 0) {
-        get().selectDevice(nonExcluded[0].ip);
+        get().selectDevice(nonExcluded[0].mac);
       } else {
-        set({ selectedIp: null });
+        set({ selectedMac: null });
       }
     }
   },
@@ -252,10 +299,10 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
     const group = get().groups.find((g) => g.id === id);
     if (group) {
       set({ selectedGroupId: id });
-      if (group.deviceIps.length > 0) {
-        set({ selectedIp: group.deviceIps[0] });
+      if (group.deviceMacs.length > 0) {
+        set({ selectedMac: group.deviceMacs[0] });
       } else {
-        set({ selectedIp: null });
+        set({ selectedMac: null });
       }
     }
   },

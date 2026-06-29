@@ -1,12 +1,11 @@
 use crate::errors::AppError;
-use crate::models::AppConfig;
+use crate::models::{AppConfig, MigratedConfig};
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::PathBuf;
 use tauri::Manager;
 
-/// Resuelve la ruta al archivo `config.json` dentro del directorio de datos
-/// de la aplicación gestionado por Tauri. Crea el directorio si no existe.
 pub fn get_config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
     let mut path = app
         .path()
@@ -19,59 +18,36 @@ pub fn get_config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
     Ok(path)
 }
 
-/// Lee y deserializa la configuración desde disco.
-/// Devuelve `AppConfig::default()` si el archivo no existe.
-/// Propaga el error si el archivo existe pero el JSON está corrupto,
-/// sin sobrescribirlo con un estado vacío.
-pub fn read_config(app: &tauri::AppHandle) -> Result<AppConfig, AppError> {
-    let path = get_config_path(app)?;
-    read_config_from_path(&path)
-}
-
-/// Ídem que `read_config` pero opera directamente sobre una ruta,
-/// sin depender de `AppHandle`. Útil para tests.
 pub fn read_config_from_path(path: &PathBuf) -> Result<AppConfig, AppError> {
     if !path.exists() {
         return Ok(AppConfig::default());
     }
     let content = fs::read_to_string(path).map_err(|e| AppError::Config(e.to_string()))?;
-    let config: AppConfig =
-        serde_json::from_str(&content).map_err(|e| AppError::Config(e.to_string()))?;
-    Ok(config)
+    let migrated: MigratedConfig = serde_json::from_str(&content)
+        .map_err(|e| AppError::Config(e.to_string()))?;
+    Ok(migrated.into_app_config())
 }
 
-/// Persiste la configuración en disco usando una escritura atómica:
-///
-/// 1. Serializa `AppConfig` a JSON legible.
-/// 2. Escribe el contenido en un archivo temporal `.tmp` en el mismo directorio.
-/// 3. Llama a `sync_all()` para garantizar que los datos lleguen al disco físico
-///    antes de continuar (previene corrupción por cortes de energía).
-/// 4. Aplica permisos restrictivos `0o600` sobre el `.tmp` en sistemas Unix.
-/// 5. Renombra el `.tmp` al archivo final `config.json`.
-///    `fs::rename` es atómica a nivel de sistema operativo: si el proceso
-///    muere entre los pasos 2-4, el archivo original permanece intacto.
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn write_config(path: &PathBuf, config: &AppConfig) -> Result<(), AppError> {
-    let content =
-        serde_json::to_string_pretty(config).map_err(|e| AppError::Config(e.to_string()))?;
+    let json = serde_json::to_string_pretty(config)
+        .map_err(|e| AppError::Config(e.to_string()))?;
+    write_json_string(path, &json)
+}
 
-    // Construye la ruta del archivo temporal en el mismo directorio que el destino.
-    // Usar el mismo directorio es requisito para que `rename` sea atómico:
-    // en la mayoría de sistemas, rename entre distintos filesystems no es atómico.
+pub fn write_json_string(path: &PathBuf, json: &str) -> Result<(), AppError> {
     let tmp_path = path.with_extension("json.tmp");
 
-    // Escribe en el archivo temporal y garantiza el flush a disco físico.
     {
         let mut tmp_file = File::create(&tmp_path).map_err(|e| AppError::Config(e.to_string()))?;
         tmp_file
-            .write_all(content.as_bytes())
+            .write_all(json.as_bytes())
             .map_err(|e| AppError::Config(e.to_string()))?;
         tmp_file
             .sync_all()
             .map_err(|e| AppError::Config(e.to_string()))?;
-    } // `tmp_file` se cierra aquí al salir del bloque.
+    }
 
-    // Aplica permisos restrictivos antes del rename para que el archivo
-    // final herede los permisos correctos desde su creación.
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -82,10 +58,42 @@ pub fn write_config(path: &PathBuf, config: &AppConfig) -> Result<(), AppError> 
         }
     }
 
-    // Rename atómico: reemplaza `config.json` con el `.tmp` ya sincronizado.
     fs::rename(&tmp_path, path).map_err(|e| AppError::Config(e.to_string()))?;
-
     Ok(())
+}
+
+pub fn migrate_device_names(
+    names: &mut HashMap<String, String>,
+    mac_to_ip: &HashMap<String, String>,
+) -> bool {
+    // Invert MAC→IP to IP→MAC for lookup
+    let ip_to_mac: HashMap<&str, &str> = mac_to_ip
+        .iter()
+        .map(|(mac, ip)| (ip.as_str(), mac.as_str()))
+        .collect();
+
+    let mut changed = false;
+    // Only IPv4 keys have dots; MACs use ':' but not '.', so this filter is safe
+    let ip_keys: Vec<String> = names.keys()
+        .filter(|k| k.contains('.'))
+        .cloned()
+        .collect();
+
+    for ip in ip_keys {
+        if let Some(&mac) = ip_to_mac.get(ip.as_str()) {
+            if !names.contains_key(mac) {
+                if let Some(name) = names.remove(&ip) {
+                    names.insert(mac.to_string(), name);
+                    changed = true;
+                }
+            } else {
+                names.remove(&ip);
+                changed = true;
+            }
+        }
+    }
+
+    changed
 }
 
 #[cfg(test)]
@@ -99,7 +107,6 @@ mod tests {
         let mut path = std::env::temp_dir();
         let id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
         path.push(format!("lumus_control_test_{}_{}.json", name, id));
-        // Limpia residuos de ejecuciones abortadas
         let _ = fs::remove_file(&path);
         let _ = fs::remove_file(path.with_extension("json.tmp"));
         path
@@ -110,33 +117,87 @@ mod tests {
         let path = unique_test_path("missing");
         let config = read_config_from_path(&path).unwrap();
         assert!(config.device_names.is_empty());
-        assert!(config.last_ip.is_none());
+        assert!(config.last_mac.is_none());
         assert!(config.theme.is_none());
+    }
+
+    #[test]
+    fn migrate_last_ip_to_last_mac() {
+        let path = unique_test_path("migrate_ip");
+        let old_config = serde_json::json!({
+            "device_names": {},
+            "last_ip": "192.168.1.42",
+            "theme": "dark"
+        });
+        fs::write(&path, old_config.to_string()).unwrap();
+
+        let config = read_config_from_path(&path).unwrap();
+        assert_eq!(config.last_mac, Some("192.168.1.42".to_string()));
+        assert_eq!(config.theme, Some("dark".to_string()));
+
+        fs::remove_file(&path).ok();
     }
 
     #[test]
     fn write_and_read_roundtrip() {
         let path = unique_test_path("roundtrip");
         let mut config = AppConfig {
-            last_ip: Some("192.168.1.42".to_string()),
+            last_mac: Some("AA:BB:CC:DD:EE:FF".to_string()),
             theme: Some("dark".to_string()),
             ..Default::default()
         };
         config
             .device_names
-            .insert("192.168.1.42".to_string(), "Escritorio".to_string());
+            .insert("AA:BB:CC:DD:EE:FF".to_string(), "Escritorio".to_string());
 
         write_config(&path, &config).unwrap();
 
         let loaded = read_config_from_path(&path).unwrap();
-        assert_eq!(loaded.last_ip, Some("192.168.1.42".to_string()));
+        assert_eq!(loaded.last_mac, Some("AA:BB:CC:DD:EE:FF".to_string()));
         assert_eq!(loaded.theme, Some("dark".to_string()));
         assert_eq!(
-            loaded.device_names.get("192.168.1.42"),
+            loaded.device_names.get("AA:BB:CC:DD:EE:FF"),
             Some(&"Escritorio".to_string())
         );
 
         fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn migrate_device_names_works() {
+        let mut names = HashMap::new();
+        names.insert("192.168.1.10".to_string(), "Living".to_string());
+        names.insert("192.168.1.20".to_string(), "Cocina".to_string());
+        names.insert("AA:BB:CC:DD:EE:11".to_string(), "Dormitorio".to_string());
+
+        // mac_to_ip mirrors DeviceMapState (MAC→IP)
+        let mut mac_to_ip = HashMap::new();
+        mac_to_ip.insert("AA:BB:CC:DD:EE:10".to_string(), "192.168.1.10".to_string());
+        mac_to_ip.insert("AA:BB:CC:DD:EE:20".to_string(), "192.168.1.20".to_string());
+
+        let changed = migrate_device_names(&mut names, &mac_to_ip);
+        assert!(changed);
+        assert_eq!(names.get("AA:BB:CC:DD:EE:10"), Some(&"Living".to_string()));
+        assert_eq!(names.get("AA:BB:CC:DD:EE:20"), Some(&"Cocina".to_string()));
+        assert_eq!(names.get("AA:BB:CC:DD:EE:11"), Some(&"Dormitorio".to_string()));
+        assert!(!names.contains_key("192.168.1.10"));
+        assert!(!names.contains_key("192.168.1.20"));
+        assert_eq!(names.len(), 3);
+    }
+
+    #[test]
+    fn migrate_device_names_does_not_corrupt_mac_keys() {
+        // MAC keys must NOT be treated as IP keys and must survive unchanged
+        let mut names = HashMap::new();
+        names.insert("AA:BB:CC:DD:EE:FF".to_string(), "Sala".to_string());
+
+        let mut mac_to_ip = HashMap::new();
+        mac_to_ip.insert("AA:BB:CC:DD:EE:FF".to_string(), "192.168.1.10".to_string());
+
+        let changed = migrate_device_names(&mut names, &mac_to_ip);
+        assert!(!changed);
+        assert_eq!(names.get("AA:BB:CC:DD:EE:FF"), Some(&"Sala".to_string()));
+        assert_eq!(names.len(), 1);
     }
 
     #[test]
@@ -146,11 +207,8 @@ mod tests {
 
         write_config(&path, &config).unwrap();
 
-        // Verifica que el archivo .tmp no exista tras la escritura exitosa
         let tmp_path = path.with_extension("json.tmp");
         assert!(!tmp_path.exists());
-
-        // Verifica que config.json sí exista
         assert!(path.exists());
 
         fs::remove_file(&path).ok();
@@ -176,7 +234,7 @@ mod tests {
 
         let loaded = read_config_from_path(&path).unwrap();
         assert!(loaded.device_names.is_empty());
-        assert!(loaded.last_ip.is_none());
+        assert!(loaded.last_mac.is_none());
 
         fs::remove_file(&path).ok();
     }

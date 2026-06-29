@@ -5,6 +5,10 @@ use std::time::Duration;
 use tokio::net::UdpSocket;
 use tokio::time::timeout;
 
+pub fn extract_mac(resp: &Value) -> Option<String> {
+    resp["result"]["mac"].as_str().map(|m| m.to_string())
+}
+
 /// Valida que la cadena de texto dada sea una dirección IP válida (IPv4 o IPv6).
 pub fn validate_ip(ip: &str) -> Result<IpAddr, AppError> {
     ip.parse::<IpAddr>()
@@ -15,7 +19,7 @@ pub fn validate_ip(ip: &str) -> Result<IpAddr, AppError> {
 ///
 /// Valida que el paquete de respuesta provenga exactamente de la IP esperada,
 /// descartando paquetes parásitos de otros servicios en la red local.
-/// El timeout de espera de respuesta es de 1500 ms.
+/// El timeout de espera de respuesta es de 3000 ms.
 pub async fn send_udp_cmd(ip: &str, payload: &Value) -> Result<Value, AppError> {
     let target_ip = validate_ip(ip)?;
     let dest: SocketAddr = format!("{}:38899", ip)
@@ -34,8 +38,8 @@ pub async fn send_udp_cmd(ip: &str, payload: &Value) -> Result<Value, AppError> 
 
     let mut buf = [0u8; 4096];
 
-    // Espera la respuesta con timeout. Si no llega en 1500 ms, devuelve error de red.
-    let (amt, src) = timeout(Duration::from_millis(1500), socket.recv_from(&mut buf))
+    // Espera la respuesta con timeout. Si no llega en 3000 ms, devuelve error de red.
+    let (amt, src) = timeout(Duration::from_millis(3000), socket.recv_from(&mut buf))
         .await
         .map_err(|_| AppError::Network("Timeout esperando respuesta del dispositivo".to_string()))?
         .map_err(|e| AppError::Network(e.to_string()))?;
@@ -105,10 +109,14 @@ pub async fn discover_udp() -> Result<Vec<Value>, AppError> {
                             .unwrap_or(false);
 
                     if is_wiz {
-                        found.push(serde_json::json!({
-                            "ip": src.ip().to_string(),
-                            "state": resp["result"]
-                        }));
+                        let ip_str = src.ip().to_string();
+                        if let Some(mac) = extract_mac(&resp) {
+                            found.push(serde_json::json!({
+                                "ip": ip_str,
+                                "mac": mac,
+                                "state": resp["result"]
+                            }));
+                        }
                     }
                 }
             }

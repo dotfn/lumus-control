@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::Manager;
@@ -10,7 +11,7 @@ mod monitor;
 mod network;
 mod state;
 
-use state::{ActiveDeviceState, ConfigState, ShutdownSignal};
+use state::{ActiveDeviceState, ConfigPathState, ConfigState, DeviceMapState, ShutdownSignal};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,10 +27,9 @@ pub fn run() {
                 )?;
             }
 
-            // Carga la configuración inicial desde disco.
-            // - Si el archivo no existe: usa valores por defecto.
-            // - Si el archivo está corrupto: registra un warning y usa valores por defecto.
-            let initial_config = match config::read_config(app.handle()) {
+            let config_path = config::get_config_path(app.handle())
+                .map_err(|e| e.to_string())?;
+            let initial_config = match config::read_config_from_path(&config_path) {
                 Ok(cfg) => cfg,
                 Err(e) => {
                     log::warn!(
@@ -40,40 +40,59 @@ pub fn run() {
                 }
             };
 
-            let initial_ip = initial_config.last_ip.clone();
+            let initial_mac = initial_config.last_mac.clone();
             let initial_theme = initial_config.theme.clone();
 
-            // La `ShutdownSignal` se crea localmente, se registra en Tauri y se pasa
-            // directamente al monitor, evitando re-consultar `app.state()` después.
             let shutdown_signal = Arc::new(AtomicBool::new(false));
 
+            // Migrate device_names from old IP keys to MAC keys
+            // At startup we don't have a device map yet; migration happens progressively
+            // during discovery. Store the config for later use.
+
             app.manage(ConfigState(std::sync::Mutex::new(initial_config)));
-            app.manage(ActiveDeviceState(std::sync::Mutex::new(initial_ip)));
+            app.manage(ActiveDeviceState(std::sync::Mutex::new(initial_mac.clone())));
+            app.manage(DeviceMapState(std::sync::Mutex::new(HashMap::new())));
+            app.manage(ConfigPathState(config_path));
             app.manage(ShutdownSignal(shutdown_signal.clone()));
 
-            // Establece el color de fondo de la ventana según el tema guardado,
-            // evitando el parpadeo de color al inicio.
+            // Populate DeviceMapState in background so the monitor resolves the
+            // saved device's IP immediately on restart instead of waiting ~60s.
+            if initial_mac.is_some() {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Ok(devices) = network::discover_udp().await {
+                        if let Ok(mut map) = app_handle.state::<DeviceMapState>().0.lock() {
+                            for device in &devices {
+                                if let (Some(mac), Some(ip)) = (
+                                    device.get("mac").and_then(|m| m.as_str()),
+                                    device.get("ip").and_then(|i| i.as_str()),
+                                ) {
+                                    map.insert(mac.to_string(), ip.to_string());
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
             if let Some(window) = app.get_webview_window("main") {
                 let is_light = initial_theme
                     .as_deref()
                     .map(|t| t == "light")
                     .unwrap_or(false);
                 let color = if is_light {
-                    tauri::window::Color(245, 245, 247, 255) // `#f5f5f7`
+                    tauri::window::Color(245, 245, 247, 255)
                 } else {
-                    tauri::window::Color(20, 20, 22, 255) // `#141416`
+                    tauri::window::Color(20, 20, 22, 255)
                 };
                 let _ = window.set_background_color(Some(color));
             }
 
-            // Arranca el monitor asíncrono con la señal de apagado local.
             monitor::start_polling(app.handle().clone(), shutdown_signal);
 
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Cuando el usuario cierra la ventana, activa la señal de apagado
-            // para que el monitor asíncrono salga limpiamente en su próxima iteración.
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 let shutdown = window.app_handle().state::<ShutdownSignal>();
                 shutdown.0.store(true, Ordering::Relaxed);

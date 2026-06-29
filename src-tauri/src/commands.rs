@@ -1,15 +1,12 @@
 use serde_json::Value;
 use std::collections::HashMap;
-use tauri::Emitter;
 
-use crate::config::{get_config_path, write_config};
+use crate::config::{migrate_device_names, write_json_string};
 use crate::errors::AppError;
-use crate::models::{AppConfig, DeviceStatePayload};
-use crate::network::{discover_udp, send_udp_cmd, validate_ip};
-use crate::state::{ActiveDeviceState, ConfigState};
+use crate::models::AppConfig;
+use crate::network::{discover_udp, extract_mac, send_udp_cmd};
+use crate::state::{ActiveDeviceState, ConfigPathState, ConfigState, DeviceMapState};
 
-/// Devuelve los nombres personalizados de dispositivos desde la caché en memoria.
-/// Síncrono: no realiza I/O, solo lee el Mutex en memoria.
 #[tauri::command]
 pub fn get_device_names(
     config_state: tauri::State<'_, ConfigState>,
@@ -21,19 +18,22 @@ pub fn get_device_names(
     Ok(config.device_names.clone())
 }
 
-/// Guarda el nombre personalizado de un dispositivo en disco y actualiza la caché.
-/// Asíncrono: realiza I/O de disco (escritura atómica).
 #[tauri::command]
 pub async fn save_device_name(
-    app: tauri::AppHandle,
+    config_path_state: tauri::State<'_, ConfigPathState>,
     config_state: tauri::State<'_, ConfigState>,
-    ip: String,
+    device_map: tauri::State<'_, DeviceMapState>,
+    mac: String,
     name: String,
 ) -> Result<(), AppError> {
-    validate_ip(&ip)?;
-    if ip.len() > 45 {
+    if mac.is_empty() {
         return Err(AppError::Validation(
-            "La dirección IP no puede superar los 45 caracteres".to_string(),
+            "El identificador MAC no puede estar vacío".to_string(),
+        ));
+    }
+    if mac.len() > 64 {
+        return Err(AppError::Validation(
+            "El identificador MAC no puede superar los 64 caracteres".to_string(),
         ));
     }
     if name.len() > 256 {
@@ -42,25 +42,28 @@ pub async fn save_device_name(
         ));
     }
 
-    let path = get_config_path(&app)?;
-    // El guard del Mutex debe liberarse antes de la escritura a disco para no
-    // mantener el lock durante el I/O. Clonamos la config y liberamos el guard.
-    let updated_config = {
+    let path = config_path_state.0.clone();
+    let json = {
         let mut config = config_state
             .0
             .lock()
             .map_err(|e| AppError::Config(e.to_string()))?;
-        config.device_names.insert(ip, name);
-        config.clone()
+
+        let map = device_map
+            .0
+            .lock()
+            .map_err(|e| AppError::Config(e.to_string()))?;
+        migrate_device_names(&mut config.device_names, &map);
+
+        config.device_names.insert(mac, name);
+        serde_json::to_string_pretty(&*config)
+            .map_err(|e| AppError::Config(e.to_string()))?
     };
-    // Escribe en disco fuera del lock para minimizar el tiempo de bloqueo.
-    tokio::task::spawn_blocking(move || write_config(&path, &updated_config))
+    tokio::task::spawn_blocking(move || write_json_string(&path, &json))
         .await
         .map_err(|e| AppError::Config(e.to_string()))?
 }
 
-/// Devuelve la configuración completa del usuario desde la caché en memoria.
-/// Síncrono: no realiza I/O, solo lee el Mutex en memoria.
 #[tauri::command]
 pub fn get_preferences(config_state: tauri::State<'_, ConfigState>) -> Result<AppConfig, AppError> {
     let config = config_state
@@ -70,37 +73,32 @@ pub fn get_preferences(config_state: tauri::State<'_, ConfigState>) -> Result<Ap
     Ok(config.clone())
 }
 
-/// Guarda las preferencias del usuario (IP activa y tema) en disco y actualiza ambas cachés.
-/// Asíncrono: realiza I/O de disco (escritura atómica).
-///
-/// # Orden de locks
-/// `config_state` → `active_device`. Si en el futuro otro comando adquiere ambos locks,
-/// debe respetar este mismo orden para evitar deadlocks.
 #[tauri::command]
 pub async fn save_preferences(
-    app: tauri::AppHandle,
+    config_path_state: tauri::State<'_, ConfigPathState>,
     config_state: tauri::State<'_, ConfigState>,
     active_device: tauri::State<'_, ActiveDeviceState>,
-    last_ip: Option<String>,
+    device_map: tauri::State<'_, DeviceMapState>,
+    last_mac: Option<String>,
     theme: Option<String>,
 ) -> Result<(), AppError> {
-    let path = get_config_path(&app)?;
+    let path = config_path_state.0.clone();
 
-    // Actualiza la caché en memoria y libera ambos locks antes del I/O de disco.
-    let updated_config = {
+    // Lock order: config_state → active_device → device_map. All commands acquiring
+    // multiple locks MUST respect this order to prevent deadlocks under concurrency.
+    let json = {
         let mut config = config_state
             .0
             .lock()
             .map_err(|e| AppError::Config(e.to_string()))?;
 
-        if let Some(ref ip) = last_ip {
-            config.last_ip = Some(ip.clone());
-            // Actualiza también el estado del dispositivo activo para el monitor.
+        if let Some(ref mac) = last_mac {
+            config.last_mac = Some(mac.clone());
             let mut device_lock = active_device
                 .0
                 .lock()
                 .map_err(|e| AppError::Config(e.to_string()))?;
-            *device_lock = Some(ip.clone());
+            *device_lock = Some(mac.clone());
         }
 
         if let Some(ref t) = theme {
@@ -113,43 +111,74 @@ pub async fn save_preferences(
             config.theme = Some(t.clone());
         }
 
-        config.clone()
+        let map = device_map
+            .0
+            .lock()
+            .map_err(|e| AppError::Config(e.to_string()))?;
+        migrate_device_names(&mut config.device_names, &map);
+
+        serde_json::to_string_pretty(&*config)
+            .map_err(|e| AppError::Config(e.to_string()))?
     };
 
-    tokio::task::spawn_blocking(move || write_config(&path, &updated_config))
+    tokio::task::spawn_blocking(move || write_json_string(&path, &json))
         .await
         .map_err(|e| AppError::Config(e.to_string()))?
 }
 
-/// Descubre dispositivos en la red local mediante broadcast UDP.
-/// Asíncrono: realiza I/O de red con timeout de 2 segundos.
 #[tauri::command]
-pub async fn discover() -> Result<Value, AppError> {
+pub async fn discover(
+    device_map: tauri::State<'_, DeviceMapState>,
+) -> Result<Value, AppError> {
     let devices = discover_udp().await?;
+
+    // Update the device map (MAC -> IP) with discovered devices
+    {
+        let mut map = device_map
+            .0
+            .lock()
+            .map_err(|e| AppError::Config(e.to_string()))?;
+        for device in &devices {
+            if let (Some(mac), Some(ip)) = (
+                device.get("mac").and_then(|m| m.as_str()),
+                device.get("ip").and_then(|i| i.as_str()),
+            ) {
+                map.insert(mac.to_string(), ip.to_string());
+            }
+        }
+    }
+
     Ok(serde_json::json!(devices))
 }
 
-/// Consulta el estado actual de un dispositivo por su IP.
-/// Asíncrono: realiza I/O de red con timeout de 1500 ms.
 #[tauri::command]
-pub async fn get_state(ip: String) -> Result<Value, AppError> {
+pub async fn get_state(
+    ip: String,
+    device_map: tauri::State<'_, DeviceMapState>,
+) -> Result<Value, AppError> {
     let payload = serde_json::json!({
         "method": "getPilot",
         "params": {}
     });
     let resp = send_udp_cmd(&ip, &payload).await?;
+
+    if let Some(mac) = extract_mac(&resp) {
+        let mut map = device_map
+            .0
+            .lock()
+            .map_err(|e| AppError::Config(e.to_string()))?;
+        map.insert(mac, ip.clone());
+    }
+
     Ok(resp
         .get("result")
         .cloned()
         .unwrap_or(serde_json::Value::Null))
 }
 
-/// Envía un comando de control a un dispositivo y emite el nuevo estado al frontend.
-/// Asíncrono: realiza I/O de red con timeout de 1500 ms.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn control(
-    app: tauri::AppHandle,
     ip: String,
     state: Option<bool>,
     dimming: Option<u8>,
@@ -209,16 +238,7 @@ pub async fn control(
     });
 
     let resp = send_udp_cmd(&ip, &payload).await?;
-
-    // Consulta el estado actualizado inmediatamente y lo emite al frontend.
-    if let Ok(state_val) = get_state(ip.clone()).await {
-        let event_payload = DeviceStatePayload {
-            ip: ip.clone(),
-            online: true,
-            state: Some(state_val),
-        };
-        let _ = app.emit("device-state-changed", event_payload);
-    }
-
+    // The monitor emits the confirmed state in the next poll cycle (~5s).
+    // A second getPilot round-trip here is redundant given optimistic UI updates.
     Ok(resp)
 }

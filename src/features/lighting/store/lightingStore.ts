@@ -1,24 +1,37 @@
 import { create } from 'zustand';
 import { LightState } from '../../../types';
 import { deviceService } from '../../../services/deviceService';
-import { getActiveDeviceIp, setDeviceConnectionStatus } from '../../devices/services/storeAccessor';
-import { LocationData, fetchIpLocation, fetchSunriseSunset, getCircadianSettingForHour } from '../utils/circadian';
+import { getActiveDeviceIp, getActiveDeviceMac, setDeviceConnectionStatus, getSelectedGroupId, getGroupById, resolveMacToIp, updateMacToIp } from '../../devices/services/storeAccessor';
 import { useDeviceStore } from '../../devices/store/deviceStore';
+import { LocationData, fetchIpLocation, fetchSunriseSunset, getCircadianSettingForHour } from '../utils/circadian';
+
+let _unlistenEvent: (() => void) | null = null;
+let _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let _lastEventTime = 0;
+
+interface CircadianTarget {
+  temp: number;
+  dimming: number;
+}
 
 interface LightingState {
   lampState: LightState;
   isConnected: boolean;
   circadianActive: boolean;
+  circadianTarget: CircadianTarget | null;
+  lastCircadianUpdate: number | null;
   location: LocationData | null;
   isSyncingLocation: boolean;
   syncLocationError: string | null;
 
-  // Actions
-  setLampState: (updates: Partial<LightState>) => Promise<void>;
+  setLampState: (updates: Partial<LightState>, options?: { isCircadian?: boolean }) => Promise<void>;
   refreshState: (ip: string) => Promise<void>;
   applyCircadianRhythm: () => Promise<void>;
+  stopCircadian: () => void;
   setIsConnected: (connected: boolean) => void;
   setCircadianActive: (active: boolean) => void;
+  init: () => Promise<void>;
+  shutdown: () => void;
 }
 
 export const useLightingStore = create<LightingState>((set, get) => ({
@@ -31,6 +44,8 @@ export const useLightingStore = create<LightingState>((set, get) => ({
   },
   isConnected: false,
   circadianActive: false,
+  circadianTarget: null,
+  lastCircadianUpdate: null,
   location: (() => {
     try {
       const saved = localStorage.getItem('circadian_location');
@@ -42,21 +57,31 @@ export const useLightingStore = create<LightingState>((set, get) => ({
   isSyncingLocation: false,
   syncLocationError: null,
 
-  setLampState: async (updates) => {
-    const previousState = get().lampState;
-    // Optimistic UI update
+  setLampState: async (updates, options) => {
+    if (get().circadianActive && !options?.isCircadian) {
+      set({ circadianActive: false, circadianTarget: null, lastCircadianUpdate: null });
+    }
+
     set((prev) => ({ lampState: { ...prev.lampState, ...updates } }));
 
-    const selectedIp = getActiveDeviceIp();
-    const selectedGroupId = useDeviceStore.getState().selectedGroupId;
+    const selectedMac = getActiveDeviceMac();
+    const selectedGroupId = getSelectedGroupId();
 
     if (selectedGroupId) {
-      const group = useDeviceStore.getState().groups.find((g) => g.id === selectedGroupId);
-      if (group && group.deviceIps.length > 0) {
+      const group = getGroupById(selectedGroupId);
+      if (group && group.deviceMacs.length > 0) {
+        const ips = group.deviceMacs
+          .map((mac) => resolveMacToIp(mac))
+          .filter((ip): ip is string => ip !== null);
+
+        if (ips.length === 0) {
+          setDeviceConnectionStatus('No se pudieron resolver IPs del grupo');
+          return;
+        }
+
         try {
-          // Send control requests to all lamps in parallel and wait for all to settle
           const results = await Promise.allSettled(
-            group.deviceIps.map((ip) => deviceService.control(ip, updates))
+            ips.map((ip) => deviceService.control(ip, updates))
           );
 
           const anySuccess = results.some((r) => r.status === 'fulfilled');
@@ -67,8 +92,7 @@ export const useLightingStore = create<LightingState>((set, get) => ({
             throw new Error('No se pudo establecer comunicación con ningún dispositivo del grupo');
           }
         } catch (e) {
-          // Rollback on failure of all devices
-          set({ lampState: previousState, isConnected: false });
+          set({ isConnected: false });
           setDeviceConnectionStatus('El grupo no responde');
           console.error('Error al enviar comando a grupo:', e);
         }
@@ -76,15 +100,19 @@ export const useLightingStore = create<LightingState>((set, get) => ({
       return;
     }
 
-    if (!selectedIp) return;
+    if (!selectedMac) return;
+    const ip = getActiveDeviceIp();
+    if (!ip) {
+      setDeviceConnectionStatus('IP no resuelta para el dispositivo');
+      return;
+    }
 
     try {
-      await deviceService.control(selectedIp, updates);
+      await deviceService.control(ip, updates);
       set({ isConnected: true });
       setDeviceConnectionStatus('Lámpara conectada');
     } catch (e) {
-      // Rollback on failure
-      set({ lampState: previousState, isConnected: false });
+      set({ isConnected: false });
       setDeviceConnectionStatus('Lámpara no responde');
       console.error('Error al enviar comando de control:', e);
     }
@@ -123,13 +151,12 @@ export const useLightingStore = create<LightingState>((set, get) => ({
   applyCircadianRhythm: async () => {
     set({ isSyncingLocation: true, syncLocationError: null });
 
-    let lat = -34.6037; // Buenos Aires fallback
+    let lat = -34.6037;
     let lng = -58.3816;
     let city = 'Buenos Aires';
     let country = 'Argentina';
     let hasLocation = false;
 
-    // 1. Try Geolocation API
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -144,7 +171,6 @@ export const useLightingStore = create<LightingState>((set, get) => ({
       console.warn('Geolocation API failed or timed out. Falling back to IP Geolocation:', e);
     }
 
-    // 2. Try IP Geolocation if GPS is not available/permitted
     if (!hasLocation) {
       try {
         const ipLoc = await fetchIpLocation();
@@ -167,7 +193,6 @@ export const useLightingStore = create<LightingState>((set, get) => ({
     }
 
     try {
-      // 3. Fetch or calculate sunrise/sunset times
       const solarTimes = await fetchSunriseSunset(lat, lng);
 
       const newLocation: LocationData = {
@@ -183,18 +208,21 @@ export const useLightingStore = create<LightingState>((set, get) => ({
       set({ location: newLocation, isSyncingLocation: false });
       localStorage.setItem('circadian_location', JSON.stringify(newLocation));
 
-      // Calculate settings for the current hour
       const now = new Date();
       const currentHour = now.getHours() + now.getMinutes() / 60;
       const setting = getCircadianSettingForHour(solarTimes.sunriseHour, solarTimes.sunsetHour, currentHour);
 
-      set({ circadianActive: true });
-      await get().setLampState({ state: true, temp: setting.temp, dimming: setting.dimming, sceneId: undefined });
+      const now_ts = Date.now();
+      set({
+        circadianActive: true,
+        circadianTarget: setting,
+        lastCircadianUpdate: now_ts,
+      });
+      await get().setLampState({ state: true, temp: setting.temp, dimming: setting.dimming, sceneId: undefined }, { isCircadian: true });
     } catch (e) {
       console.error('Error applying circadian rhythm:', e);
       set({ isSyncingLocation: false, syncLocationError: 'No se pudo sincronizar la ubicación' });
 
-      // Offline/Failure Fallback to static hours
       const hour = new Date().getHours();
       let temp = 4000;
       let dimming = 80;
@@ -216,12 +244,82 @@ export const useLightingStore = create<LightingState>((set, get) => ({
         dimming = 40;
       }
 
-      set({ circadianActive: true });
-      await get().setLampState({ state: true, temp, dimming, sceneId: undefined });
+      const now_ts = Date.now();
+      set({
+        circadianActive: true,
+        circadianTarget: { temp, dimming },
+        lastCircadianUpdate: now_ts,
+      });
+      await get().setLampState({ state: true, temp, dimming, sceneId: undefined }, { isCircadian: true });
     }
   },
 
-  setIsConnected: (connected) => set({ isConnected: connected }),
-  setCircadianActive: (active) => set({ circadianActive: active }),
-}));
+  stopCircadian: () => {
+    set({ circadianActive: false, circadianTarget: null, lastCircadianUpdate: null });
+  },
 
+  setIsConnected: (connected) => set({ isConnected: connected }),
+  setCircadianActive: (active) => {
+    if (!active) {
+      set({ circadianActive: false, circadianTarget: null, lastCircadianUpdate: null });
+    } else {
+      set({ circadianActive: true });
+    }
+  },
+
+  init: async () => {
+    if (_unlistenEvent) return;
+    _lastEventTime = Date.now();
+
+    _unlistenEvent = await deviceService.subscribeToDeviceState((payload) => {
+      _lastEventTime = Date.now();
+
+      const mac = useDeviceStore.getState().selectedMac;
+      if (payload.mac !== mac) return;
+
+      const ip = useDeviceStore.getState().macToIp[payload.mac];
+      if (payload.ip && payload.ip !== ip) {
+        updateMacToIp(payload.mac, payload.ip);
+      }
+
+      if (payload.online && payload.state) {
+        const newState: LightState = {
+          state: !!payload.state.state,
+          dimming: typeof payload.state.dimming === 'number' ? payload.state.dimming : 60,
+        };
+
+        if (payload.state.r !== undefined && payload.state.r !== null) {
+          newState.r = payload.state.r;
+          newState.g = payload.state.g;
+          newState.b = payload.state.b;
+        }
+        if (payload.state.temp) {
+          newState.temp = payload.state.temp;
+        }
+        if (payload.state.sceneId) {
+          newState.sceneId = payload.state.sceneId;
+        }
+
+        set({ lampState: newState, isConnected: true });
+        setDeviceConnectionStatus('Lámpara conectada');
+      } else {
+        set({ isConnected: false });
+        setDeviceConnectionStatus('Lámpara no responde');
+      }
+    });
+
+    _heartbeatTimer = setInterval(() => {
+      if (Date.now() - _lastEventTime > 15000 && get().isConnected) {
+        set({ isConnected: false });
+        setDeviceConnectionStatus('Conexión perdida');
+      }
+    }, 5000);
+  },
+
+  shutdown: () => {
+    _unlistenEvent?.();
+    if (_heartbeatTimer) clearInterval(_heartbeatTimer);
+    _unlistenEvent = null;
+    _heartbeatTimer = null;
+  },
+}));
