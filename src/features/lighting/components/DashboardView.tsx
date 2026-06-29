@@ -5,11 +5,17 @@ import { rgbToHex, getLampRgbColor } from '../../../utils/color';
 import { PRESET_SCENES } from '../../../data/scenes';
 import { Power, Sparkles } from 'lucide-react';
 
+interface CircadianTarget {
+  temp: number;
+  dimming: number;
+}
+
 interface DashboardViewProps {
   lampState: LightState;
   isConnected: boolean;
   setLampState: (updates: Partial<LightState>) => Promise<void>;
   circadianActive: boolean;
+  circadianTarget: CircadianTarget | null;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -17,6 +23,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   isConnected,
   setLampState,
   circadianActive,
+  circadianTarget,
 }) => {
   const rgb = getLampRgbColor(lampState);
 
@@ -90,9 +97,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {isConnected ? 'En línea' : 'Desconectada'}
             </span>
             {circadianActive && (
-              <span className="text-[10px] bg-theme-accent/10 text-theme-accent border border-theme-accent/20 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold tracking-apple-body-sm">
+              <span className="text-[10px] bg-theme-accent/10 text-theme-accent border border-theme-accent/20 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold tracking-apple-body-sm animate-fade-in">
                 <Sparkles className="w-2.5 h-2.5 text-theme-accent" />
-                Circadiano
+                {circadianTarget
+                  ? `${circadianTarget.temp}K · ${circadianTarget.dimming}%`
+                  : 'Circadiano'}
               </span>
             )}
           </div>
@@ -159,6 +168,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               { label: 'Temperatura', value: lampState.state && lampState.temp ? `${lampState.temp}K` : '—' },
               { label: 'Modo activo', value: getModeLabel() },
               { label: 'Conexión', value: isConnected ? 'En línea' : 'Desconectada' },
+              ...(circadianActive && circadianTarget
+                ? [{ label: 'Ritmo circadiano', value: `Activo · ${circadianTarget.temp}K · ${circadianTarget.dimming}%` }]
+                : []),
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between items-center py-3 border-b border-theme-border/60 last:border-0 text-xs tracking-apple-body">
                 <span className="text-theme-textSecondary font-medium">{label}</span>
