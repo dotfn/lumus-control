@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.2] — 2026-06-29
+
+### Chore
+- Single source of truth for homepage URL via Vite define
+- Fix deprecated string comparison in release.yml depends_on macos
+
 ## [0.5.1] — 2026-06-29
 
 ### Chore
