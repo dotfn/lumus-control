@@ -2,6 +2,7 @@
   "name": "lumus-control-ui",
   "private": true,
   "version": "0.5.1",
+  "homepage": "https://lumus-control.vercel.app",
   "type": "module",
   "scripts": {
     "dev:frontend": "vite",

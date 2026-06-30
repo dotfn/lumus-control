@@ -232,12 +232,23 @@ jobs:
     # Solo ejecuta en tags reales de producción (vX.Y.Z) que NO contengan guiones (evita v0.0.0-rc1, v0.0.0-test, etc.)
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
     steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+        with:
+          path: main-repo
+
       - name: Checkout tap repo
         uses: actions/checkout@v4
         with:
           repository: dotfn/homebrew-lumus
           token: ${{ secrets.TAP_PAT }}
           path: homebrew-lumus
+
+      - name: Read homepage URL
+        id: meta
+        run: |
+          HOMEPAGE=$(node -pe "require('./main-repo/package.json').homepage")
+          echo "homepage_url=${HOMEPAGE}" >> $GITHUB_OUTPUT
 
       - name: Download macOS artifact
         uses: actions/download-artifact@v4
@@ -282,7 +293,7 @@ jobs:
             echo '      verified: "github.com/dotfn/lumus-control/"'
             echo '  name "Lumus Control"'
             echo '  desc "Local control panel for WiZ smart lamps over UDP"'
-            echo '  homepage "https://lumus-control.vercel.app"'
+            echo "  homepage \"${{ steps.meta.outputs.homepage_url }}\""
             echo ""
             echo '  depends_on macos: :big_sur'
             echo "  depends_on arch: :arm64"

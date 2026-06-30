@@ -88,5 +88,5 @@
   <text x="339" y="405" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#34c759" letter-spacing="0.5">100% PRIVADO</text>
 
   <!-- Bottom: URL -->
-  <text x="600" y="575" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="13" fill="rgba(154,150,140,0.5)" letter-spacing="1">lumuscontrol.app</text>
+  <text x="600" y="575" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="13" fill="rgba(154,150,140,0.5)" letter-spacing="1">lumus-control.vercel.app</text>
 </svg>
