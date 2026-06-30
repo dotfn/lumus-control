@@ -284,7 +284,7 @@ jobs:
             echo '  desc "Local control panel for WiZ smart lamps over UDP"'
             echo '  homepage "https://lumus-control.vercel.app"'
             echo ""
-            echo '  depends_on macos: ">= :big_sur"'
+            echo '  depends_on macos: :big_sur'
             echo "  depends_on arch: :arm64"
             echo ""
             echo "  livecheck do"
