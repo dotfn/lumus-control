@@ -8,6 +8,22 @@ import { LocationData, fetchIpLocation, fetchSunriseSunset, getCircadianSettingF
 let _unlistenEvent: (() => void) | null = null;
 let _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let _lastEventTime = 0;
+let _initPromise: Promise<void> | null = null;
+let _visibilityHandler: (() => void) | null = null;
+// Momento del último comando enviado por el usuario. Los eventos del monitor
+// dentro de esta ventana no pisan lampState: el poll pudo haberse tomado ANTES
+// del comando y llegaría después, revirtiendo el update optimista en pantalla.
+let _lastCommandTime = 0;
+const COMMAND_SUPPRESSION_MS = 7000;
+const HEARTBEAT_TIMEOUT_MS = 15000;
+
+// Throttle de comandos de red: la UI se actualiza en cada evento (slider fluido)
+// pero a la lámpara se envía como máximo un setPilot cada SEND_THROTTLE_MS,
+// acumulando los cambios intermedios y garantizando que el último valor llegue.
+let _sendTimer: ReturnType<typeof setTimeout> | null = null;
+let _lastSendAt = 0;
+let _pendingUpdates: Partial<LightState> | null = null;
+const SEND_THROTTLE_MS = 150;
 
 interface CircadianTarget {
   temp: number;
@@ -64,57 +80,82 @@ export const useLightingStore = create<LightingState>((set, get) => ({
 
     set((prev) => ({ lampState: { ...prev.lampState, ...updates } }));
 
-    const selectedMac = getActiveDeviceMac();
-    const selectedGroupId = getSelectedGroupId();
+    // Acumula los cambios y respeta el throttle. El merge conserva los
+    // `undefined` explícitos (p. ej. temp: undefined al elegir escena).
+    _pendingUpdates = { ..._pendingUpdates, ...updates };
 
-    if (selectedGroupId) {
-      const group = getGroupById(selectedGroupId);
-      if (group && group.deviceMacs.length > 0) {
-        const ips = group.deviceMacs
-          .map((mac) => resolveMacToIp(mac))
-          .filter((ip): ip is string => ip !== null);
+    const flush = async () => {
+      const payload = _pendingUpdates;
+      _pendingUpdates = null;
+      _lastSendAt = Date.now();
+      if (!payload) return;
 
-        if (ips.length === 0) {
-          setDeviceConnectionStatus('No se pudieron resolver IPs del grupo');
-          return;
-        }
+      const selectedMac = getActiveDeviceMac();
+      const selectedGroupId = getSelectedGroupId();
 
-        try {
-          const results = await Promise.allSettled(
-            ips.map((ip) => deviceService.control(ip, updates))
-          );
+      if (selectedGroupId) {
+        const group = getGroupById(selectedGroupId);
+        if (group && group.deviceMacs.length > 0) {
+          const ips = group.deviceMacs
+            .map((mac) => resolveMacToIp(mac))
+            .filter((ip): ip is string => ip !== null);
 
-          const anySuccess = results.some((r) => r.status === 'fulfilled');
-          if (anySuccess) {
-            set({ isConnected: true });
-            setDeviceConnectionStatus('Grupo controlado');
-          } else {
-            throw new Error('No se pudo establecer comunicación con ningún dispositivo del grupo');
+          if (ips.length === 0) {
+            setDeviceConnectionStatus('No se pudieron resolver IPs del grupo');
+            return;
           }
-        } catch (e) {
-          set({ isConnected: false });
-          setDeviceConnectionStatus('El grupo no responde');
-          console.error('Error al enviar comando a grupo:', e);
+
+          try {
+            _lastCommandTime = Date.now();
+            const results = await Promise.allSettled(
+              ips.map((ip) => deviceService.control(ip, payload))
+            );
+
+            const anySuccess = results.some((r) => r.status === 'fulfilled');
+            if (anySuccess) {
+              set({ isConnected: true });
+              setDeviceConnectionStatus('Grupo controlado');
+            } else {
+              throw new Error('No se pudo establecer comunicación con ningún dispositivo del grupo');
+            }
+          } catch (e) {
+            set({ isConnected: false });
+            setDeviceConnectionStatus('El grupo no responde');
+            console.error('Error al enviar comando a grupo:', e);
+          }
         }
+        return;
       }
-      return;
-    }
 
-    if (!selectedMac) return;
-    const ip = getActiveDeviceIp();
-    if (!ip) {
-      setDeviceConnectionStatus('IP no resuelta para el dispositivo');
-      return;
-    }
+      if (!selectedMac) return;
+      const ip = getActiveDeviceIp();
+      if (!ip) {
+        setDeviceConnectionStatus('IP no resuelta para el dispositivo');
+        return;
+      }
 
-    try {
-      await deviceService.control(ip, updates);
-      set({ isConnected: true });
-      setDeviceConnectionStatus('Lámpara conectada');
-    } catch (e) {
-      set({ isConnected: false });
-      setDeviceConnectionStatus('Lámpara no responde');
-      console.error('Error al enviar comando de control:', e);
+      try {
+        _lastCommandTime = Date.now();
+        await deviceService.control(ip, payload);
+        set({ isConnected: true });
+        setDeviceConnectionStatus('Lámpara conectada');
+      } catch (e) {
+        set({ isConnected: false });
+        setDeviceConnectionStatus('Lámpara no responde');
+        console.error('Error al enviar comando de control:', e);
+      }
+    };
+
+    if (_sendTimer) return; // ya hay un envío programado que tomará lo acumulado
+
+    const elapsed = Date.now() - _lastSendAt;
+    if (elapsed >= SEND_THROTTLE_MS) {
+      await flush();
+    } else {
+      _sendTimer = setTimeout(() => {
+        _sendTimer = null;
+        flush();
+      }, SEND_THROTTLE_MS - elapsed);
     }
   },
 
@@ -268,58 +309,104 @@ export const useLightingStore = create<LightingState>((set, get) => ({
   },
 
   init: async () => {
-    if (_unlistenEvent) return;
-    _lastEventTime = Date.now();
+    // Guard basado en promesa: dos llamadas concurrentes (p. ej. doble efecto de
+    // React StrictMode) comparten la misma suscripción en vez de duplicarla.
+    if (_initPromise) return _initPromise;
 
-    _unlistenEvent = await deviceService.subscribeToDeviceState((payload) => {
+    _initPromise = (async () => {
       _lastEventTime = Date.now();
 
-      const mac = useDeviceStore.getState().selectedMac;
-      if (payload.mac !== mac) return;
-
-      const ip = useDeviceStore.getState().macToIp[payload.mac];
-      if (payload.ip && payload.ip !== ip) {
-        updateMacToIp(payload.mac, payload.ip);
-      }
-
-      if (payload.online && payload.state) {
-        const newState: LightState = {
-          state: !!payload.state.state,
-          dimming: typeof payload.state.dimming === 'number' ? payload.state.dimming : 60,
+      // Normaliza el payload crudo del monitor (campos null/ausentes) a LightState.
+      const toLightState = (raw: LightState): LightState => {
+        const normalized: LightState = {
+          state: !!raw.state,
+          dimming: typeof raw.dimming === 'number' ? raw.dimming : 60,
         };
-
-        if (payload.state.r !== undefined && payload.state.r !== null) {
-          newState.r = payload.state.r;
-          newState.g = payload.state.g;
-          newState.b = payload.state.b;
+        if (raw.r !== undefined && raw.r !== null) {
+          normalized.r = raw.r;
+          normalized.g = raw.g;
+          normalized.b = raw.b;
         }
-        if (payload.state.temp) {
-          newState.temp = payload.state.temp;
+        if (raw.temp) {
+          normalized.temp = raw.temp;
         }
-        if (payload.state.sceneId) {
-          newState.sceneId = payload.state.sceneId;
+        if (raw.sceneId) {
+          normalized.sceneId = raw.sceneId;
+        }
+        return normalized;
+      };
+
+      _unlistenEvent = await deviceService.subscribeToDeviceState((payload) => {
+        const deviceState = useDeviceStore.getState();
+        const selectedMac = deviceState.selectedMac;
+        const group = deviceState.selectedGroupId
+          ? deviceState.groups.find((g) => g.id === deviceState.selectedGroupId)
+          : null;
+
+        const isSelected = payload.mac === selectedMac;
+        const isGroupMember = group?.deviceMacs.includes(payload.mac) ?? false;
+        if (!isSelected && !isGroupMember) return;
+
+        // Solo los eventos de dispositivos vigilados cuentan como latido;
+        // si el backend vigila otra MAC, el heartbeat debe poder disparar.
+        _lastEventTime = Date.now();
+
+        const ip = deviceState.macToIp[payload.mac];
+        if (payload.ip && payload.ip !== ip) {
+          updateMacToIp(payload.mac, payload.ip);
         }
 
-        set({ lampState: newState, isConnected: true });
-        setDeviceConnectionStatus('Lámpara conectada');
-      } else {
-        set({ isConnected: false });
-        setDeviceConnectionStatus('Lámpara no responde');
-      }
-    });
+        if (payload.online && payload.state) {
+          const normalized = toLightState(payload.state);
+          // Estado por-lámpara en el sidebar, también para miembros del grupo.
+          deviceState.applyDeviceState(payload.mac, normalized);
 
-    _heartbeatTimer = setInterval(() => {
-      if (Date.now() - _lastEventTime > 15000 && get().isConnected) {
-        set({ isConnected: false });
-        setDeviceConnectionStatus('Conexión perdida');
-      }
-    }, 5000);
+          if (!isSelected) return;
+
+          set({ isConnected: true });
+          setDeviceConnectionStatus('Lámpara conectada');
+
+          if (Date.now() - _lastCommandTime < COMMAND_SUPPRESSION_MS) return;
+
+          set({ lampState: normalized });
+        } else if (isSelected) {
+          set({ isConnected: false });
+          setDeviceConnectionStatus('Lámpara no responde');
+        }
+      });
+
+      _heartbeatTimer = setInterval(() => {
+        if (Date.now() - _lastEventTime > HEARTBEAT_TIMEOUT_MS && get().isConnected) {
+          set({ isConnected: false });
+          setDeviceConnectionStatus('Conexión perdida');
+        }
+      }, 5000);
+
+      // Al volver de reposo los timers estuvieron suspendidos y la lámpara pudo
+      // cambiar (u obtener otra IP). Damos gracia al heartbeat y refrescamos ya.
+      _visibilityHandler = () => {
+        if (document.visibilityState !== 'visible') return;
+        _lastEventTime = Date.now();
+        const activeIp = getActiveDeviceIp();
+        if (activeIp) {
+          get().refreshState(activeIp);
+        }
+      };
+      document.addEventListener('visibilitychange', _visibilityHandler);
+    })();
+
+    return _initPromise;
   },
 
   shutdown: () => {
     _unlistenEvent?.();
     if (_heartbeatTimer) clearInterval(_heartbeatTimer);
+    if (_visibilityHandler) {
+      document.removeEventListener('visibilitychange', _visibilityHandler);
+    }
     _unlistenEvent = null;
     _heartbeatTimer = null;
+    _visibilityHandler = null;
+    _initPromise = null;
   },
 }));

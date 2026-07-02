@@ -113,6 +113,10 @@ export const demoDeviceService = {
     }
   },
 
+  async setActiveDevices(_macs: string[]): Promise<void> {
+    // La demo tiene un único dispositivo virtual; no hay monitor que sincronizar.
+  },
+
   async saveDeviceName(mac: string, name: string): Promise<void> {
     deviceNames[mac] = name;
     setTimeout(() => {

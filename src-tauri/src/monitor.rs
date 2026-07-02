@@ -25,7 +25,8 @@ pub fn start_polling(app_handle: tauri::AppHandle, shutdown: Arc<AtomicBool>) {
                 break;
             }
 
-            let mac_opt: Option<String> = {
+            // Lock order: ActiveDeviceState → DeviceMapState (never acquire in reverse).
+            let macs: Vec<String> = {
                 let state = app_handle.state::<ActiveDeviceState>();
                 let lock = state.0.lock();
                 match lock {
@@ -37,8 +38,52 @@ pub fn start_polling(app_handle: tauri::AppHandle, shutdown: Arc<AtomicBool>) {
                 }
             };
 
-            if let Some(ref mac) = mac_opt {
-                // Resolve IP from MAC
+            if macs.is_empty() {
+                continue;
+            }
+
+            let should_rediscover = consecutive_failures >= MAX_FAILURES_BEFORE_REDISCOVERY
+                || cycles_since_rediscovery >= REDISCOVERY_INTERVAL_CYCLES;
+
+            if should_rediscover {
+                log::info!(
+                    "Re-descubriendo dispositivos (fallos={}, ciclos={}, vigilados={})",
+                    consecutive_failures,
+                    cycles_since_rediscovery,
+                    macs.len()
+                );
+
+                if let Ok(devices) = discover_udp().await {
+                    let map_state = app_handle.state::<DeviceMapState>();
+                    let mut map = match map_state.0.lock() {
+                        Ok(guard) => guard,
+                        Err(poisoned) => poisoned.into_inner(),
+                    };
+
+                    for device in &devices {
+                        if let (Some(dmac), Some(dip)) = (
+                            device.get("mac").and_then(|m| m.as_str()),
+                            device.get("ip").and_then(|i| i.as_str()),
+                        ) {
+                            map.insert(dmac.to_string(), dip.to_string());
+                        }
+                    }
+                }
+
+                // Reset both counters: if consecutive_failures stayed >= MAX,
+                // should_rediscover would be true on EVERY 5s cycle and we'd
+                // broadcast UDP continuously. With the reset, the next attempt
+                // needs MAX more all-failed cycles (~15s) or the 60s interval.
+                consecutive_failures = 0;
+                cycles_since_rediscovery = 0;
+            }
+
+            cycles_since_rediscovery += 1;
+
+            let mut polled: u32 = 0;
+            let mut failed: u32 = 0;
+
+            for mac in &macs {
                 let ip_opt: Option<String> = {
                     let map = app_handle.state::<DeviceMapState>();
                     let lock = map.0.lock();
@@ -48,125 +93,8 @@ pub fn start_polling(app_handle: tauri::AppHandle, shutdown: Arc<AtomicBool>) {
                     }
                 };
 
-                // Lock order: ActiveDeviceState → DeviceMapState (never acquire in reverse).
-                let should_rediscover = consecutive_failures >= MAX_FAILURES_BEFORE_REDISCOVERY
-                    || cycles_since_rediscovery >= REDISCOVERY_INTERVAL_CYCLES;
-
-                if should_rediscover {
-                    log::info!(
-                        "Re-descubriendo dispositivos (fallos={}, ciclos={}, ip_presente={})",
-                        consecutive_failures,
-                        cycles_since_rediscovery,
-                        ip_opt.is_some()
-                    );
-
-                    if let Ok(devices) = discover_udp().await {
-                        let rediscovered_ip: Option<String> = {
-                            let map_state = app_handle.state::<DeviceMapState>();
-                            let mut map = match map_state.0.lock() {
-                                Ok(guard) => guard,
-                                Err(poisoned) => poisoned.into_inner(),
-                            };
-
-                            for device in &devices {
-                                if let (Some(dmac), Some(dip)) = (
-                                    device.get("mac").and_then(|m| m.as_str()),
-                                    device.get("ip").and_then(|i| i.as_str()),
-                                ) {
-                                    map.insert(dmac.to_string(), dip.to_string());
-                                }
-                            }
-
-                            map.get(mac).cloned()
-                        };
-
-                        if let Some(new_ip) = rediscovered_ip {
-                            log::info!("MAC activa {} re-descubierta con IP {}", mac, new_ip);
-                            consecutive_failures = 0;
-                            cycles_since_rediscovery = 0;
-
-                            let state_payload = serde_json::json!({
-                                "method": "getPilot",
-                                "params": {}
-                            });
-                            if let Ok(resp) = send_udp_cmd(&new_ip, &state_payload).await {
-                                let state_val = resp
-                                    .get("result")
-                                    .cloned()
-                                    .unwrap_or(serde_json::Value::Null);
-                                let event_payload = DeviceStatePayload {
-                                    ip: new_ip,
-                                    mac: mac.clone(),
-                                    online: true,
-                                    state: Some(state_val),
-                                };
-                                let _ = app_handle.emit("device-state-changed", event_payload);
-                            }
-                            continue;
-                        }
-                    }
-                    // Rediscovery ran but device not found — reset cycles to impose ~60s cooldown
-                    cycles_since_rediscovery = 0;
-                }
-
-                cycles_since_rediscovery += 1;
-
-                if let Some(ref ip) = ip_opt {
-                    let payload = serde_json::json!({
-                        "method": "getPilot",
-                        "params": {}
-                    });
-
-                    let result = send_udp_cmd(ip, &payload).await;
-
-                    match result {
-                        Ok(resp) => {
-                            consecutive_failures = 0;
-
-                            if let Some(ref new_mac) = extract_mac(&resp) {
-                                if new_mac != mac {
-                                    let map_state = app_handle.state::<DeviceMapState>();
-                                    let mut map_guard = match map_state.0.lock() {
-                                        Ok(guard) => guard,
-                                        Err(poisoned) => poisoned.into_inner(),
-                                    };
-                                    map_guard.insert(new_mac.clone(), ip.clone());
-                                    // Reafirm tracked MAC→IP so next cycle resolves correctly
-                                    map_guard.insert(mac.clone(), ip.clone());
-                                    log::warn!(
-                                        "MAC inesperada {} en IP {} (rastreando {})",
-                                        new_mac,
-                                        ip,
-                                        mac
-                                    );
-                                }
-                            }
-
-                            let state_val = resp
-                                .get("result")
-                                .cloned()
-                                .unwrap_or(serde_json::Value::Null);
-                            let event_payload = DeviceStatePayload {
-                                ip: ip.clone(),
-                                mac: mac.clone(),
-                                online: true,
-                                state: Some(state_val),
-                            };
-                            let _ = app_handle.emit("device-state-changed", event_payload);
-                        }
-                        Err(_) => {
-                            consecutive_failures += 1;
-                            let event_payload = DeviceStatePayload {
-                                ip: ip.clone(),
-                                mac: mac.clone(),
-                                online: false,
-                                state: None,
-                            };
-                            let _ = app_handle.emit("device-state-changed", event_payload);
-                        }
-                    }
-                } else {
-                    // No IP resolved for this MAC; keep trying rediscovery
+                let Some(ip) = ip_opt else {
+                    // No IP resolved for this MAC; rediscovery will fill it in.
                     let event_payload = DeviceStatePayload {
                         ip: String::new(),
                         mac: mac.clone(),
@@ -174,7 +102,69 @@ pub fn start_polling(app_handle: tauri::AppHandle, shutdown: Arc<AtomicBool>) {
                         state: None,
                     };
                     let _ = app_handle.emit("device-state-changed", event_payload);
+                    continue;
+                };
+
+                polled += 1;
+
+                let payload = serde_json::json!({
+                    "method": "getPilot",
+                    "params": {}
+                });
+
+                match send_udp_cmd(&ip, &payload).await {
+                    Ok(resp) => {
+                        if let Some(ref new_mac) = extract_mac(&resp) {
+                            if new_mac != mac {
+                                let map_state = app_handle.state::<DeviceMapState>();
+                                let mut map_guard = match map_state.0.lock() {
+                                    Ok(guard) => guard,
+                                    Err(poisoned) => poisoned.into_inner(),
+                                };
+                                map_guard.insert(new_mac.clone(), ip.clone());
+                                // Reafirm tracked MAC→IP so next cycle resolves correctly
+                                map_guard.insert(mac.clone(), ip.clone());
+                                log::warn!(
+                                    "MAC inesperada {} en IP {} (rastreando {})",
+                                    new_mac,
+                                    ip,
+                                    mac
+                                );
+                            }
+                        }
+
+                        let state_val = resp
+                            .get("result")
+                            .cloned()
+                            .unwrap_or(serde_json::Value::Null);
+                        let event_payload = DeviceStatePayload {
+                            ip: ip.clone(),
+                            mac: mac.clone(),
+                            online: true,
+                            state: Some(state_val),
+                        };
+                        let _ = app_handle.emit("device-state-changed", event_payload);
+                    }
+                    Err(_) => {
+                        failed += 1;
+                        let event_payload = DeviceStatePayload {
+                            ip: ip.clone(),
+                            mac: mac.clone(),
+                            online: false,
+                            state: None,
+                        };
+                        let _ = app_handle.emit("device-state-changed", event_payload);
+                    }
                 }
+            }
+
+            // Solo cuenta como fallo de ciclo cuando NINGÚN dispositivo respondió
+            // (típico tras reposo o cambio de red). Una lámpara individual caída
+            // dentro de un grupo no debe disparar rediscovery constante.
+            if polled == 0 || failed == polled {
+                consecutive_failures += 1;
+            } else {
+                consecutive_failures = 0;
             }
         }
     });

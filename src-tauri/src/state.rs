@@ -7,7 +7,9 @@ use std::sync::Mutex;
 
 pub struct ConfigState(pub Mutex<AppConfig>);
 
-pub struct ActiveDeviceState(pub Mutex<Option<String>>);
+/// MACs que el monitor vigila: una sola para un dispositivo individual,
+/// varias cuando el usuario selecciona un grupo. Vacío = nada que vigilar.
+pub struct ActiveDeviceState(pub Mutex<Vec<String>>);
 
 pub struct DeviceMapState(pub Mutex<HashMap<String, String>>);
 

@@ -63,6 +63,36 @@ pub async fn save_device_name(
         .map_err(|e| AppError::Config(e.to_string()))?
 }
 
+/// Actualiza en memoria los dispositivos que el monitor debe vigilar, sin tocar disco.
+/// Recibe una MAC para un dispositivo individual o varias para un grupo. La
+/// persistencia en config.json sigue ocurriendo vía `save_preferences` (con debounce
+/// en el frontend); este comando garantiza que el monitor nunca quede vigilando
+/// dispositivos distintos a los seleccionados en la UI.
+#[tauri::command]
+pub fn set_active_device(
+    active_device: tauri::State<'_, ActiveDeviceState>,
+    macs: Vec<String>,
+) -> Result<(), AppError> {
+    if macs.len() > 32 {
+        return Err(AppError::Validation(
+            "No se pueden vigilar más de 32 dispositivos a la vez".to_string(),
+        ));
+    }
+    for m in &macs {
+        if m.is_empty() || m.len() > 64 {
+            return Err(AppError::Validation(
+                "El identificador MAC debe tener entre 1 y 64 caracteres".to_string(),
+            ));
+        }
+    }
+    let mut device_lock = active_device
+        .0
+        .lock()
+        .map_err(|e| AppError::Config(e.to_string()))?;
+    *device_lock = macs;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn get_preferences(config_state: tauri::State<'_, ConfigState>) -> Result<AppConfig, AppError> {
     let config = config_state
@@ -97,7 +127,7 @@ pub async fn save_preferences(
                 .0
                 .lock()
                 .map_err(|e| AppError::Config(e.to_string()))?;
-            *device_lock = Some(mac.clone());
+            *device_lock = vec![mac.clone()];
         }
 
         if let Some(ref t) = theme {

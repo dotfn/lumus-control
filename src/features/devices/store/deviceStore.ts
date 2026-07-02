@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { LightDevice } from '../../../types';
+import { LightDevice, LightState } from '../../../types';
 import { deviceService } from '../../../services/deviceService';
 import { useSettingsStore } from '../../settings/store/settingsStore';
 import { useLightingStore } from '../../lighting/store/lightingStore';
@@ -26,6 +26,7 @@ interface DeviceState {
   loadPreferencesAndScan: () => Promise<void>;
   selectDevice: (mac: string, ipOverride?: string) => void;
   updateDeviceName: (mac: string, name: string) => Promise<void>;
+  applyDeviceState: (mac: string, state: LightState) => void;
   setConnectionStatus: (status: string) => void;
   excludeDevice: (mac: string) => void;
   includeDevice: (mac: string) => void;
@@ -73,6 +74,16 @@ function migrateGroups(): DeviceGroup[] {
 }
 
 let _savePrefTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Sincroniza de inmediato (sin debounce ni escritura a disco) los dispositivos que
+// el monitor del backend debe vigilar: uno solo, o todos los miembros de un grupo.
+// Si esto no se propaga, el monitor sigue emitiendo estado de otra lámpara y la
+// UI queda congelada con datos viejos.
+function syncActiveDevices(macs: string[]) {
+  deviceService.setActiveDevices(macs).catch((e) => {
+    console.error('Failed to sync active devices with backend monitor', e);
+  });
+}
 
 export const useDeviceStore = create<DeviceState>((set, get) => ({
   devices: [],
@@ -168,6 +179,7 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
 
   selectDevice: (mac, ipOverride?: string) => {
     set({ selectedMac: mac, selectedGroupId: null });
+    syncActiveDevices([mac]);
     if (_savePrefTimer) clearTimeout(_savePrefTimer);
     _savePrefTimer = setTimeout(() => {
       deviceService.savePreferences(mac).catch(() => {});
@@ -206,6 +218,7 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
         get().selectDevice(remaining[0].mac);
       } else {
         set({ selectedMac: null });
+        syncActiveDevices([]);
       }
     }
   },
@@ -234,6 +247,14 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
     } catch (e) {
       console.error('Failed to save device name to config', e);
     }
+  },
+
+  // Refleja en la lista de dispositivos el estado reportado por el monitor,
+  // para que cada lámpara de un grupo muestre su estado real en el sidebar.
+  applyDeviceState: (mac, state) => {
+    set((prev) => ({
+      devices: prev.devices.map((d) => (d.mac === mac ? { ...d, state } : d)),
+    }));
   },
 
   setConnectionStatus: (status) => set({ connectionStatus: status }),
@@ -287,6 +308,7 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
         get().selectDevice(nonExcluded[0].mac);
       } else {
         set({ selectedMac: null });
+        syncActiveDevices([]);
       }
     }
   },
@@ -298,12 +320,13 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
     }
     const group = get().groups.find((g) => g.id === id);
     if (group) {
+      // Cancela una persistencia pendiente de selectDevice: si disparara después,
+      // el backend volvería a vigilar solo esa MAC en vez del grupo completo.
+      if (_savePrefTimer) clearTimeout(_savePrefTimer);
       set({ selectedGroupId: id });
-      if (group.deviceMacs.length > 0) {
-        set({ selectedMac: group.deviceMacs[0] });
-      } else {
-        set({ selectedMac: null });
-      }
+      const nextMac = group.deviceMacs.length > 0 ? group.deviceMacs[0] : null;
+      set({ selectedMac: nextMac });
+      syncActiveDevices(group.deviceMacs);
     }
   },
 }));

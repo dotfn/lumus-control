@@ -13,6 +13,16 @@ export const useSleepTimerCountdown = () => {
       tickTimer();
     }, 1000);
 
-    return () => clearInterval(interval);
+    // Al despertar de reposo el interval estuvo suspendido; un tick inmediato
+    // recalcula el tiempo restante real (y apaga la lámpara si ya venció).
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') tickTimer();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [timerActive, tickTimer]);
 };

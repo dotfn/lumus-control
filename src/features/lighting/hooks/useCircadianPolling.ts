@@ -60,10 +60,18 @@ export const useCircadianPolling = () => {
 
     intervalRef.current = setInterval(checkAndApply, POLL_INTERVAL_MS);
 
+    // El interval se suspende cuando la máquina duerme; al volver a foreground
+    // recalculamos de inmediato la configuración circadiana para la hora actual.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkAndApply();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 };

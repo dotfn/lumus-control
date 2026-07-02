@@ -49,6 +49,10 @@ export const tauriDeviceService = {
     await invoke('save_preferences', { lastMac, theme });
   },
 
+  async setActiveDevices(macs: string[]): Promise<void> {
+    await invoke('set_active_device', { macs });
+  },
+
   async saveDeviceName(mac: string, name: string): Promise<void> {
     await invoke('save_device_name', { mac, name });
   },

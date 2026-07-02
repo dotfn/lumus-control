@@ -50,7 +50,9 @@ pub fn run() {
             // during discovery. Store the config for later use.
 
             app.manage(ConfigState(std::sync::Mutex::new(initial_config)));
-            app.manage(ActiveDeviceState(std::sync::Mutex::new(initial_mac.clone())));
+            app.manage(ActiveDeviceState(std::sync::Mutex::new(
+                initial_mac.clone().into_iter().collect(),
+            )));
             app.manage(DeviceMapState(std::sync::Mutex::new(HashMap::new())));
             app.manage(ConfigPathState(config_path));
             app.manage(ShutdownSignal(shutdown_signal.clone()));
@@ -107,6 +109,7 @@ pub fn run() {
             commands::save_device_name,
             commands::get_preferences,
             commands::save_preferences,
+            commands::set_active_device,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
