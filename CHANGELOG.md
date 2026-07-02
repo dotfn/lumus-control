@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0] — 2026-07-02
+
+### Fixes
+- **Sincronización de estado real**: el monitor de Rust ahora siempre vigila el dispositivo (o grupo completo) seleccionado en la UI vía el nuevo comando `set_active_device`; apagar una lámpara desde otra app/computadora se refleja en ≤5s.
+- **Reposo/despertar**: refresh inmediato de estado, ritmo circadiano y temporizador al volver de reposo; el sleep timer usa reloj de pared y ya no pierde el tiempo dormido.
+- **UI optimista estable**: los eventos de polling ya no revierten cambios locales recientes (slider que "saltaba hacia atrás").
+- **glass-card transparente**: corregido `background-color` inválido que dejaba las tarjetas sin fondo.
+- **Updater**: sin chequeo automático en dev y sin versión falsa "v0.0.0" en estado de error.
+
+### Features
+- **Polling de grupos**: al seleccionar una habitación se monitorean todas sus lámparas; cada una refleja su estado real en el sidebar.
+- **Throttle de red**: máximo un comando UDP cada 150ms al arrastrar sliders, con entrega garantizada del valor final.
+
+### CI/CD
+- CI corre en pushes a `main`, con jobs paralelos (frontend / Rust) e incluye `cargo fmt` y `clippy`.
+- Release migrado a `tauri-action` oficial: draft con changelog, builds firmados, `latest.json` automático para el updater.
+- Cask de Homebrew centralizado en `dotfn/homebrew-tap` (`brew tap dotfn/tap`).
+
 ## [0.5.2] — 2026-06-29
 
 ### Chore
