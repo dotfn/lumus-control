@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches:
+      - main
       - develop
       - 'feature/**'
       - 'fix/**'
@@ -16,25 +17,34 @@ on:
       - 'tailwind.config.js'
       - 'tsconfig*.json'
       - '.eslintrc*'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches:
       - main
       - develop
+    paths:
+      - 'src/**'
+      - 'src-tauri/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tailwind.config.js'
+      - 'tsconfig*.json'
+      - '.eslintrc*'
+      - '.github/workflows/ci.yml'
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Quality Checks
-    # ubuntu-latest — typecheck/lint son Node puro, no necesitan macOS.
-    # macos-latest consume 10× más minutos de GitHub Actions que ubuntu-latest.
+  # Frontend y Rust corren en paralelo: typecheck/lint son Node puro y dan
+  # feedback en ~1 min sin esperar deps de sistema ni compilación de Rust.
+  frontend:
+    name: Frontend (typecheck + lint)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Node + pnpm primero — son más rápidos y fallan antes si hay problema de deps.
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -48,15 +58,26 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm typecheck
+      - run: pnpm lint
+
+  # Mismas verificaciones de Rust que `pnpm verify` local: fmt, clippy y tests.
+  # ubuntu-latest — consume 10× menos minutos de GitHub Actions que macos-latest.
+  rust:
+    name: Rust (fmt + clippy + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       # Deps de sistema necesarias para compilar crates de Tauri en Linux.
-      # Van antes del toolchain de Rust para que la instalación del compilador
-      # no bloquee si apt falla.
       - name: Install Linux dependencies (for Tauri)
         run: |
           sudo apt-get update -q
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       # Cache de Rust inmediatamente después del toolchain — así el restore
       # ocurre antes de cualquier compilación.
@@ -64,8 +85,12 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
+      # fmt no compila nada: falla en segundos si hay problema de formato.
+      - name: Check formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
-
-      - run: pnpm typecheck
-      - run: pnpm lint
