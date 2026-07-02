@@ -48,7 +48,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://github.com/dotfn/lumus-control/releases/latest/download/update.json"
+        "https://github.com/dotfn/lumus-control/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU5NEU0MUYzOUIwNDY0RUUKUldUdVpBU2I4MEZPNmFFdUhGN0ZBZzBmcVVJMkVTR1JUQmcvNUkrcGpFSDNFUENtVnRzckM0RFQK"
     }

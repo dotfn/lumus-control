@@ -1,9 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_NAME="lumus-control"
+APP_NAME="Lumus Control"
+# Nombre del bundle .app dentro del DMG (derivado del productName de Tauri)
+APP_BUNDLE="Lumus Control.app"
 REPO="dotfn/lumus-control"
-DMG_NAME="lumus-control"
+# GitHub reemplaza espacios por puntos en los assets del release
+DMG_NAME="Lumus.Control"
 INSTALL_DIR="/Applications"
 
 # Parse optional --version argument
@@ -70,17 +73,17 @@ if [ -z "$MOUNT_POINT" ]; then
   exit 1
 fi
 
-APP_SOURCE="$MOUNT_POINT/$APP_NAME.app"
+APP_SOURCE="$MOUNT_POINT/$APP_BUNDLE"
 if [ ! -d "$APP_SOURCE" ]; then
-  echo "Error: $APP_NAME.app not found in DMG." >&2
+  echo "Error: $APP_BUNDLE not found in DMG." >&2
   hdiutil detach "$MOUNT_POINT" -quiet
   exit 1
 fi
 
 # Remove existing installation
-if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
+if [ -d "$INSTALL_DIR/$APP_BUNDLE" ]; then
   echo "Removing previous installation..."
-  rm -rf "$INSTALL_DIR/$APP_NAME.app"
+  rm -rf "$INSTALL_DIR/$APP_BUNDLE"
 fi
 
 # Copy app
@@ -92,7 +95,7 @@ hdiutil detach "$MOUNT_POINT" -quiet
 
 # Remove quarantine attribute (bypasses Gatekeeper)
 echo "Removing quarantine attribute..."
-xattr -rd com.apple.quarantine "$INSTALL_DIR/$APP_NAME.app" 2>/dev/null || true
+xattr -rd com.apple.quarantine "$INSTALL_DIR/$APP_BUNDLE" 2>/dev/null || true
 
 # Cleanup downloaded DMG
 if [ -n "${DMG_URL:-}" ]; then

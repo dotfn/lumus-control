@@ -48,11 +48,11 @@ export const DownloadPage: React.FC = () => {
   };
 
   const oneLinerCmd = 'bash -c "$(curl -fsSL https://raw.githubusercontent.com/dotfn/lumus-control/main/install.sh)"';
-  const brewTapCmd = 'brew tap dotfn/lumus';
+  const brewTapCmd = 'brew tap dotfn/tap';
   const brewInstallCmd = 'brew install --cask lumus-control';
 
-  const macDmgUrl = `https://github.com/dotfn/lumus-control/releases/download/${latestTag}/lumus-control_${latestVersion}_aarch64.dmg`;
-  const winExeUrl = `https://github.com/dotfn/lumus-control/releases/download/${latestTag}/lumus-control_${latestVersion}_x64-setup.exe`;
+  const macDmgUrl = `https://github.com/dotfn/lumus-control/releases/download/${latestTag}/Lumus.Control_${latestVersion}_aarch64.dmg`;
+  const winExeUrl = `https://github.com/dotfn/lumus-control/releases/download/${latestTag}/Lumus.Control_${latestVersion}_x64-setup.exe`;
 
   return (
     <LandingLayout>

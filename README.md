@@ -128,7 +128,7 @@ El script detecta automáticamente tu arquitectura (Apple Silicon), descarga el 
 ### Homebrew (macOS)
 
 ```bash
-brew tap dotfn/lumus
+brew tap dotfn/tap
 brew install --cask lumus-control
 ```
 
@@ -138,13 +138,13 @@ Descargá el instalador correspondiente desde la página de [**Releases**](../..
 
 | Plataforma | Archivo | Método / Instalador |
 |---|---|---|
-| macOS (Apple Silicon) | `lumus-control_<version>_aarch64.dmg` | DMG + `install.sh` o arrastrar a Aplicaciones |
+| macOS (Apple Silicon) | `Lumus.Control_<version>_aarch64.dmg` | DMG + `install.sh` o arrastrar a Aplicaciones |
 | Windows (x86_64) | `Lumus.Control_<version>_x64-setup.exe` | Instalador ejecutable (NSIS) |
 
 > [!NOTE]
 > En macOS, si instalás manualmente el DMG arrastrándolo a la carpeta de Aplicaciones, es posible que debas remover el atributo de cuarentena ejecutando en tu terminal:
 > ```bash
-> xattr -rd com.apple.quarantine /Applications/lumus-control.app
+> xattr -rd com.apple.quarantine "/Applications/Lumus Control.app"
 > ```
 
 ### Build local
@@ -218,8 +218,8 @@ El backend tiene **12 tests unitarios** en `config.rs` y `network.rs` cubriendo 
 
 El repositorio cuenta con dos workflows de GitHub Actions:
 
-* **CI (`.github/workflows/ci.yml`)**: Ejecuta chequeos de calidad (`pnpm typecheck`, `pnpm lint` y `cargo test`) en cada push a ramas de desarrollo (`develop`, `feature/*`, `fix/*`) y en PRs dirigidos a `develop` o `main`.
-* **Release (`.github/workflows/release.yml`)**: Compila y empaqueta la aplicación de forma paralela para macOS (Apple Silicon) y Windows (x86_64), crea el Release en GitHub con notas auto-generadas, y actualiza el Homebrew Tap (únicamente para tags reales). Es ejecutable manualmente vía `workflow_dispatch`.
+* **CI (`.github/workflows/ci.yml`)**: Dos jobs en paralelo — frontend (`pnpm typecheck`, `pnpm lint`) y Rust (`cargo fmt --check`, `cargo clippy`, `cargo test`) — en cada push a `main` y ramas de desarrollo (`develop`, `feature/*`, `fix/*`), y en PRs dirigidos a `develop` o `main`.
+* **Release (`.github/workflows/release.yml`)**: Crea un release draft con notas auto-generadas, compila y firma en paralelo para macOS (Apple Silicon) y Windows (x86_64) usando [`tauri-action`](https://github.com/tauri-apps/tauri-action) (que además publica el `latest.json` del auto-updater), publica el release y actualiza el cask en [`dotfn/homebrew-tap`](https://github.com/dotfn/homebrew-tap) (únicamente para tags de producción sin sufijo).
 
 ---
 
