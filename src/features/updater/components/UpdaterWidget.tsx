@@ -151,14 +151,16 @@ export const UpdaterWidget: React.FC = () => {
 
           {/* Body content based on state */}
           <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs text-theme-textSecondary uppercase font-semibold tracking-wider">
-                Versión disponible
-              </span>
-              <span className="text-sm font-medium text-theme-text">
-                Lumus Control v{updateInfo?.version || '0.0.0'}
-              </span>
-            </div>
+            {updateInfo && (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-theme-textSecondary uppercase font-semibold tracking-wider">
+                  Versión disponible
+                </span>
+                <span className="text-sm font-medium text-theme-text">
+                  Lumus Control v{updateInfo.version}
+                </span>
+              </div>
+            )}
 
             {/* Available State details */}
             {status === 'available' && (

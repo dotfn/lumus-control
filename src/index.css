@@ -205,7 +205,10 @@ input[type="range"]::-webkit-slider-thumb:active {
 
 /* Apple Flat-Lit Cards — elevation via background-color differential only */
 .glass-card {
-  background-color: var(--bg-card);
+  /* --bg-card es una tripleta RGB ("r, g, b") para withOpacity de Tailwind;
+     sin rgb() la declaración es inválida al computarse y el fondo queda
+     transparente, pisando además al utility bg-theme-card en la cascada. */
+  background-color: rgb(var(--bg-card));
   border-radius: 28px;
   padding: 28px;
   box-shadow: none !important;

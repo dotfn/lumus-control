@@ -84,7 +84,9 @@ export const useAppUpdater = () => {
   }, []);
 
   useEffect(() => {
-    if (isTauri()) {
+    // En dev el binario reporta la versión local y el endpoint puede no tener
+    // aún el JSON del updater: el chequeo automático solo corre en producción.
+    if (isTauri() && !import.meta.env.DEV) {
       // Check for updates shortly after app startup
       const timer = setTimeout(() => {
         checkForUpdates();
