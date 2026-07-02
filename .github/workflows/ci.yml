@@ -45,9 +45,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # La versión de pnpm sale del campo packageManager de package.json,
+      # así CI y local usan siempre la misma.
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
           run_install: false
 
       - uses: actions/setup-node@v4
