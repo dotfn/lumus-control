@@ -1,5 +1,6 @@
 import React from 'react';
 import { RouterProvider } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { isTauri } from '../utils/tauri';
 import { tauriRouter } from '../router/tauri';
 import { webRouter } from '../router/web';
@@ -13,6 +14,11 @@ export const App: React.FC = () => {
     initTheme();
   }, [initTheme]);
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <Analytics />
+    </>
+  );
 };
 export default App;
