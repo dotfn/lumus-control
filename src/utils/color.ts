@@ -49,17 +49,11 @@ export function getLampRgbColor(lampState: LightState): [number, number, number]
   let rgb: [number, number, number] = [255, 180, 84];
 
   if (isOn) {
-    if (lampState.sceneId !== undefined) {
-      const scene = PRESET_SCENES.find((s) => s.id === lampState.sceneId);
-      if (scene && scene.colors.length > 0) {
-        const hex = scene.colors[0];
-        const cleanHex = hex.replace('#', '');
-        rgb = [
-          parseInt(cleanHex.substring(0, 2), 16),
-          parseInt(cleanHex.substring(2, 4), 16),
-          parseInt(cleanHex.substring(4, 6), 16),
-        ];
-      }
+    // Una escena que no está en el catálogo (p. ej. los blancos predefinidos de
+    // la app WiZ) cae al color que la lámpara reporta por temperatura o RGB.
+    const scene = PRESET_SCENES.find((s) => s.id === lampState.sceneId);
+    if (scene && scene.colors.length > 0) {
+      rgb = hexToRgb(scene.colors[0]);
     } else if (lampState.temp !== undefined) {
       rgb = kelvinToRgb(lampState.temp);
     } else if (lampState.r !== undefined) {

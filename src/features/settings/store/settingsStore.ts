@@ -3,6 +3,17 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { deviceService } from '../../../services/deviceService';
 import { isTauri } from '../../../utils/tauri';
 
+// En macOS la ventana usa el material translúcido nativo; un color de fondo
+// opaco lo taparía, así que solo se pinta en las demás plataformas.
+const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
+
+function setWindowBackground(win: ReturnType<typeof getCurrentWebviewWindow>, theme: 'light' | 'dark') {
+  if (IS_MAC) return;
+  win.setBackgroundColor(theme === 'dark' ? '#1e1e20' : '#ffffff').catch((e) => {
+    console.warn('Failed to set native window background color:', e);
+  });
+}
+
 interface SettingsState {
   theme: 'light' | 'dark';
   toggleTheme: (selectedMac?: string | null) => void;
@@ -35,9 +46,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         win.setTheme(newTheme === 'dark' ? 'dark' : 'light').catch((e) => {
           console.warn('Failed to set native window theme:', e);
         });
-        win.setBackgroundColor(newTheme === 'dark' ? '#141416' : '#f5f5f7').catch((e) => {
-          console.warn('Failed to set native window background color:', e);
-        });
+        setWindowBackground(win, newTheme);
       } catch (e) {
         console.warn('Tauri window API is not available:', e);
       }
@@ -60,9 +69,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         win.setTheme(finalTheme === 'dark' ? 'dark' : 'light').catch((e) => {
           console.warn('Failed to set native window theme:', e);
         });
-        win.setBackgroundColor(finalTheme === 'dark' ? '#141416' : '#f5f5f7').catch((e) => {
-          console.warn('Failed to set native window background color:', e);
-        });
+        setWindowBackground(win, finalTheme);
       } catch (e) {
         console.warn('Tauri window API is not available:', e);
       }

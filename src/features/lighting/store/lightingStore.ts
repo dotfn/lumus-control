@@ -1,66 +1,48 @@
 import { create } from 'zustand';
 import { LightState } from '../../../types';
-import { deviceService } from '../../../services/deviceService';
-import { getActiveDeviceIp, getActiveDeviceMac, setDeviceConnectionStatus, getSelectedGroupId, getGroupById, resolveMacToIp, updateMacToIp } from '../../devices/services/storeAccessor';
-import { useDeviceStore } from '../../devices/store/deviceStore';
+import { getLitMacs, getTargetMacs } from '../../devices/store/deviceStore';
+import { sendLightCommand } from './commandQueue';
 import { LocationData, fetchIpLocation, fetchSunriseSunset, getCircadianSettingForHour } from '../utils/circadian';
-
-let _unlistenEvent: (() => void) | null = null;
-let _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-let _lastEventTime = 0;
-let _initPromise: Promise<void> | null = null;
-let _visibilityHandler: (() => void) | null = null;
-// Momento del último comando enviado por el usuario. Los eventos del monitor
-// dentro de esta ventana no pisan lampState: el poll pudo haberse tomado ANTES
-// del comando y llegaría después, revirtiendo el update optimista en pantalla.
-let _lastCommandTime = 0;
-const COMMAND_SUPPRESSION_MS = 7000;
-const HEARTBEAT_TIMEOUT_MS = 15000;
-
-// Throttle de comandos de red: la UI se actualiza en cada evento (slider fluido)
-// pero a la lámpara se envía como máximo un setPilot cada SEND_THROTTLE_MS,
-// acumulando los cambios intermedios y garantizando que el último valor llegue.
-let _sendTimer: ReturnType<typeof setTimeout> | null = null;
-let _lastSendAt = 0;
-let _pendingUpdates: Partial<LightState> | null = null;
-const SEND_THROTTLE_MS = 150;
 
 interface CircadianTarget {
   temp: number;
   dimming: number;
 }
 
+interface CommandOptions {
+  isCircadian?: boolean;
+  /** Lámparas destino. Por defecto, la selección actual. */
+  macs?: string[];
+}
+
 interface LightingState {
-  lampState: LightState;
-  isConnected: boolean;
   circadianActive: boolean;
   circadianTarget: CircadianTarget | null;
+  /** Lámparas bajo ritmo circadiano: las seleccionadas al activarlo. */
+  circadianMacs: string[];
   lastCircadianUpdate: number | null;
   location: LocationData | null;
   isSyncingLocation: boolean;
   syncLocationError: string | null;
 
-  setLampState: (updates: Partial<LightState>, options?: { isCircadian?: boolean }) => Promise<void>;
-  refreshState: (ip: string) => Promise<void>;
+  setLampState: (updates: Partial<LightState>, options?: CommandOptions) => Promise<void>;
   applyCircadianRhythm: () => Promise<void>;
+  updateCircadianTarget: (setting: CircadianTarget) => void;
   stopCircadian: () => void;
-  setIsConnected: (connected: boolean) => void;
   setCircadianActive: (active: boolean) => void;
-  init: () => Promise<void>;
-  shutdown: () => void;
 }
 
-export const useLightingStore = create<LightingState>((set, get) => ({
-  lampState: {
-    state: false,
-    dimming: 60,
-    r: 255,
-    g: 180,
-    b: 84,
-  },
-  isConnected: false,
+const CIRCADIAN_OFF = {
   circadianActive: false,
   circadianTarget: null,
+  circadianMacs: [],
+  lastCircadianUpdate: null,
+};
+
+export const useLightingStore = create<LightingState>((set, get) => ({
+  circadianActive: false,
+  circadianTarget: null,
+  circadianMacs: [],
   lastCircadianUpdate: null,
   location: (() => {
     try {
@@ -74,122 +56,24 @@ export const useLightingStore = create<LightingState>((set, get) => ({
   syncLocationError: null,
 
   setLampState: async (updates, options) => {
-    if (get().circadianActive && !options?.isCircadian) {
-      set({ circadianActive: false, circadianTarget: null, lastCircadianUpdate: null });
+    const macs = options?.macs ?? getTargetMacs();
+    if (macs.length === 0) return;
+
+    // Un ajuste manual sobre una lámpara bajo ritmo circadiano lo desactiva.
+    const { circadianActive, circadianMacs } = get();
+    if (circadianActive && !options?.isCircadian && macs.some((mac) => circadianMacs.includes(mac))) {
+      set(CIRCADIAN_OFF);
     }
 
-    set((prev) => ({ lampState: { ...prev.lampState, ...updates } }));
-
-    // Acumula los cambios y respeta el throttle. El merge conserva los
-    // `undefined` explícitos (p. ej. temp: undefined al elegir escena).
-    _pendingUpdates = { ..._pendingUpdates, ...updates };
-
-    const flush = async () => {
-      const payload = _pendingUpdates;
-      _pendingUpdates = null;
-      _lastSendAt = Date.now();
-      if (!payload) return;
-
-      const selectedMac = getActiveDeviceMac();
-      const selectedGroupId = getSelectedGroupId();
-
-      if (selectedGroupId) {
-        const group = getGroupById(selectedGroupId);
-        if (group && group.deviceMacs.length > 0) {
-          const ips = group.deviceMacs
-            .map((mac) => resolveMacToIp(mac))
-            .filter((ip): ip is string => ip !== null);
-
-          if (ips.length === 0) {
-            setDeviceConnectionStatus('No se pudieron resolver IPs del grupo');
-            return;
-          }
-
-          try {
-            _lastCommandTime = Date.now();
-            const results = await Promise.allSettled(
-              ips.map((ip) => deviceService.control(ip, payload))
-            );
-
-            const anySuccess = results.some((r) => r.status === 'fulfilled');
-            if (anySuccess) {
-              set({ isConnected: true });
-              setDeviceConnectionStatus('Grupo controlado');
-            } else {
-              throw new Error('No se pudo establecer comunicación con ningún dispositivo del grupo');
-            }
-          } catch (e) {
-            set({ isConnected: false });
-            setDeviceConnectionStatus('El grupo no responde');
-            console.error('Error al enviar comando a grupo:', e);
-          }
-        }
-        return;
-      }
-
-      if (!selectedMac) return;
-      const ip = getActiveDeviceIp();
-      if (!ip) {
-        setDeviceConnectionStatus('IP no resuelta para el dispositivo');
-        return;
-      }
-
-      try {
-        _lastCommandTime = Date.now();
-        await deviceService.control(ip, payload);
-        set({ isConnected: true });
-        setDeviceConnectionStatus('Lámpara conectada');
-      } catch (e) {
-        set({ isConnected: false });
-        setDeviceConnectionStatus('Lámpara no responde');
-        console.error('Error al enviar comando de control:', e);
-      }
-    };
-
-    if (_sendTimer) return; // ya hay un envío programado que tomará lo acumulado
-
-    const elapsed = Date.now() - _lastSendAt;
-    if (elapsed >= SEND_THROTTLE_MS) {
-      await flush();
-    } else {
-      _sendTimer = setTimeout(() => {
-        _sendTimer = null;
-        flush();
-      }, SEND_THROTTLE_MS - elapsed);
-    }
-  },
-
-  refreshState: async (ip) => {
-    try {
-      const data = await deviceService.getState(ip);
-      if (!data) throw new Error();
-
-      const newState: LightState = {
-        state: !!data.state,
-        dimming: typeof data.dimming === 'number' ? data.dimming : 60,
-      };
-
-      if (data.r !== undefined && data.r !== null) {
-        newState.r = data.r;
-        newState.g = data.g;
-        newState.b = data.b;
-      }
-      if (data.temp) {
-        newState.temp = data.temp;
-      }
-      if (data.sceneId) {
-        newState.sceneId = data.sceneId;
-      }
-
-      set({ lampState: newState, isConnected: true });
-      setDeviceConnectionStatus('Lámpara conectada');
-    } catch (e) {
-      set({ isConnected: false });
-      setDeviceConnectionStatus('Lámpara no responde');
-    }
+    sendLightCommand(macs, updates);
   },
 
   applyCircadianRhythm: async () => {
+    // El destino se fija al activar: si luego se selecciona otra lámpara, el
+    // ritmo sigue aplicándose a las que lo tenían.
+    const macs = getTargetMacs();
+    if (macs.length === 0) return;
+
     set({ isSyncingLocation: true, syncLocationError: null });
 
     let lat = -34.6037;
@@ -233,6 +117,7 @@ export const useLightingStore = create<LightingState>((set, get) => ({
       }
     }
 
+    let setting: CircadianTarget;
     try {
       const solarTimes = await fetchSunriseSunset(lat, lng);
 
@@ -251,162 +136,54 @@ export const useLightingStore = create<LightingState>((set, get) => ({
 
       const now = new Date();
       const currentHour = now.getHours() + now.getMinutes() / 60;
-      const setting = getCircadianSettingForHour(solarTimes.sunriseHour, solarTimes.sunsetHour, currentHour);
-
-      const now_ts = Date.now();
-      set({
-        circadianActive: true,
-        circadianTarget: setting,
-        lastCircadianUpdate: now_ts,
-      });
-      await get().setLampState({ state: true, temp: setting.temp, dimming: setting.dimming, sceneId: undefined }, { isCircadian: true });
+      setting = getCircadianSettingForHour(solarTimes.sunriseHour, solarTimes.sunsetHour, currentHour);
     } catch (e) {
       console.error('Error applying circadian rhythm:', e);
       set({ isSyncingLocation: false, syncLocationError: 'No se pudo sincronizar la ubicación' });
 
       const hour = new Date().getHours();
-      let temp = 4000;
-      let dimming = 80;
-
       if (hour >= 0 && hour < 6) {
-        temp = 2200;
-        dimming = 15;
+        setting = { temp: 2200, dimming: 15 };
       } else if (hour >= 6 && hour < 9) {
-        temp = 3000;
-        dimming = 60;
+        setting = { temp: 3000, dimming: 60 };
       } else if (hour >= 9 && hour < 17) {
-        temp = 5000;
-        dimming = 100;
+        setting = { temp: 5000, dimming: 100 };
       } else if (hour >= 17 && hour < 20) {
-        temp = 3500;
-        dimming = 70;
+        setting = { temp: 3500, dimming: 70 };
       } else {
-        temp = 2700;
-        dimming = 40;
+        setting = { temp: 2700, dimming: 40 };
       }
-
-      const now_ts = Date.now();
-      set({
-        circadianActive: true,
-        circadianTarget: { temp, dimming },
-        lastCircadianUpdate: now_ts,
-      });
-      await get().setLampState({ state: true, temp, dimming, sceneId: undefined }, { isCircadian: true });
     }
+
+    set({
+      circadianActive: true,
+      circadianTarget: setting,
+      circadianMacs: macs,
+      lastCircadianUpdate: Date.now(),
+    });
+    await get().setLampState({ state: true, ...setting }, { isCircadian: true, macs });
+  },
+
+  // Ajuste periódico del ritmo ya activo. Solo toca las lámparas que siguen
+  // encendidas: si alguien apagó una desde otro dispositivo, no se la vuelve a
+  // encender cada vez que cambia la franja horaria.
+  updateCircadianTarget: (setting) => {
+    const { circadianActive, circadianMacs } = get();
+    if (!circadianActive) return;
+
+    set({ circadianTarget: setting, lastCircadianUpdate: Date.now() });
+    get().setLampState(setting, { isCircadian: true, macs: getLitMacs(circadianMacs) });
   },
 
   stopCircadian: () => {
-    set({ circadianActive: false, circadianTarget: null, lastCircadianUpdate: null });
+    set(CIRCADIAN_OFF);
   },
 
-  setIsConnected: (connected) => set({ isConnected: connected }),
   setCircadianActive: (active) => {
     if (!active) {
-      set({ circadianActive: false, circadianTarget: null, lastCircadianUpdate: null });
+      set(CIRCADIAN_OFF);
     } else {
       set({ circadianActive: true });
     }
-  },
-
-  init: async () => {
-    // Guard basado en promesa: dos llamadas concurrentes (p. ej. doble efecto de
-    // React StrictMode) comparten la misma suscripción en vez de duplicarla.
-    if (_initPromise) return _initPromise;
-
-    _initPromise = (async () => {
-      _lastEventTime = Date.now();
-
-      // Normaliza el payload crudo del monitor (campos null/ausentes) a LightState.
-      const toLightState = (raw: LightState): LightState => {
-        const normalized: LightState = {
-          state: !!raw.state,
-          dimming: typeof raw.dimming === 'number' ? raw.dimming : 60,
-        };
-        if (raw.r !== undefined && raw.r !== null) {
-          normalized.r = raw.r;
-          normalized.g = raw.g;
-          normalized.b = raw.b;
-        }
-        if (raw.temp) {
-          normalized.temp = raw.temp;
-        }
-        if (raw.sceneId) {
-          normalized.sceneId = raw.sceneId;
-        }
-        return normalized;
-      };
-
-      _unlistenEvent = await deviceService.subscribeToDeviceState((payload) => {
-        const deviceState = useDeviceStore.getState();
-        const selectedMac = deviceState.selectedMac;
-        const group = deviceState.selectedGroupId
-          ? deviceState.groups.find((g) => g.id === deviceState.selectedGroupId)
-          : null;
-
-        const isSelected = payload.mac === selectedMac;
-        const isGroupMember = group?.deviceMacs.includes(payload.mac) ?? false;
-        if (!isSelected && !isGroupMember) return;
-
-        // Solo los eventos de dispositivos vigilados cuentan como latido;
-        // si el backend vigila otra MAC, el heartbeat debe poder disparar.
-        _lastEventTime = Date.now();
-
-        const ip = deviceState.macToIp[payload.mac];
-        if (payload.ip && payload.ip !== ip) {
-          updateMacToIp(payload.mac, payload.ip);
-        }
-
-        if (payload.online && payload.state) {
-          const normalized = toLightState(payload.state);
-          // Estado por-lámpara en el sidebar, también para miembros del grupo.
-          deviceState.applyDeviceState(payload.mac, normalized);
-
-          if (!isSelected) return;
-
-          set({ isConnected: true });
-          setDeviceConnectionStatus('Lámpara conectada');
-
-          if (Date.now() - _lastCommandTime < COMMAND_SUPPRESSION_MS) return;
-
-          set({ lampState: normalized });
-        } else if (isSelected) {
-          set({ isConnected: false });
-          setDeviceConnectionStatus('Lámpara no responde');
-        }
-      });
-
-      _heartbeatTimer = setInterval(() => {
-        if (Date.now() - _lastEventTime > HEARTBEAT_TIMEOUT_MS && get().isConnected) {
-          set({ isConnected: false });
-          setDeviceConnectionStatus('Conexión perdida');
-        }
-      }, 5000);
-
-      // Al volver de reposo los timers estuvieron suspendidos y la lámpara pudo
-      // cambiar (u obtener otra IP). Damos gracia al heartbeat y refrescamos ya.
-      _visibilityHandler = () => {
-        if (document.visibilityState !== 'visible') return;
-        _lastEventTime = Date.now();
-        const activeIp = getActiveDeviceIp();
-        if (activeIp) {
-          get().refreshState(activeIp);
-        }
-      };
-      document.addEventListener('visibilitychange', _visibilityHandler);
-    })();
-
-    return _initPromise;
-  },
-
-  shutdown: () => {
-    _unlistenEvent?.();
-    if (_heartbeatTimer) clearInterval(_heartbeatTimer);
-    if (_visibilityHandler) {
-      document.removeEventListener('visibilitychange', _visibilityHandler);
-    }
-    _unlistenEvent = null;
-    _heartbeatTimer = null;
-    _visibilityHandler = null;
-    _initPromise = null;
   },
 }));

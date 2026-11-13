@@ -1,81 +1,54 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Sun, LayoutDashboard, Palette, Clock, Settings, Laptop, X, Wifi } from 'lucide-react';
+import { ArrowLeft, Lightbulb, Loader2, PanelLeft, RefreshCw } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { Link } from 'react-router-dom';
-import { getLampRgbColor } from '../utils/color';
 import { isTauri } from '../utils/tauri';
 import { useDemo } from '../context/DemoContext';
 
 import { useDeviceStore } from '../features/devices/store/deviceStore';
-import { useLightingStore } from '../features/lighting/store/lightingStore';
-import { useTimerStore } from '../features/timer/store/timerStore';
 import { useSettingsStore } from '../features/settings/store/settingsStore';
+import { useVisibleDevices } from '../features/devices/selectors';
 
-import { useLightEvents } from '../features/lighting/hooks/useLightEvents';
 import { useSleepTimerCountdown } from '../features/timer/hooks/useSleepTimerCountdown';
 import { useCircadianPolling } from '../features/lighting/hooks/useCircadianPolling';
 
-import { Titlebar } from '../features/layout/components/Titlebar';
-import { DeviceSelector } from '../features/devices/components/DeviceSelector';
-import { DashboardView } from '../features/lighting/components/DashboardView';
-import { ScenesView } from '../features/lighting/components/ScenesView';
-import { TimerView } from '../features/timer/components/TimerView';
+import { AppView, Sidebar } from '../features/shell/components/Sidebar';
+import { TargetView } from '../features/lighting/components/TargetView';
+import { OverviewView } from '../features/devices/components/OverviewView';
+import { AddLampSheet, RoomSheet } from '../features/devices/components/DeviceSheets';
 import { SettingsView } from '../features/settings/components/SettingsView';
-
-type TabId = 'dashboard' | 'scenes' | 'timer' | 'settings';
+import { UpdaterWidget } from '../features/updater/components/UpdaterWidget';
+import '../features/shell/shell.css';
 
 type ControlPageProps = {
   hideTitlebar?: boolean;
   onBack?: () => void;
 };
 
+type ActiveSheet = { kind: 'room'; groupId?: string } | { kind: 'add-lamp' } | null;
+
+const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
+
 export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, onBack }) => {
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const [view, setView] = useState<AppView>('target');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sheet, setSheet] = useState<ActiveSheet>(null);
   const { isDemo } = useDemo();
 
   const devices = useDeviceStore((s) => s.devices);
-  const selectedMac = useDeviceStore((s) => s.selectedMac);
-  const isScanning = useDeviceStore((s) => s.isScanning);
-  const connectionStatus = useDeviceStore((s) => s.connectionStatus);
-  const loadPreferencesAndScan = useDeviceStore((s) => s.loadPreferencesAndScan);
-  const selectDevice = useDeviceStore((s) => s.selectDevice);
-  const updateDeviceName = useDeviceStore((s) => s.updateDeviceName);
-  const scan = useDeviceStore((s) => s.scan);
-  const excludedMacs = useDeviceStore((s) => s.excludedMacs);
-  const excludeDevice = useDeviceStore((s) => s.excludeDevice);
-  const includeDevice = useDeviceStore((s) => s.includeDevice);
-  const deviceNames = useDeviceStore((s) => s.deviceNames);
-  const macToIp = useDeviceStore((s) => s.macToIp);
   const groups = useDeviceStore((s) => s.groups);
+  const selectedMac = useDeviceStore((s) => s.selectedMac);
   const selectedGroupId = useDeviceStore((s) => s.selectedGroupId);
-  const createGroup = useDeviceStore((s) => s.createGroup);
-  const updateGroup = useDeviceStore((s) => s.updateGroup);
-  const deleteGroup = useDeviceStore((s) => s.deleteGroup);
-  const selectGroup = useDeviceStore((s) => s.selectGroup);
+  const connectionStatus = useDeviceStore((s) => s.connectionStatus);
+  const isScanning = useDeviceStore((s) => s.isScanning);
+  const isReady = useDeviceStore((s) => s.isReady);
+  const scan = useDeviceStore((s) => s.scan);
+  const initDevices = useDeviceStore((s) => s.init);
+  const initTheme = useSettingsStore((s) => s.initTheme);
+  const visible = useVisibleDevices();
 
-  const activeGroup = selectedGroupId ? groups.find((g) => g.id === selectedGroupId) : null;
-
-  const lampState = useLightingStore((s) => s.lampState);
-  const isConnected = useLightingStore((s) => s.isConnected);
-  const circadianActive = useLightingStore((s) => s.circadianActive);
-  const circadianTarget = useLightingStore((s) => s.circadianTarget);
-  const setLampState = useLightingStore((s) => s.setLampState);
-  const applyCircadianRhythm = useLightingStore((s) => s.applyCircadianRhythm);
-  const stopCircadian = useLightingStore((s) => s.stopCircadian);
-
-  const timerActive = useTimerStore((s) => s.timerActive);
-  const timerSeconds = useTimerStore((s) => s.timerSeconds);
-  const totalTimerSeconds = useTimerStore((s) => s.totalTimerSeconds);
-  const timerFadeOut = useTimerStore((s) => s.timerFadeOut);
-  const startTimer = useTimerStore((s) => s.startTimer);
-  const cancelTimer = useTimerStore((s) => s.cancelTimer);
-
-  useLightEvents();
   useSleepTimerCountdown();
   useCircadianPolling();
-
-  const initTheme = useSettingsStore((state) => state.initTheme);
 
   useEffect(() => {
     initTheme();
@@ -86,9 +59,8 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
         console.warn('Tauri window show is not available', e);
       }
     }
-    loadPreferencesAndScan();
-    useLightingStore.getState().init();
-  }, [initTheme, loadPreferencesAndScan]);
+    initDevices();
+  }, [initTheme, initDevices]);
 
   useEffect(() => {
     let resizeTimer: number;
@@ -107,268 +79,174 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
     };
   }, []);
 
-  useEffect(() => {
-    const isOn = lampState.state;
-    const rgb = getLampRgbColor(lampState);
+  const group = selectedGroupId ? groups.find((g) => g.id === selectedGroupId) : undefined;
+  const device = !group && selectedMac ? devices.find((d) => d.mac === selectedMac) : undefined;
+  const hasTarget = !!group || !!device;
+  // Sin nada que resumir (una sola lámpara), "Todas" cae al detalle.
+  const canOverview = visible.length > 1 || groups.length > 0;
+  const activeView: AppView = view === 'overview' && !canOverview ? 'target' : view;
 
-    const glowStrength = isOn ? lampState.dimming / 100 : 0;
-    document.documentElement.style.setProperty('--glow-color', rgb.join(','));
-    document.documentElement.style.setProperty('--glow-strength', glowStrength.toString());
-  }, [lampState]);
-
-  const handleStartTimer = (mins: number, fadeOut: boolean) => {
-    startTimer(mins, fadeOut, lampState.dimming);
+  const navigate = (next: AppView) => {
+    setView(next);
+    setSidebarOpen(false);
   };
 
-  return (
-    <div className="w-full h-full bg-theme-bg flex flex-col overflow-hidden text-theme-text font-sans antialiased relative select-none transition-colors duration-300">
-      {!hideTitlebar && <Titlebar onBack={onBack} />}
+  let title: string;
+  let subtitle: string;
+  let dot: string;
+  if (activeView === 'settings') {
+    title = 'Ajustes';
+    subtitle = '';
+    dot = '';
+  } else if (activeView === 'overview') {
+    const lit = visible.filter((d) => d.online && d.state?.state).length;
+    const offline = visible.filter((d) => !d.online).length;
+    title = 'Todas las lámparas';
+    subtitle = `${lit} de ${visible.length} encendidas${offline > 0 ? ` · ${offline} sin conexión` : ''}`;
+    dot = offline === 0 ? 'mac-dot--ok' : offline === visible.length ? 'mac-dot--bad' : 'mac-dot--warn';
+  } else if (hasTarget) {
+    // El detalle ya lleva nombre y estado en su encabezado; repetirlos aquí
+    // sería ruido. La barra queda como zona de arrastre con las acciones.
+    title = '';
+    subtitle = '';
+    dot = '';
+  } else {
+    title = 'Lumus Control';
+    subtitle = connectionStatus;
+    dot = '';
+  }
 
-      <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-1000 -z-10"
-        style={{
-          background: `radial-gradient(circle at 50% 0%, var(--glow-color) 0%, transparent 65%)`,
-          opacity: `calc(0.04 * var(--glow-strength-multiplier, 1.0))`
-        }}
+  const isSearching = isScanning || !isReady;
+  const trafficLights = isTauri() && IS_MAC && !hideTitlebar;
+
+  return (
+    <div className={`mac-app ${trafficLights ? 'mac-app--traffic' : ''}`}>
+      <button
+        type="button"
+        className={`mac-scrim ${sidebarOpen ? 'is-open' : ''}`}
+        aria-label="Cerrar lista de lámparas"
+        onClick={() => setSidebarOpen(false)}
+      />
+      <Sidebar
+        view={activeView}
+        isOpen={sidebarOpen}
+        trafficLights={trafficLights}
+        onNavigate={navigate}
+        onNewRoom={() => setSheet({ kind: 'room' })}
+        onAddLamp={() => setSheet({ kind: 'add-lamp' })}
       />
 
-      <div className={`flex-1 flex overflow-hidden flex-col ${hideTitlebar ? 'pt-0' : 'pt-12'}`}>
+      <main className="mac-main">
+        <div className="mac-toolbar" data-tauri-drag-region>
+          {onBack && (
+            <button type="button" className="mac-toolbtn" onClick={onBack} aria-label="Volver al inicio">
+              <ArrowLeft size={17} />
+            </button>
+          )}
+          <button
+            type="button"
+            className="mac-toolbtn mac-toolbtn--menu"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Abrir lista de lámparas"
+          >
+            <PanelLeft size={17} />
+          </button>
+          <div className="mac-toolbar__titles" data-tauri-drag-region>
+            {title && (
+              <div className="mac-toolbar__title" data-tauri-drag-region>
+                {title}
+              </div>
+            )}
+            {subtitle && (
+              <div className="mac-toolbar__subtitle" data-tauri-drag-region role="status">
+                {dot && <span className={`mac-dot ${dot}`} aria-hidden="true" />}
+                {subtitle}
+              </div>
+            )}
+          </div>
+          <UpdaterWidget />
+          <div className="mac-toolgroup">
+            <button
+              type="button"
+              className="mac-toolbtn"
+              onClick={scan}
+              disabled={isScanning}
+              aria-label="Buscar lámparas en la red"
+              title="Buscar lámparas en la red"
+            >
+              <RefreshCw size={15} className={isScanning ? 'mac-spin' : ''} />
+            </button>
+          </div>
+        </div>
+
         {isDemo && (
-          <div className="bg-theme-accent/10 border-b border-theme-border text-theme-accent px-5 py-2 text-xs flex justify-between items-center z-40 animate-fade-in">
-            <div className="flex items-center gap-2 font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-theme-accent animate-pulse" />
-              <span>
-                <strong>Modo Demo Activo:</strong> Estás explorando la interfaz con un dispositivo virtual.
-              </span>
-            </div>
+          <div className="mac-banner">
+            <span>
+              <strong>Modo demo:</strong> estas lámparas son virtuales.
+            </span>
             {isTauri() ? (
               <a
+                className="mac-btn mac-btn--primary"
                 href="https://lumuscontrol.app/download"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] bg-theme-accent hover:opacity-90 text-white font-bold px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap shadow-none active:scale-95"
               >
-                <Laptop className="w-3 h-3" /> Descargar App
+                Descargar app
               </a>
             ) : (
-              <Link
-                to="/download"
-                className="text-[10px] bg-theme-accent hover:opacity-90 text-white font-bold px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap shadow-none active:scale-95"
-              >
-                <Laptop className="w-3 h-3" /> Descargar App
+              <Link className="mac-btn mac-btn--primary" to="/download">
+                Descargar app
               </Link>
             )}
           </div>
         )}
 
-        <div className="flex-1 flex overflow-hidden w-full relative">
-          {sidebarOpen && (
-            <div className="fixed inset-0 z-50 flex md:hidden animate-fade-in">
-              <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
-                onClick={() => setSidebarOpen(false)}
+        <div className="mac-content">
+          <div className="mac-content__inner">
+            {activeView === 'settings' ? (
+              <SettingsView onAddLamp={() => setSheet({ kind: 'add-lamp' })} />
+            ) : activeView === 'overview' ? (
+              <OverviewView onOpenTarget={() => navigate('target')} />
+            ) : hasTarget ? (
+              // La clave reinicia el estado local (pestaña de color, edición
+              // del nombre) al cambiar de lámpara o habitación.
+              <TargetView
+                key={group ? `room:${group.id}` : `lamp:${device?.mac}`}
+                onEditRoom={(groupId) => setSheet({ kind: 'room', groupId })}
               />
-
-              <aside className="relative w-[280px] max-w-[85vw] h-full bg-theme-sidebar border-r border-theme-border flex flex-col p-5 overflow-y-auto space-y-6 transition-transform duration-300 ease-out shadow-none">
-                <div className="flex justify-between items-center pb-2 border-b border-theme-border">
-                  <span className="text-xs font-bold text-theme-text uppercase tracking-wider">Menú de Red</span>
-                  <button
-                    onClick={() => setSidebarOpen(false)}
-                    className="p-1 hover:bg-theme-border rounded-lg text-theme-textSecondary hover:text-theme-text transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                  <DeviceSelector
-                    selectedMac={selectedMac}
-                    onSelect={(mac) => {
-                      selectDevice(mac);
-                      setSidebarOpen(false);
-                    }}
-                    devices={devices}
-                    onScan={scan}
-                    isScanning={isScanning}
-                    onUpdateDeviceName={updateDeviceName}
-                    excludedMacs={excludedMacs}
-                    onExcludeDevice={excludeDevice}
-                    onIncludeDevice={includeDevice}
-                    deviceNames={deviceNames}
-                    macToIp={macToIp}
-                    groups={groups}
-                    selectedGroupId={selectedGroupId}
-                    onCreateGroup={createGroup}
-                    onUpdateGroup={updateGroup}
-                    onDeleteGroup={deleteGroup}
-                    onSelectGroup={selectGroup}
-                  />
-              </aside>
-            </div>
-          )}
-
-          <aside className="hidden md:flex w-[280px] bg-theme-sidebar border-r border-theme-border flex-col p-5 overflow-y-auto space-y-6 flex-shrink-0 transition-colors duration-300">
-            <DeviceSelector
-              selectedMac={selectedMac}
-              onSelect={selectDevice}
-              devices={devices}
-              onScan={scan}
-              isScanning={isScanning}
-              onUpdateDeviceName={updateDeviceName}
-              excludedMacs={excludedMacs}
-              onExcludeDevice={excludeDevice}
-              onIncludeDevice={includeDevice}
-              deviceNames={deviceNames}
-              macToIp={macToIp}
-              groups={groups}
-              selectedGroupId={selectedGroupId}
-              onCreateGroup={createGroup}
-              onUpdateGroup={updateGroup}
-              onDeleteGroup={deleteGroup}
-              onSelectGroup={selectGroup}
-            />
-          </aside>
-
-          <main className="flex-1 flex flex-col overflow-hidden p-6 pb-0 space-y-6 bg-theme-main transition-colors duration-300">
-            <header className="flex items-center justify-between pb-4 border-b border-theme-border/60 transition-colors duration-300">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="md:hidden p-2 hover:bg-theme-input rounded-full border border-theme-border text-theme-text transition-colors active:scale-95 flex items-center justify-center"
-                  aria-label="Abrir lista de dispositivos"
-                >
-                  <Wifi className="w-4 h-4" />
-                </button>
-                <div>
-                  <h1 className="font-display font-bold text-2xl tracking-apple-heading text-theme-text flex items-center gap-2 transition-colors duration-300">
-                    Lumus Control
-                    {circadianActive && (
-                      <span className="text-[10px] bg-theme-accent/10 text-theme-accent border border-theme-accent/20 flex items-center px-2 py-0.5 rounded-full flex items-center gap-0.5 font-medium tracking-apple-body-sm">
-                        <Sparkles className="w-2.5 h-2.5 text-theme-accent" />
-                        Sincronizado
-                      </span>
-                    )}
-                  </h1>
-                  <p className="text-[10px] text-theme-textSecondary font-sans mt-0.5 flex items-center gap-1.5 font-medium tracking-apple-body-sm transition-colors duration-300">
-                    {selectedMac && isConnected ? (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                    ) : (
-                      <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-                    )}
-                    <span>
-                      {activeGroup
-                        ? `Habitación: ${activeGroup.name} (${activeGroup.deviceMacs.length} lámparas) · ${connectionStatus}`
-                        : selectedMac
-                          ? `${connectionStatus} · ${selectedMac.slice(0, 17)}`
-                          : connectionStatus}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              {selectedMac && (
-                <button
-                  onClick={() => circadianActive ? stopCircadian() : applyCircadianRhythm()}
-                  title={circadianActive ? 'Desactivar ritmo circadiano' : 'Activar ritmo circadiano'}
-                  className={`px-4 py-2 active:scale-95 rounded-full border transition-colors duration-200 flex items-center gap-1.5 text-xs font-medium tracking-apple-body shadow-none ${circadianActive
-                    ? 'bg-theme-accent/15 border-theme-accent/30 text-theme-accent ring-1 ring-inset ring-theme-accent/20'
-                    : 'bg-theme-card border-theme-border text-theme-textSecondary hover:bg-theme-input hover:text-theme-text'
-                    }`}
-                >
-                  <Sun className={`w-3.5 h-3.5 ${circadianActive ? 'animate-pulse' : ''}`} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
-                    {circadianActive ? 'Circadiano' : 'Circadiano'}
-                  </span>
-                </button>
-              )}
-            </header>
-
-            <nav className="flex bg-theme-bg/60 border border-theme-border rounded-full p-1 gap-1 max-w-md w-full transition-colors duration-300 shadow-none" role="tablist" aria-label="Secciones de control">
-              {([
-                { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
-                { id: 'scenes', label: 'Escenas', icon: Palette },
-                { id: 'timer', label: 'Temporizador', icon: Clock },
-                { id: 'settings', label: 'Ajustes', icon: Settings },
-              ] as const).map((tab) => {
-                const TabIcon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    role="tab"
-                    id={`tab-${tab.id}`}
-                    aria-selected={isActive}
-                    aria-controls={`tabpanel-${tab.id}`}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-2 px-3 text-xs font-semibold rounded-full flex items-center justify-center gap-1.5 transition-colors duration-150 tracking-apple-body shadow-none ${isActive
-                      ? 'bg-theme-card text-theme-text border border-theme-border shadow-none'
-                      : 'text-theme-textSecondary hover:text-theme-text font-normal border border-theme-border/0'
-                      }`}
-                  >
-                    <TabIcon className="w-3.5 h-3.5" aria-hidden="true" />
-                    <span className="hidden min-[400px]:inline">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 overflow-visible">
-              {activeTab === 'settings' ? (
-                <div role="tabpanel" id="tabpanel-settings" aria-labelledby="tab-settings">
-                  <SettingsView />
-                </div>
-              ) : selectedMac ? (
-                <>
-                  {activeTab === 'dashboard' && (
-                    <div role="tabpanel" id="tabpanel-dashboard" aria-labelledby="tab-dashboard">
-                      <DashboardView
-                        lampState={lampState}
-                        isConnected={isConnected}
-                        setLampState={setLampState}
-                        circadianActive={circadianActive}
-                        circadianTarget={circadianTarget}
-                      />
-                    </div>
-                  )}
-                  {activeTab === 'scenes' && (
-                    <div role="tabpanel" id="tabpanel-scenes" aria-labelledby="tab-scenes">
-                      <ScenesView
-                        currentSceneId={lampState.sceneId}
-                        onSelectScene={(id) => setLampState({ sceneId: id, state: true, temp: undefined })}
-                      />
-                    </div>
-                  )}
-                  {activeTab === 'timer' && (
-                    <div role="tabpanel" id="tabpanel-timer" aria-labelledby="tab-timer">
-                      <TimerView
-                        isActive={timerActive}
-                        onStartTimer={handleStartTimer}
-                        onCancelTimer={cancelTimer}
-                        remainingSeconds={timerSeconds}
-                        totalSeconds={totalTimerSeconds}
-                        fadeOutEnabled={timerFadeOut}
-                      />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
-                  <div className="flex-1 flex flex-col items-center justify-center py-24 px-6 border border-dashed border-theme-border rounded-[28px] bg-theme-input/30 animate-fade-in shadow-none">
-                    <p className="text-xs text-theme-textSecondary text-center max-w-xs tracking-apple-body leading-relaxed transition-colors duration-300">
-                      Selecciona una lámpara de la lista o introduce una dirección en el panel izquierdo para comenzar a controlarla.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('settings')}
-                      className="mt-6 px-5 py-2.5 bg-theme-card hover:bg-theme-input border border-theme-border rounded-full text-xs font-semibold text-theme-text tracking-apple-body transition-colors duration-200 active:scale-95 shadow-none"
-                    >
-                      Ir a Configuración de Red
+            ) : (
+              <div className="mac-empty">
+                {isSearching ? (
+                  <Loader2 size={40} strokeWidth={1.5} className="mac-empty__icon mac-spin" />
+                ) : (
+                  <Lightbulb size={44} strokeWidth={1.25} className="mac-empty__icon" />
+                )}
+                <h1 className="mac-empty__title">
+                  {isSearching ? 'Buscando lámparas…' : 'No se encontraron lámparas'}
+                </h1>
+                <p className="mac-empty__text">
+                  {isSearching
+                    ? 'Esto tarda un par de segundos.'
+                    : 'Comprueba que estén encendidas y conectadas a la misma red Wi‑Fi que este equipo.'}
+                </p>
+                {!isSearching && (
+                  <div className="mac-empty__actions">
+                    <button type="button" className="mac-btn mac-btn--primary" onClick={scan}>
+                      Buscar de nuevo
+                    </button>
+                    <button type="button" className="mac-btn" onClick={() => setSheet({ kind: 'add-lamp' })}>
+                      Añadir por IP…
                     </button>
                   </div>
-                </div>
-              )}
-            </div>
-          </main>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
+
+      {sheet?.kind === 'room' && <RoomSheet groupId={sheet.groupId} onClose={() => setSheet(null)} />}
+      {sheet?.kind === 'add-lamp' && <AddLampSheet onClose={() => setSheet(null)} />}
     </div>
   );
 };

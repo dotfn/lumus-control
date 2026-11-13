@@ -265,3 +265,244 @@ input[type="range"]::-webkit-slider-thumb:active {
   }
 }
 
+
+/* ───────────── Landing: habitación con la lámpara 3D ─────────────
+   Siempre oscura, al margen del tema. --lit (0–1) y --lamp ("r, g, b") los
+   fija la página según el estado de la lámpara: la interfaz se ilumina con ella. */
+.hero-room {
+  --lit: 0;
+  --lamp: 255, 180, 84;
+  background: #060607;
+  color: #fff;
+}
+
+/* Sin WebGL no hay pared que iluminar: el resplandor lo pone un degradado. */
+.hero-room--flat {
+  background:
+    radial-gradient(60% 55% at 28% 22%, rgba(var(--lamp), calc(var(--lit) * 0.42)), transparent 70%),
+    #060607;
+  transition: background 0.5s ease;
+}
+
+.hero-fade {
+  background: linear-gradient(to bottom, transparent, #060607);
+}
+
+.hero-ink {
+  color: rgba(255, 255, 255, calc(0.3 + 0.66 * var(--lit)));
+  text-shadow: 0 0 60px rgba(var(--lamp), calc(var(--lit) * 0.35));
+  transition: color 0.5s ease, text-shadow 0.5s ease;
+}
+
+.hero-ink-2 {
+  color: rgba(255, 255, 255, calc(0.3 + 0.42 * var(--lit)));
+  transition: color 0.5s ease;
+}
+
+.hero-ink-3 {
+  color: rgba(255, 255, 255, calc(0.26 + 0.24 * var(--lit)));
+  transition: color 0.5s ease;
+}
+
+.hero-navlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.62);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.hero-navlink:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: #fff;
+  color: #0b0b0c;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+  opacity: calc(0.72 + 0.28 * var(--lit));
+  box-shadow: 0 0 44px rgba(var(--lamp), calc(var(--lit) * 0.4));
+  transition: opacity 0.5s ease, box-shadow 0.5s ease, transform 0.15s ease;
+}
+
+.hero-cta:hover {
+  opacity: 1;
+}
+
+.hero-cta:active {
+  transform: scale(0.97);
+}
+
+.hero-navlink:focus-visible,
+.hero-cta:focus-visible,
+.hero-switch:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.hero-switch {
+  align-self: flex-start;
+  margin-bottom: 20px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.hero-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transform: translate(-7px, -50%);
+  white-space: nowrap;
+  transition: opacity 0.4s ease;
+}
+
+.hero-hint.is-hidden {
+  opacity: 0;
+}
+
+/* Baliza sobre cada tirador: marca dónde agarrar cuando la habitación está a oscuras. */
+.hero-hint__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  animation: hero-hint-pulse 1.8s ease-out infinite;
+}
+
+.hero-hint__label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+@keyframes hero-hint-pulse {
+  0% { transform: scale(0.6); opacity: 0.95; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+
+.hero-views {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(22, 22, 24, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.hero-views::-webkit-scrollbar {
+  display: none;
+}
+
+.hero-views__item {
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.62);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.hero-views__item:hover {
+  color: #fff;
+}
+
+.hero-views__item[aria-pressed='true'] {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.hero-views__item:focus-visible,
+.hero-dock:focus-visible,
+.hero-window__dot:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.hero-dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(34, 34, 36, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.hero-dock:hover {
+  background: rgba(48, 48, 51, 0.95);
+}
+
+.hero-window {
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1c1c1e;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    0 0 140px rgba(var(--lamp), calc(var(--lit) * 0.16));
+  transition: box-shadow 0.5s ease;
+}
+
+.hero-window__bar {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  background: #242426;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.hero-window__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.hero-window__title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-hint__dot {
+    animation: none;
+  }
+}

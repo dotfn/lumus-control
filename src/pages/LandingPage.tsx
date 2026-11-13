@@ -1,265 +1,264 @@
-import React from 'react';
-import { LandingLayout } from '../layouts/LandingLayout';
-import { ArrowRight, Zap, Shield, Sparkles, Clock, Download, ChevronRight, Play, Laptop } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Download, Github, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { DeviceSimulatorShowcase } from '../features/showcase/components/DeviceSimulatorShowcase';
+import { DemoProvider } from '../context/DemoContext';
+import { ControlPage } from './ControlPage';
+import { RoomCanvas, RoomCanvasHandle } from '../features/hero/components/RoomCanvas';
+import { AppWindow } from '../features/hero/components/AppWindow';
+import type { LampKind, LampLight, LampSpec } from '../features/hero/roomScene';
+import { playSwitchClick } from '../features/hero/clickSound';
+import { useDeviceStore } from '../features/devices/store/deviceStore';
+import { useLightingStore } from '../features/lighting/store/lightingStore';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { getLampRgbColor } from '../utils/color';
+import { lampName } from '../utils/lampAppearance';
+import { DEFAULT_LIGHT_STATE } from '../utils/lightState';
 
-const finishes = [
-  {
-    id: 'citrus',
-    label: 'Citrus',
-    swatchHex: '#dddc8c',
-    gradient: 'linear-gradient(184deg, rgb(29, 29, 31) 0%, rgb(223, 231, 79) 33%, rgb(94, 156, 42) 66%, rgb(10, 134, 26) 95%)',
-    activeColor: 'rgb(223, 231, 79)',
-  },
-  {
-    id: 'indigo',
-    label: 'Indigo',
-    swatchHex: '#596680',
-    gradient: 'linear-gradient(184deg, rgb(29, 29, 31) 20%, rgb(168, 211, 251) 43%, rgb(0, 18, 249) 76%, rgb(37, 53, 224) 95%)',
-    activeColor: 'rgb(168, 211, 251)',
-  },
-  {
-    id: 'blush',
-    label: 'Blush',
-    swatchHex: '#e8d0d0',
-    gradient: 'linear-gradient(184deg, rgb(29, 29, 31) 20%, rgb(243, 196, 246) 43%, rgb(245, 0, 180) 76%, rgb(204, 41, 188) 95%)',
-    activeColor: 'rgb(243, 196, 246)',
-  },
-] as const;
+const GITHUB_URL = 'https://github.com/dotfn/lumus-control';
+
+// Un mueble por lámpara de la demo, en el orden en que aparecen.
+const LAMP_KINDS: LampKind[] = ['pendant', 'floor', 'table'];
+
+// La habitación arranca a oscuras una sola vez por visita: si se vuelve a la
+// landing desde la demo, las lámparas quedan como se dejaron.
+let startedDark = false;
 
 export const LandingPage: React.FC = () => {
-  // Set page-specific document title for SEO
-  React.useEffect(() => {
+  const devices = useDeviceStore((s) => s.devices);
+  const selectedMac = useDeviceStore((s) => s.selectedMac);
+  const initDevices = useDeviceStore((s) => s.init);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+
+  const [ready, setReady] = useState(false);
+  const [has3d, setHas3d] = useState(true);
+  /** Lámpara enfocada por la cámara; `null` es la vista general y `undefined` una vista libre. */
+  const [view, setView] = useState<string | null | undefined>(null);
+  const [pulled, setPulled] = useState<Record<string, boolean>>({});
+  const [viewShift, setViewShift] = useState(0);
+
+  const roomRef = useRef<RoomCanvasHandle>(null);
+  const anyPulled = useRef(false);
+  // Selección hecha al tirar de una cuerda: no debe mover la cámara.
+  const quietSelection = useRef<string | null>(null);
+  const lastSelected = useRef<string | null>(null);
+
+  useEffect(() => {
     document.title = 'Lumus Control — Control local de luces inteligentes para macOS y Windows';
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    initDevices().then(() => {
+      if (!startedDark) {
+        startedDark = true;
+        if (!anyPulled.current) {
+          const macs = useDeviceStore.getState().devices.map((d) => d.mac);
+          void useLightingStore.getState().setLampState({ state: false }, { macs });
+        }
+      }
+      if (!cancelled) setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initDevices]);
+
+  const roomDevices = useMemo(() => devices.slice(0, LAMP_KINDS.length), [devices]);
+  const lampsKey = roomDevices.map((d) => d.mac).join('|');
+  const lamps = useMemo<LampSpec[]>(
+    () => lampsKey.split('|').filter(Boolean).map((id, i) => ({ id, kind: LAMP_KINDS[i] })),
+    [lampsKey],
+  );
+
+  const lights = useMemo(() => {
+    const next: Record<string, LampLight> = {};
+    roomDevices.forEach((device) => {
+      const state = device.state ?? DEFAULT_LIGHT_STATE;
+      next[device.mac] = {
+        on: ready && device.online && state.state,
+        rgb: getLampRgbColor(state),
+        level: 0.3 + 0.7 * (state.dimming / 100),
+      };
+    });
+    return next;
+  }, [roomDevices, ready]);
+
+  const focus = useCallback((id: string | null) => {
+    setView(id);
+    roomRef.current?.focus(id);
+  }, []);
+
+  // Elegir una lámpara en la app lleva la cámara hasta ella.
+  useEffect(() => {
+    const previous = lastSelected.current;
+    lastSelected.current = selectedMac;
+    if (!selectedMac || previous === null || previous === selectedMac) return;
+    if (quietSelection.current === selectedMac) {
+      quietSelection.current = null;
+      return;
+    }
+    if (lamps.some((lamp) => lamp.id === selectedMac)) focus(selectedMac);
+  }, [selectedMac, lamps, focus]);
+
+  const select = useCallback(
+    (id: string) => {
+      lastSelected.current = id;
+      useDeviceStore.getState().selectDevice(id);
+      focus(id);
+    },
+    [focus],
+  );
+
+  const toggle = useCallback((id: string) => {
+    playSwitchClick();
+    anyPulled.current = true;
+    setPulled((current) => (current[id] ? current : { ...current, [id]: true }));
+    const store = useDeviceStore.getState();
+    if (store.selectedMac !== id || store.selectedGroupId) {
+      quietSelection.current = id;
+      store.selectDevice(id);
+    }
+    const isOn = useDeviceStore.getState().devices.find((d) => d.mac === id)?.state?.state ?? false;
+    void useLightingStore.getState().setLampState({ state: !isOn }, { macs: [id] });
+  }, []);
+
+  // La escena se centra en el hueco que deja libre la ventana de la app.
+  const onWindowLayout = useCallback((rect: { x: number; width: number } | null) => {
+    if (!rect) {
+      setViewShift(0);
+      return;
+    }
+    const total = window.innerWidth;
+    const center = (rect.x + rect.width / 2) / total;
+    let shift = 0;
+    if (center > 0.56) shift = Math.max(0, total - rect.x) / total / 2;
+    else if (center < 0.44) shift = -Math.max(0, rect.x + rect.width) / total / 2;
+    setViewShift(Math.max(-0.3, Math.min(0.3, Math.round(shift * 100) / 100)));
+  }, []);
+
+  // La interfaz se ilumina con la lámpara más brillante.
+  const brightest = Object.values(lights).reduce<LampLight | null>(
+    (best, light) => (light.on && (!best || light.level > best.level) ? light : best),
+    null,
+  );
+  const roomStyle = {
+    '--lamp': (brightest?.rgb ?? [255, 180, 84]).join(', '),
+    '--lit': brightest?.level ?? 0,
+  } as React.CSSProperties;
+
+  const views = [
+    { id: null as string | null, label: 'Habitación' },
+    ...roomDevices.map((device) => ({ id: device.mac as string | null, label: lampName(device) })),
+  ];
+
   return (
-    <LandingLayout>
-      {/* Hero Section — Poster scale text and breathing space */}
-      <section className="relative pt-24 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center gap-12 overflow-hidden text-center">
-        <div className="space-y-6 max-w-4xl z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-theme-accent/10 border border-theme-accent/20 text-theme-accent text-[10px] font-bold uppercase tracking-wider animate-fade-in mx-auto">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Control Local y Privado</span>
-          </div>
+    <div
+      className={`hero-room relative w-full h-full overflow-x-hidden overflow-y-auto lg:overflow-hidden ${has3d ? '' : 'hero-room--flat'}`}
+      style={roomStyle}
+    >
+      <div className="relative h-[62svh] min-h-[420px] lg:absolute lg:inset-0 lg:h-auto lg:min-h-0">
+        {has3d && lamps.length > 0 && (
+          <RoomCanvas
+            ref={roomRef}
+            className="absolute inset-0"
+            lamps={lamps}
+            lights={lights}
+            viewShift={isDesktop ? viewShift : 0}
+            onPull={toggle}
+            onSelect={select}
+            onUserOrbit={() => setView(undefined)}
+            onUnavailable={() => setHas3d(false)}
+            renderHint={(lamp, index) => (
+              <span className={`hero-hint ${pulled[lamp.id] ? 'is-hidden' : ''}`}>
+                <span className="hero-hint__dot" />
+                {index === 0 && !anyPulled.current && <span className="hero-hint__label">Tira de la cuerda</span>}
+              </span>
+            )}
+          />
+        )}
+        <div className="hero-fade pointer-events-none absolute inset-x-0 bottom-0 h-40 lg:h-80" />
 
-          <h1 className="font-display font-bold text-5xl sm:text-7xl lg:text-8xl tracking-apple-display leading-[1.04] text-theme-text transition-colors duration-300">
-            Luz pura.
-            <br />
-            Control local.
-          </h1>
-
-          <p className="text-base sm:text-xl text-theme-textSecondary font-light tracking-apple-subheading max-w-2xl mx-auto leading-relaxed transition-colors duration-300">
-            Controla tus lámparas inteligentes Wi-Fi desde tu escritorio. Sin nubes lentas, sin registrar cuentas y con una respuesta instantánea de latencia cero.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link
-              to="/download"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-theme-accent hover:opacity-90 active:scale-95 text-white font-bold rounded-full shadow-none transition-colors text-sm tracking-apple-body"
+        <nav
+          className="hero-views absolute z-10 left-1/2 -translate-x-1/2 bottom-4 lg:left-10 lg:translate-x-0 lg:bottom-auto lg:top-[76px]"
+          aria-label="Vistas de la habitación"
+        >
+          {views.map((item) => (
+            <button
+              key={item.id ?? 'room'}
+              type="button"
+              className="hero-views__item shrink-0"
+              aria-pressed={view === item.id}
+              onClick={() => (item.id ? select(item.id) : focus(null))}
             >
-              <Download className="w-4 h-4" />
-              <span>Descargar la App</span>
-            </Link>
-            <Link
-              to="/demo"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-theme-input hover:bg-theme-border border border-theme-border text-theme-text font-bold rounded-full active:scale-95 transition-colors text-sm tracking-apple-body"
-            >
-              <Play className="w-4 h-4 text-theme-accent" />
-              <span>Probar Demo Online</span>
-            </Link>
-          </div>
-
-          <div className="pt-6 flex flex-wrap items-center justify-center gap-6 text-[10px] text-theme-textSecondary/80 font-bold uppercase tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> macOS & Windows Nativos
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-theme-accent" /> 100% Código Abierto
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <DeviceSimulatorShowcase finishes={finishes} />
-
-      {/* How it Works Section — Gallery minimal steps */}
-      <section className="py-24 px-6 border-t border-theme-border">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center space-y-3 mb-20">
-            <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-apple-heading text-theme-text transition-colors">
-              Listo en menos de un minuto
-            </h2>
-            <p className="text-theme-textSecondary text-sm sm:text-base font-light max-w-md mx-auto transition-colors">
-              Sin configuraciones complejas en la nube. Descarga la aplicación y recupera el control.
-            </p>
-          </div>
-
-          <div className="relative">
-            {/* Horizontal line for desktop */}
-            <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-px bg-theme-border" />
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6">
-              {/* Step 1 */}
-              <div className="flex flex-col items-center text-center gap-4.5">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-[28px] bg-theme-card border border-theme-border flex items-center justify-center text-theme-accent shadow-none">
-                    <Download className="w-8 h-8" />
-                  </div>
-                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-theme-text text-theme-bg text-[10px] font-bold flex items-center justify-center shadow-none">
-                    1
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-sm text-theme-text">Instala la App</h3>
-                  <p className="text-xs text-theme-textSecondary leading-relaxed max-w-[220px] mx-auto font-medium">
-                    Ejecuta Lumus Control nativamente en macOS o Windows. Sin registros ni cuentas obligatorias.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex flex-col items-center text-center gap-4.5">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-[28px] bg-theme-card border border-theme-border flex items-center justify-center text-theme-text shadow-none">
-                    <Zap className="w-8 h-8" />
-                  </div>
-                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-theme-text text-theme-bg text-[10px] font-bold flex items-center justify-center shadow-none">
-                    2
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-sm text-theme-text">Escanea tu Red</h3>
-                  <p className="text-xs text-theme-textSecondary leading-relaxed max-w-[220px] mx-auto font-medium">
-                    La aplicación escanea tu red Wi-Fi local automáticamente y detecta tus lámparas WiZ al instante.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="flex flex-col items-center text-center gap-4.5">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-[28px] bg-theme-card border border-theme-border flex items-center justify-center text-theme-text shadow-none">
-                    <Sparkles className="w-8 h-8" />
-                  </div>
-                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-theme-text text-theme-bg text-[10px] font-bold flex items-center justify-center shadow-none">
-                    3
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-sm text-theme-text">Controla Directamente</h3>
-                  <p className="text-xs text-theme-textSecondary leading-relaxed max-w-[220px] mx-auto font-medium">
-                    Ajusta brillo, temperaturas o sincroniza el ciclo solar sin depender de internet o servidores caídos.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Grid — Apple Light Card Grid Design */}
-      <section id="features" className="py-24 px-6 bg-theme-sidebar/20 border-y border-theme-border transition-colors duration-300">
-        <div className="max-w-7xl mx-auto space-y-20">
-          <div className="text-center space-y-4">
-            <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-apple-heading text-theme-text transition-colors">
-              Velocidad, privacidad y confort visual
-            </h2>
-            <p className="text-theme-textSecondary max-w-xl mx-auto text-sm sm:text-base font-light transition-colors">
-              Prescinde de servidores caídos, retrasos en la respuesta y complejidades innecesarias.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Feature 1 — White Card */}
-            <div className="glass-card flex flex-col justify-between h-[280px] p-7 ">
-              <div className="space-y-4.5">
-                <div className="w-10 h-10 rounded-full bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-sm text-theme-text">Cero Nube. Cero Lag.</h3>
-                <p className="text-xs text-theme-textSecondary leading-relaxed font-medium">
-                  Las órdenes se envían localmente desde tu equipo a las lámparas a través de tu Wi-Fi. Sin intermediarios, latencia nula.
-                </p>
-              </div>
-              <span className="text-[10px] text-theme-accent font-bold uppercase tracking-wider flex items-center gap-1 mt-4">
-                Velocidad Real <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-
-            {/* Feature 2 — White Card */}
-            <div className="glass-card flex flex-col justify-between h-[280px] p-7 ">
-              <div className="space-y-4.5">
-                <div className="w-10 h-10 rounded-full bg-theme-text/10 border border-theme-text/20 flex items-center justify-center text-theme-text">
-                  <Shield className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-sm text-theme-text">Privado por Defecto</h3>
-                <p className="text-xs text-theme-textSecondary leading-relaxed font-medium">
-                  Tus datos nunca salen de tu red. No recopilamos telemetría ni registramos cuentas. Lumus Control te da soberanía sobre tus dispositivos.
-                </p>
-              </div>
-              <span className="text-[10px] text-theme-text font-bold uppercase tracking-wider flex items-center gap-1 mt-4">
-                Soberanía Digital <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-
-            {/* Feature 3 — White Card */}
-            <div className="glass-card flex flex-col justify-between h-[280px] p-7 ">
-              <div className="space-y-4.5">
-                <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-sm text-theme-text">Ritmo Circadiano</h3>
-                <p className="text-xs text-theme-textSecondary leading-relaxed font-medium">
-                  Modula la temperatura y el brillo de la luz simulando el ciclo solar natural del día. Mejora tu concentración y tu descanso.
-                </p>
-              </div>
-              <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider flex items-center gap-1 mt-4">
-                Ciclo Biológico <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-
-            {/* Feature 4 — White Card */}
-            <div className="glass-card flex flex-col justify-between h-[280px] p-7 ">
-              <div className="space-y-4.5">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-sm text-theme-text">Temporizador Suave</h3>
-                <p className="text-xs text-theme-textSecondary leading-relaxed font-medium">
-                  Programa apagados graduales para no quedarte a oscuras de golpe. Excelente para la rutina nocturna antes de ir a dormir.
-                </p>
-              </div>
-              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1 mt-4">
-                Apagado Progresivo <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Demo Callout Section */}
-      <section className="py-24 px-6 max-w-5xl mx-auto text-center space-y-8 z-10 relative">
-        <div className="w-12 h-12 rounded-full bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent mx-auto">
-          <Laptop className="w-5 h-5" />
-        </div>
-        <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-apple-heading text-theme-text transition-colors">
-          ¿Listo para experimentarlo?
-        </h2>
-        <p className="text-theme-textSecondary max-w-xl mx-auto text-sm sm:text-base font-light leading-relaxed transition-colors">
-          Prueba la simulación interactiva completa de Lumus Control directamente en el navegador. Cambia colores, intensidades y experimenta el minimalismo antes de instalar.
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        <p className="hero-ink-3 hidden lg:block absolute z-10 left-10 top-[124px] text-[11px] font-medium pointer-events-none">
+          Arrastra para girar · rueda para acercar · clic en una lámpara para enfocarla
         </p>
-        <div>
-          <Link
-            to="/demo"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-theme-text hover:opacity-90 active:scale-95 text-theme-bg font-bold rounded-full shadow-none transition-colors text-sm tracking-apple-body"
-          >
-            <span>Lanzar Demo en el Navegador</span>
-            <ArrowRight className="w-4 h-4 animate-bounce" />
+      </div>
+
+      <header className="absolute inset-x-0 top-0 z-20">
+        <div className="px-6 lg:px-10 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-[10px] bg-white/10 border border-white/10 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white/90" aria-hidden="true" />
+            </span>
+            <span className="font-display font-semibold text-sm tracking-tight text-white/90">Lumus Control</span>
           </Link>
+          <nav className="flex items-center gap-1.5 text-[13px] font-medium">
+            <Link to="/download" className="hero-navlink">
+              Descargas
+            </Link>
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hero-navlink" aria-label="Repositorio en GitHub">
+              <Github className="w-4 h-4" aria-hidden="true" />
+              <span className="hidden sm:inline">GitHub</span>
+            </a>
+          </nav>
         </div>
-      </section>
-    </LandingLayout>
+      </header>
+
+      <div className="relative z-10 px-6 pt-8 pb-10 lg:absolute lg:left-10 lg:bottom-10 lg:p-0 lg:max-w-[30rem] lg:pointer-events-none">
+        <div className={has3d ? 'sr-only' : 'flex flex-wrap gap-2 mb-5'}>
+          {roomDevices.map((device) => (
+            <button
+              key={device.mac}
+              type="button"
+              className="hero-switch pointer-events-auto"
+              aria-pressed={lights[device.mac]?.on ?? false}
+              onClick={() => (has3d ? roomRef.current?.pull(device.mac) : toggle(device.mac))}
+            >
+              {lights[device.mac]?.on ? 'Apagar' : 'Encender'} {lampName(device)}
+            </button>
+          ))}
+        </div>
+
+        <h1 className="hero-ink font-display font-bold text-[40px] sm:text-5xl lg:text-[44px] xl:text-[50px] leading-[1.03] tracking-[-0.03em]">
+          Luz pura.
+          <br />
+          Control local.
+        </h1>
+        <p className="hero-ink-2 mt-4 max-w-[28rem] text-[15px] leading-relaxed">
+          Controla tus lámparas Wi‑Fi desde el escritorio. Sin nube, sin cuentas y con respuesta
+          instantánea: tan directo como tirar de una cuerda.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Link to="/download" className="hero-cta pointer-events-auto">
+            <Download className="w-4 h-4" aria-hidden="true" />
+            Descargar la app
+          </Link>
+          <span className="hero-ink-3 text-xs font-medium">macOS y Windows · código abierto</span>
+        </div>
+      </div>
+
+      <div className="px-4 pb-16 lg:p-0">
+        <AppWindow title="Lumus Control" floating={isDesktop} onLayout={onWindowLayout}>
+          <DemoProvider isDemo={true}>
+            <ControlPage hideTitlebar={true} />
+          </DemoProvider>
+        </AppWindow>
+      </div>
+    </div>
   );
 };

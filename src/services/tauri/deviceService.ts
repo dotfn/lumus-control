@@ -1,44 +1,30 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
-import { LightState, DiscoverDeviceResponse, PreferencesResponse } from '../../types';
-import { DeviceStatePayload } from '../deviceService';
+import { ControlOutcome, DeviceSnapshot, LightState, PreferencesResponse } from '../../types';
 
 export const tauriDeviceService = {
-  async discover(): Promise<DiscoverDeviceResponse[]> {
-    return await invoke<DiscoverDeviceResponse[]>('discover');
+  /** Lámparas conocidas por el backend, sin tocar la red. */
+  async listDevices(): Promise<DeviceSnapshot[]> {
+    return await invoke<DeviceSnapshot[]>('list_devices');
   },
 
-  async getState(ip: string): Promise<LightState> {
-    return await invoke<LightState>('get_state', { ip });
+  /** Busca lámparas en la red y devuelve la lista completa actualizada. */
+  async discover(): Promise<DeviceSnapshot[]> {
+    return await invoke<DeviceSnapshot[]>('discover');
   },
 
-  async control(ip: string, payload: Partial<LightState>): Promise<void> {
-    if (payload.dimming !== undefined && (payload.dimming < 10 || payload.dimming > 100)) {
-      throw new Error(`Dimming out of range: ${payload.dimming}. Expected 10–100.`);
-    }
-    if (payload.temp !== undefined && (payload.temp < 2200 || payload.temp > 6500)) {
-      throw new Error(`Temperature out of range: ${payload.temp}. Expected 2200–6500.`);
-    }
-    if (payload.r !== undefined && (payload.r < 0 || payload.r > 255)) {
-      throw new Error(`Red channel out of range: ${payload.r}. Expected 0–255.`);
-    }
-    if (payload.g !== undefined && (payload.g < 0 || payload.g > 255)) {
-      throw new Error(`Green channel out of range: ${payload.g}. Expected 0–255.`);
-    }
-    if (payload.b !== undefined && (payload.b < 0 || payload.b > 255)) {
-      throw new Error(`Blue channel out of range: ${payload.b}. Expected 0–255.`);
-    }
+  /** Pide un sondeo inmediato; los cambios llegan por `subscribeToDevices`. */
+  async refresh(): Promise<DeviceSnapshot[]> {
+    return await invoke<DeviceSnapshot[]>('refresh');
+  },
 
-    await invoke('control', {
-      ip,
-      state: payload.state,
-      dimming: payload.dimming,
-      temp: payload.temp,
-      r: payload.r,
-      g: payload.g,
-      b: payload.b,
-      sceneId: payload.sceneId,
-    });
+  async addDeviceByIp(ip: string): Promise<DeviceSnapshot> {
+    return await invoke<DeviceSnapshot>('add_device_by_ip', { ip });
+  },
+
+  /** Aplica el mismo cambio a una o varias lámparas; devuelve un resultado por cada una. */
+  async control(macs: string[], patch: Partial<LightState>): Promise<ControlOutcome[]> {
+    return await invoke<ControlOutcome[]>('control', { macs, patch });
   },
 
   async getPreferences(): Promise<PreferencesResponse> {
@@ -49,17 +35,13 @@ export const tauriDeviceService = {
     await invoke('save_preferences', { lastMac, theme });
   },
 
-  async setActiveDevices(macs: string[]): Promise<void> {
-    await invoke('set_active_device', { macs });
-  },
-
   async saveDeviceName(mac: string, name: string): Promise<void> {
     await invoke('save_device_name', { mac, name });
   },
 
-  async subscribeToDeviceState(callback: (payload: DeviceStatePayload) => void): Promise<UnlistenFn> {
-    return await listen<DeviceStatePayload>('device-state-changed', (event) => {
+  async subscribeToDevices(callback: (device: DeviceSnapshot) => void): Promise<UnlistenFn> {
+    return await listen<DeviceSnapshot>('device-updated', (event) => {
       callback(event.payload);
     });
-  }
+  },
 };

@@ -1,12 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useLightingStore } from '../store/lightingStore';
 import { getCircadianSettingForHour } from '../utils/circadian';
 
 const POLL_INTERVAL_MS = 15 * 60 * 1000;
 
 export const useCircadianPolling = () => {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
     const checkAndApply = () => {
       const state = useLightingStore.getState();
@@ -22,43 +20,16 @@ export const useCircadianPolling = () => {
       );
 
       const target = state.circadianTarget;
-      if (
-        target &&
-        target.temp === setting.temp &&
-        target.dimming === setting.dimming
-      ) {
+      if (target && target.temp === setting.temp && target.dimming === setting.dimming) {
         return;
       }
 
-      const lampState = state.lampState;
-      if (
-        lampState.temp !== undefined &&
-        lampState.temp === setting.temp &&
-        lampState.dimming === setting.dimming
-      ) {
-        useLightingStore.setState({
-          circadianTarget: setting,
-          lastCircadianUpdate: Date.now(),
-        });
-        return;
-      }
-
-      useLightingStore.setState({
-        circadianTarget: setting,
-        lastCircadianUpdate: Date.now(),
-      });
-
-      useLightingStore
-        .getState()
-        .setLampState(
-          { state: true, temp: setting.temp, dimming: setting.dimming, sceneId: undefined },
-          { isCircadian: true },
-        );
+      state.updateCircadianTarget(setting);
     };
 
     checkAndApply();
 
-    intervalRef.current = setInterval(checkAndApply, POLL_INTERVAL_MS);
+    const interval = setInterval(checkAndApply, POLL_INTERVAL_MS);
 
     // El interval se suspende cuando la máquina duerme; al volver a foreground
     // recalculamos de inmediato la configuración circadiana para la hora actual.
@@ -68,9 +39,7 @@ export const useCircadianPolling = () => {
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);

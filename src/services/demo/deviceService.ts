@@ -1,101 +1,85 @@
-import { DiscoverDeviceResponse, PreferencesResponse, LightState } from '../../types';
-import { DeviceStatePayload } from '../deviceService';
+import { ControlOutcome, DeviceSnapshot, LightState, PreferencesResponse } from '../../types';
+import { applyPatch } from '../../utils/lightState';
 
-let mockLampState: LightState = {
-  state: true,
-  dimming: 75,
-  temp: 4000,
-  r: 255,
-  g: 180,
-  b: 84,
+// Lámparas virtuales de la demo web: suficientes para probar habitaciones y
+// la vista general sin hardware real.
+const lamps: Record<string, DeviceSnapshot> = {
+  'd8a011aa0001': {
+    mac: 'd8a011aa0001',
+    ip: '192.168.1.21',
+    online: true,
+    rssi: -52,
+    state: { state: true, dimming: 75, temp: 4000 },
+  },
+  'd8a011aa0002': {
+    mac: 'd8a011aa0002',
+    ip: '192.168.1.22',
+    online: true,
+    rssi: -64,
+    state: { state: true, dimming: 45, r: 255, g: 140, b: 30 },
+  },
+  'd8a011aa0003': {
+    mac: 'd8a011aa0003',
+    ip: '192.168.1.23',
+    online: true,
+    rssi: -71,
+    state: { state: false, dimming: 30, temp: 2700 },
+  },
 };
-
-const VIRTUAL_MAC = 'AA:BB:CC:DD:EE:FF';
-const VIRTUAL_IP = 'virtual-lamp';
 
 const deviceNames: Record<string, string> = {
-  [VIRTUAL_MAC]: 'Lámpara Virtual',
+  'd8a011aa0001': 'Escritorio',
+  'd8a011aa0002': 'Lámpara de pie',
+  'd8a011aa0003': 'Mesa de luz',
 };
 
-let lastMac: string | null = VIRTUAL_MAC;
+let lastMac: string | null = 'd8a011aa0001';
 let theme: string | null = 'dark';
-const currentIp = VIRTUAL_IP;
 
-const subscribers = new Set<(payload: DeviceStatePayload) => void>();
+const subscribers = new Set<(device: DeviceSnapshot) => void>();
 
-const notifySubscribers = () => {
-  const payload: DeviceStatePayload = {
-    ip: currentIp,
-    mac: VIRTUAL_MAC,
-    online: true,
-    state: { ...mockLampState },
-  };
-  subscribers.forEach((callback) => callback(payload));
-};
+const snapshot = (mac: string): DeviceSnapshot => ({
+  ...lamps[mac],
+  state: lamps[mac].state ? { ...lamps[mac].state } : null,
+});
+
+const allSnapshots = () => Object.keys(lamps).map(snapshot);
 
 export const demoDeviceService = {
-  async discover(): Promise<DiscoverDeviceResponse[]> {
+  async listDevices(): Promise<DeviceSnapshot[]> {
+    return allSnapshots();
+  },
+
+  async discover(): Promise<DeviceSnapshot[]> {
     await new Promise((resolve) => setTimeout(resolve, 800));
-    return [
-      {
-        ip: currentIp,
-        mac: VIRTUAL_MAC,
-        state: { ...mockLampState },
-      },
-    ];
+    return allSnapshots();
   },
 
-  async getState(ip: string): Promise<LightState> {
-    if (ip !== currentIp) {
-      throw new Error('Device not found');
-    }
-    return { ...mockLampState };
+  async refresh(): Promise<DeviceSnapshot[]> {
+    return allSnapshots();
   },
 
-  async control(ip: string, payload: Partial<LightState>): Promise<void> {
-    if (ip !== currentIp) {
-      throw new Error('Device not found');
+  async addDeviceByIp(_ip: string): Promise<DeviceSnapshot> {
+    throw 'La demo solo incluye lámparas virtuales';
+  },
+
+  async control(macs: string[], patch: Partial<LightState>): Promise<ControlOutcome[]> {
+    if (patch.dimming !== undefined && (patch.dimming < 10 || patch.dimming > 100)) {
+      throw new Error(`Dimming out of range: ${patch.dimming}. Expected 10–100.`);
+    }
+    if (patch.temp !== undefined && (patch.temp < 2200 || patch.temp > 6500)) {
+      throw new Error(`Temperature out of range: ${patch.temp}. Expected 2200–6500.`);
     }
 
-    if (payload.dimming !== undefined && (payload.dimming < 10 || payload.dimming > 100)) {
-      throw new Error(`Dimming out of range: ${payload.dimming}. Expected 10–100.`);
-    }
-    if (payload.temp !== undefined && (payload.temp < 2200 || payload.temp > 6500)) {
-      throw new Error(`Temperature out of range: ${payload.temp}. Expected 2200–6500.`);
-    }
-    if (payload.r !== undefined && (payload.r < 0 || payload.r > 255)) {
-      throw new Error(`Red channel out of range: ${payload.r}. Expected 0–255.`);
-    }
-    if (payload.g !== undefined && (payload.g < 0 || payload.g > 255)) {
-      throw new Error(`Green channel out of range: ${payload.g}. Expected 0–255.`);
-    }
-    if (payload.b !== undefined && (payload.b < 0 || payload.b > 255)) {
-      throw new Error(`Blue channel out of range: ${payload.b}. Expected 0–255.`);
-    }
-
-    mockLampState = {
-      ...mockLampState,
-      ...payload,
-    };
-
-    if (payload.sceneId !== undefined) {
-      delete mockLampState.temp;
-      delete mockLampState.r;
-      delete mockLampState.g;
-      delete mockLampState.b;
-    } else if (payload.temp !== undefined) {
-      delete mockLampState.sceneId;
-      delete mockLampState.r;
-      delete mockLampState.g;
-      delete mockLampState.b;
-    } else if (payload.r !== undefined || payload.g !== undefined || payload.b !== undefined) {
-      delete mockLampState.sceneId;
-      delete mockLampState.temp;
-    }
-
-    setTimeout(() => {
-      notifySubscribers();
-    }, 50);
+    return macs.map((mac) => {
+      const lamp = lamps[mac];
+      if (!lamp?.state) {
+        return { mac, ok: false, error: 'Device not found', device: null };
+      }
+      lamps[mac] = { ...lamp, state: applyPatch(lamp.state, patch) };
+      setTimeout(() => subscribers.forEach((callback) => callback(snapshot(mac))), 50);
+      return { mac, ok: true, device: snapshot(mac) };
+    });
   },
 
   async getPreferences(): Promise<PreferencesResponse> {
@@ -106,37 +90,23 @@ export const demoDeviceService = {
     };
   },
 
-  async savePreferences(ipOrMac: string | null, newTheme?: string): Promise<void> {
-    lastMac = ipOrMac;
+  async savePreferences(mac: string | null, newTheme?: string): Promise<void> {
+    if (mac) {
+      lastMac = mac;
+    }
     if (newTheme) {
       theme = newTheme;
     }
   },
 
-  async setActiveDevices(_macs: string[]): Promise<void> {
-    // La demo tiene un único dispositivo virtual; no hay monitor que sincronizar.
-  },
-
   async saveDeviceName(mac: string, name: string): Promise<void> {
     deviceNames[mac] = name;
-    setTimeout(() => {
-      notifySubscribers();
-    }, 50);
   },
 
-  async subscribeToDeviceState(callback: (payload: DeviceStatePayload) => void): Promise<() => void> {
+  async subscribeToDevices(callback: (device: DeviceSnapshot) => void): Promise<() => void> {
     subscribers.add(callback);
-    setTimeout(() => {
-      callback({
-        ip: currentIp,
-        mac: VIRTUAL_MAC,
-        online: true,
-        state: { ...mockLampState },
-      });
-    }, 10);
-
     return () => {
       subscribers.delete(callback);
     };
-  }
+  },
 };
