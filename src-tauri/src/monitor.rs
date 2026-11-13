@@ -1,171 +1,231 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::net::SocketAddr;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::Emitter;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+use tokio::net::UdpSocket;
+use tokio::time::{sleep, timeout};
 
-use crate::models::DeviceStatePayload;
-use crate::network::{discover_udp, extract_mac, send_udp_cmd};
-use crate::state::ActiveDeviceState;
-use crate::state::DeviceMapState;
+use crate::config;
+use crate::errors::AppError;
+use crate::models::DeviceSnapshot;
+use crate::network::{self, OFFLINE_ATTEMPTS, POLL_ATTEMPTS, PUSH_PORT, WIZ_PORT};
+use crate::registry::PollTarget;
+use crate::state::{ConfigState, Shared};
 
-const MAX_FAILURES_BEFORE_REDISCOVERY: u32 = 3;
-const REDISCOVERY_INTERVAL_CYCLES: u32 = 12; // every ~60s
+const POLL_INTERVAL: Duration = Duration::from_secs(3);
+/// Pausa tras un pedido de sondeo inmediato, para agrupar ráfagas de comandos
+/// (un slider) en una sola lectura de confirmación.
+const POLL_DEBOUNCE: Duration = Duration::from_millis(250);
+/// Ciclos entre discoveries de rutina (~60 s) y cuando falta alguna lámpara (~15 s).
+const DISCOVERY_EVERY: u32 = 20;
+const DISCOVERY_RETRY: u32 = 5;
+/// El registro push caduca en la lámpara; se renueva cada tres ciclos (~9 s).
+const REGISTER_EVERY: u32 = 3;
 
-pub fn start_polling(app_handle: tauri::AppHandle, shutdown: Arc<AtomicBool>) {
+pub fn emit_updates(app: &tauri::AppHandle, changed: Vec<DeviceSnapshot>) {
+    for snapshot in changed {
+        let _ = app.emit("device-updated", snapshot);
+    }
+}
+
+/// Guarda las IPs conocidas si cambiaron, para reencontrar las lámparas al
+/// próximo arranque sin depender del discovery.
+pub fn persist_known(app: &tauri::AppHandle, shared: &Shared) {
+    let addresses = shared.registry().address_map();
+    {
+        let state = app.state::<ConfigState>();
+        let mut config = state.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut merged = config.known_devices.clone();
+        merged.extend(addresses);
+        if merged == config.known_devices {
+            return;
+        }
+        config.known_devices = merged;
+    }
+    let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        let mut consecutive_failures: u32 = 0;
-        let mut cycles_since_rediscovery: u32 = 0;
-
-        loop {
-            tokio::time::sleep(Duration::from_secs(5)).await;
-
-            if shutdown.load(Ordering::Relaxed) {
-                log::info!("Monitor de dispositivo detenido por señal de apagado.");
-                break;
-            }
-
-            // Lock order: ActiveDeviceState → DeviceMapState (never acquire in reverse).
-            let macs: Vec<String> = {
-                let state = app_handle.state::<ActiveDeviceState>();
-                let lock = state.0.lock();
-                match lock {
-                    Ok(guard) => guard.clone(),
-                    Err(poisoned) => {
-                        log::warn!("Mutex de ActiveDeviceState envenenado; recuperando valor.");
-                        poisoned.into_inner().clone()
-                    }
-                }
-            };
-
-            if macs.is_empty() {
-                continue;
-            }
-
-            let should_rediscover = consecutive_failures >= MAX_FAILURES_BEFORE_REDISCOVERY
-                || cycles_since_rediscovery >= REDISCOVERY_INTERVAL_CYCLES;
-
-            if should_rediscover {
-                log::info!(
-                    "Re-descubriendo dispositivos (fallos={}, ciclos={}, vigilados={})",
-                    consecutive_failures,
-                    cycles_since_rediscovery,
-                    macs.len()
-                );
-
-                if let Ok(devices) = discover_udp().await {
-                    let map_state = app_handle.state::<DeviceMapState>();
-                    let mut map = match map_state.0.lock() {
-                        Ok(guard) => guard,
-                        Err(poisoned) => poisoned.into_inner(),
-                    };
-
-                    for device in &devices {
-                        if let (Some(dmac), Some(dip)) = (
-                            device.get("mac").and_then(|m| m.as_str()),
-                            device.get("ip").and_then(|i| i.as_str()),
-                        ) {
-                            map.insert(dmac.to_string(), dip.to_string());
-                        }
-                    }
-                }
-
-                // Reset both counters: if consecutive_failures stayed >= MAX,
-                // should_rediscover would be true on EVERY 5s cycle and we'd
-                // broadcast UDP continuously. With the reset, the next attempt
-                // needs MAX more all-failed cycles (~15s) or the 60s interval.
-                consecutive_failures = 0;
-                cycles_since_rediscovery = 0;
-            }
-
-            cycles_since_rediscovery += 1;
-
-            let mut polled: u32 = 0;
-            let mut failed: u32 = 0;
-
-            for mac in &macs {
-                let ip_opt: Option<String> = {
-                    let map = app_handle.state::<DeviceMapState>();
-                    let lock = map.0.lock();
-                    match lock {
-                        Ok(guard) => guard.get(mac).cloned(),
-                        Err(poisoned) => poisoned.into_inner().get(mac).cloned(),
-                    }
-                };
-
-                let Some(ip) = ip_opt else {
-                    // No IP resolved for this MAC; rediscovery will fill it in.
-                    let event_payload = DeviceStatePayload {
-                        ip: String::new(),
-                        mac: mac.clone(),
-                        online: false,
-                        state: None,
-                    };
-                    let _ = app_handle.emit("device-state-changed", event_payload);
-                    continue;
-                };
-
-                polled += 1;
-
-                let payload = serde_json::json!({
-                    "method": "getPilot",
-                    "params": {}
-                });
-
-                match send_udp_cmd(&ip, &payload).await {
-                    Ok(resp) => {
-                        if let Some(ref new_mac) = extract_mac(&resp) {
-                            if new_mac != mac {
-                                let map_state = app_handle.state::<DeviceMapState>();
-                                let mut map_guard = match map_state.0.lock() {
-                                    Ok(guard) => guard,
-                                    Err(poisoned) => poisoned.into_inner(),
-                                };
-                                map_guard.insert(new_mac.clone(), ip.clone());
-                                // Reafirm tracked MAC→IP so next cycle resolves correctly
-                                map_guard.insert(mac.clone(), ip.clone());
-                                log::warn!(
-                                    "MAC inesperada {} en IP {} (rastreando {})",
-                                    new_mac,
-                                    ip,
-                                    mac
-                                );
-                            }
-                        }
-
-                        let state_val = resp
-                            .get("result")
-                            .cloned()
-                            .unwrap_or(serde_json::Value::Null);
-                        let event_payload = DeviceStatePayload {
-                            ip: ip.clone(),
-                            mac: mac.clone(),
-                            online: true,
-                            state: Some(state_val),
-                        };
-                        let _ = app_handle.emit("device-state-changed", event_payload);
-                    }
-                    Err(_) => {
-                        failed += 1;
-                        let event_payload = DeviceStatePayload {
-                            ip: ip.clone(),
-                            mac: mac.clone(),
-                            online: false,
-                            state: None,
-                        };
-                        let _ = app_handle.emit("device-state-changed", event_payload);
-                    }
-                }
-            }
-
-            // Solo cuenta como fallo de ciclo cuando NINGÚN dispositivo respondió
-            // (típico tras reposo o cambio de red). Una lámpara individual caída
-            // dentro de un grupo no debe disparar rediscovery constante.
-            if polled == 0 || failed == polled {
-                consecutive_failures += 1;
-            } else {
-                consecutive_failures = 0;
-            }
+        if let Err(e) = config::persist(&app).await {
+            log::warn!("No se pudieron guardar las lámparas conocidas: {:?}", e);
         }
     });
+}
+
+/// Busca lámparas en la red y las incorpora al registro.
+pub async fn run_discovery(app: &tauri::AppHandle, shared: &Shared) -> Result<(), AppError> {
+    let found = network::discover(WIZ_PORT).await?;
+    let changed = {
+        let mut registry = shared.registry();
+        found
+            .into_iter()
+            .flat_map(|d| registry.observe(&d.mac, d.ip, Some(d.state), d.rssi))
+            .collect::<Vec<_>>()
+    };
+    emit_updates(app, changed);
+    persist_known(app, shared);
+    Ok(())
+}
+
+pub fn start(app: tauri::AppHandle, shared: Arc<Shared>) {
+    tauri::async_runtime::spawn(push_listener(app.clone(), shared.clone()));
+    tauri::async_runtime::spawn(poll_loop(app, shared));
+}
+
+/// Sondea todas las lámparas conocidas, no solo la seleccionada: es lo que
+/// permite reflejar apagados y cambios hechos desde otra app o un interruptor.
+async fn poll_loop(app: tauri::AppHandle, shared: Arc<Shared>) {
+    let mut cycle: u32 = 0;
+    let mut since_discovery = DISCOVERY_EVERY;
+
+    while !shutdown_requested(&shared) {
+        let register_push = cycle % REGISTER_EVERY == 0;
+        let targets = shared.registry().poll_targets();
+        let polls: Vec<_> = targets
+            .into_iter()
+            .map(|target| {
+                tauri::async_runtime::spawn(poll_device(
+                    app.clone(),
+                    shared.clone(),
+                    target,
+                    register_push,
+                ))
+            })
+            .collect();
+        for poll in polls {
+            let _ = poll.await;
+        }
+
+        // El discovery va después del sondeo: al arrancar, las lámparas ya
+        // conocidas se confirman por su IP sin esperar a que termine la búsqueda.
+        let missing_devices = {
+            let registry = shared.registry();
+            registry.is_empty() || registry.has_unreachable()
+        };
+        if since_discovery >= DISCOVERY_EVERY
+            || (missing_devices && since_discovery >= DISCOVERY_RETRY)
+        {
+            since_discovery = 0;
+            if let Err(e) = run_discovery(&app, &shared).await {
+                log::debug!("Discovery falló: {:?}", e);
+            }
+        }
+
+        cycle = cycle.wrapping_add(1);
+        since_discovery += 1;
+
+        if timeout(POLL_INTERVAL, shared.poll_now.notified())
+            .await
+            .is_ok()
+        {
+            sleep(POLL_DEBOUNCE).await;
+        }
+    }
+    log::info!("Monitor de dispositivos detenido.");
+}
+
+async fn poll_device(
+    app: tauri::AppHandle,
+    shared: Arc<Shared>,
+    target: PollTarget,
+    register_push: bool,
+) {
+    let dest = SocketAddr::new(target.ip, WIZ_PORT);
+    let attempts = if target.online {
+        POLL_ATTEMPTS
+    } else {
+        OFFLINE_ATTEMPTS
+    };
+
+    let report = network::get_pilot(dest, attempts).await;
+    let reachable = report.is_ok();
+    let changed = {
+        let mut registry = shared.registry();
+        match report {
+            Ok(report) => match report.mac.as_deref() {
+                // La IP ahora pertenece a otra lámpara: el router la reasignó.
+                Some(mac) if mac != target.mac => {
+                    registry.observe(mac, target.ip, Some(report.state), report.rssi)
+                }
+                _ => registry.poll_ok(
+                    &target.mac,
+                    target.ip,
+                    target.seq,
+                    report.state,
+                    report.rssi,
+                ),
+            },
+            Err(_) => registry.poll_failed(&target.mac, target.ip),
+        }
+    };
+    emit_updates(&app, changed);
+
+    if reachable && register_push {
+        let _ = network::register_push(dest).await;
+    }
+}
+
+/// Escucha las notificaciones que las lámparas registradas envían al cambiar
+/// de estado (`syncPilot`) o al recibir corriente (`firstBeat`). Es lo que hace
+/// que un cambio externo aparezca al instante; el sondeo queda como respaldo.
+async fn push_listener(app: tauri::AppHandle, shared: Arc<Shared>) {
+    let socket = match UdpSocket::bind(("0.0.0.0", PUSH_PORT)).await {
+        Ok(socket) => socket,
+        Err(e) => {
+            log::warn!(
+                "Puerto {} no disponible ({}); se usará solo sondeo.",
+                PUSH_PORT,
+                e
+            );
+            return;
+        }
+    };
+
+    let mut buf = [0u8; 4096];
+    while !shutdown_requested(&shared) {
+        let (amt, src) = match timeout(Duration::from_secs(1), socket.recv_from(&mut buf)).await {
+            Ok(Ok(received)) => received,
+            Ok(Err(_)) => {
+                sleep(Duration::from_secs(1)).await;
+                continue;
+            }
+            Err(_) => continue,
+        };
+        let Ok(msg) = serde_json::from_slice::<serde_json::Value>(&buf[..amt]) else {
+            continue;
+        };
+        let params = &msg["params"];
+
+        let changed = match msg["method"].as_str() {
+            Some("syncPilot") => {
+                let Some(report) = network::parse_report(params) else {
+                    continue;
+                };
+                let Some(mac) = report.mac else {
+                    continue;
+                };
+                shared
+                    .registry()
+                    .observe(&mac, src.ip(), Some(report.state), report.rssi)
+            }
+            Some("firstBeat") => {
+                let Some(mac) = params["mac"].as_str() else {
+                    continue;
+                };
+                let changed = shared.registry().observe(mac, src.ip(), None, None);
+                // Recién encendida: aún no informó su estado, lo pedimos ya.
+                shared.poll_now.notify_one();
+                changed
+            }
+            _ => continue,
+        };
+
+        if !changed.is_empty() {
+            emit_updates(&app, changed);
+            persist_known(&app, &shared);
+        }
+    }
+}
+
+fn shutdown_requested(shared: &Shared) -> bool {
+    shared.shutdown.load(Ordering::Relaxed)
 }

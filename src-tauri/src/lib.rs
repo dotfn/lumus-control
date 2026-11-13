@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tauri::Manager;
 
@@ -9,9 +8,10 @@ mod errors;
 mod models;
 mod monitor;
 mod network;
+mod registry;
 mod state;
 
-use state::{ActiveDeviceState, ConfigPathState, ConfigState, DeviceMapState, ShutdownSignal};
+use state::{AppShared, ConfigPathState, ConfigState, Shared};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -40,76 +40,63 @@ pub fn run() {
                 }
             };
 
-            let initial_mac = initial_config.last_mac.clone();
+            #[cfg(not(target_os = "macos"))]
             let initial_theme = initial_config.theme.clone();
 
-            let shutdown_signal = Arc::new(AtomicBool::new(false));
-
-            // Migrate device_names from old IP keys to MAC keys
-            // At startup we don't have a device map yet; migration happens progressively
-            // during discovery. Store the config for later use.
-
-            app.manage(ConfigState(std::sync::Mutex::new(initial_config)));
-            app.manage(ActiveDeviceState(std::sync::Mutex::new(
-                initial_mac.clone().into_iter().collect(),
-            )));
-            app.manage(DeviceMapState(std::sync::Mutex::new(HashMap::new())));
-            app.manage(ConfigPathState(config_path));
-            app.manage(ShutdownSignal(shutdown_signal.clone()));
-
-            // Populate DeviceMapState in background so the monitor resolves the
-            // saved device's IP immediately on restart instead of waiting ~60s.
-            if initial_mac.is_some() {
-                let app_handle = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    if let Ok(devices) = network::discover_udp().await {
-                        if let Ok(mut map) = app_handle.state::<DeviceMapState>().0.lock() {
-                            for device in &devices {
-                                if let (Some(mac), Some(ip)) = (
-                                    device.get("mac").and_then(|m| m.as_str()),
-                                    device.get("ip").and_then(|i| i.as_str()),
-                                ) {
-                                    map.insert(mac.to_string(), ip.to_string());
-                                }
-                            }
-                        }
+            // Las lámparas de la sesión anterior se sondean desde el primer
+            // ciclo por su última IP, sin esperar a que el discovery las vea.
+            let shared = Arc::new(Shared::default());
+            {
+                let mut registry = shared.registry();
+                for (mac, ip) in &initial_config.known_devices {
+                    if let Ok(ip) = network::validate_ip(ip) {
+                        registry.seed(mac, ip);
                     }
-                });
+                }
             }
 
+            app.manage(ConfigState(std::sync::Mutex::new(initial_config)));
+            app.manage(ConfigPathState(config_path));
+            app.manage(AppShared(shared.clone()));
+
+            // En macOS la ventana es translúcida (material nativo detrás del
+            // webview); pintarle un color de fondo lo taparía.
+            #[cfg(not(target_os = "macos"))]
             if let Some(window) = app.get_webview_window("main") {
                 let is_light = initial_theme
                     .as_deref()
                     .map(|t| t == "light")
                     .unwrap_or(false);
                 let color = if is_light {
-                    tauri::window::Color(245, 245, 247, 255)
+                    tauri::window::Color(255, 255, 255, 255)
                 } else {
-                    tauri::window::Color(20, 20, 22, 255)
+                    tauri::window::Color(30, 30, 32, 255)
                 };
                 let _ = window.set_background_color(Some(color));
             }
 
-            monitor::start_polling(app.handle().clone(), shutdown_signal);
+            monitor::start(app.handle().clone(), shared);
 
             Ok(())
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
-                let shutdown = window.app_handle().state::<ShutdownSignal>();
-                shutdown.0.store(true, Ordering::Relaxed);
-                log::info!("Señal de apagado enviada al monitor de dispositivo.");
+                let shared = window.app_handle().state::<AppShared>();
+                shared.0.shutdown.store(true, Ordering::Relaxed);
+                shared.0.poll_now.notify_one();
+                log::info!("Señal de apagado enviada al monitor de dispositivos.");
             }
         })
         .invoke_handler(tauri::generate_handler![
+            commands::list_devices,
             commands::discover,
-            commands::get_state,
+            commands::refresh,
+            commands::add_device_by_ip,
             commands::control,
             commands::get_device_names,
             commands::save_device_name,
             commands::get_preferences,
             commands::save_preferences,
-            commands::set_active_device,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

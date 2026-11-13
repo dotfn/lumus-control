@@ -1,9 +1,11 @@
 use crate::errors::AppError;
 use crate::models::{AppConfig, MigratedConfig};
+use crate::state::{ConfigPathState, ConfigState};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use tauri::Manager;
 
 pub fn get_config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -59,6 +61,27 @@ pub fn write_json_string(path: &PathBuf, json: &str) -> Result<(), AppError> {
 
     fs::rename(&tmp_path, path).map_err(|e| AppError::Config(e.to_string()))?;
     Ok(())
+}
+
+/// Serializa las escrituras de config.json: dos tareas concurrentes comparten
+/// el mismo archivo temporal y podrían pisarse o dejar en disco la versión vieja.
+static WRITE_LOCK: Mutex<()> = Mutex::new(());
+
+/// Persiste la configuración en memoria. Se serializa dentro del lock de
+/// escritura, así que la última llamada siempre deja en disco el estado más nuevo.
+pub async fn persist(app: &tauri::AppHandle) -> Result<(), AppError> {
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let _guard = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let json = {
+            let state = app.state::<ConfigState>();
+            let config = state.0.lock().unwrap_or_else(|e| e.into_inner());
+            serde_json::to_string_pretty(&*config).map_err(|e| AppError::Config(e.to_string()))?
+        };
+        write_json_string(&app.state::<ConfigPathState>().0, &json)
+    })
+    .await
+    .map_err(|e| AppError::Config(e.to_string()))?
 }
 
 pub fn migrate_device_names(

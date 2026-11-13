@@ -1,11 +1,16 @@
-use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::net::SocketAddr;
+use std::sync::Arc;
 
-use crate::config::{migrate_device_names, write_json_string};
+use crate::config::{self, migrate_device_names};
 use crate::errors::AppError;
-use crate::models::AppConfig;
-use crate::network::{discover_udp, extract_mac, send_udp_cmd};
-use crate::state::{ActiveDeviceState, ConfigPathState, ConfigState, DeviceMapState};
+use crate::models::{AppConfig, ControlOutcome, DeviceSnapshot, PilotPatch};
+use crate::monitor::{emit_updates, persist_known, run_discovery};
+use crate::network::{self, validate_ip, CONTROL_ATTEMPTS, OFFLINE_ATTEMPTS, WIZ_PORT};
+use crate::registry::CommandResult;
+use crate::state::{AppShared, ConfigState, Shared};
+
+const MAX_CONTROL_TARGETS: usize = 64;
 
 #[tauri::command]
 pub fn get_device_names(
@@ -20,9 +25,9 @@ pub fn get_device_names(
 
 #[tauri::command]
 pub async fn save_device_name(
-    config_path_state: tauri::State<'_, ConfigPathState>,
+    app: tauri::AppHandle,
     config_state: tauri::State<'_, ConfigState>,
-    device_map: tauri::State<'_, DeviceMapState>,
+    shared: tauri::State<'_, AppShared>,
     mac: String,
     name: String,
 ) -> Result<(), AppError> {
@@ -42,55 +47,15 @@ pub async fn save_device_name(
         ));
     }
 
-    let path = config_path_state.0.clone();
-    let json = {
+    {
         let mut config = config_state
             .0
             .lock()
             .map_err(|e| AppError::Config(e.to_string()))?;
-
-        let map = device_map
-            .0
-            .lock()
-            .map_err(|e| AppError::Config(e.to_string()))?;
-        migrate_device_names(&mut config.device_names, &map);
-
+        migrate_device_names(&mut config.device_names, &shared.0.registry().address_map());
         config.device_names.insert(mac, name);
-        serde_json::to_string_pretty(&*config).map_err(|e| AppError::Config(e.to_string()))?
-    };
-    tokio::task::spawn_blocking(move || write_json_string(&path, &json))
-        .await
-        .map_err(|e| AppError::Config(e.to_string()))?
-}
-
-/// Actualiza en memoria los dispositivos que el monitor debe vigilar, sin tocar disco.
-/// Recibe una MAC para un dispositivo individual o varias para un grupo. La
-/// persistencia en config.json sigue ocurriendo vía `save_preferences` (con debounce
-/// en el frontend); este comando garantiza que el monitor nunca quede vigilando
-/// dispositivos distintos a los seleccionados en la UI.
-#[tauri::command]
-pub fn set_active_device(
-    active_device: tauri::State<'_, ActiveDeviceState>,
-    macs: Vec<String>,
-) -> Result<(), AppError> {
-    if macs.len() > 32 {
-        return Err(AppError::Validation(
-            "No se pueden vigilar más de 32 dispositivos a la vez".to_string(),
-        ));
     }
-    for m in &macs {
-        if m.is_empty() || m.len() > 64 {
-            return Err(AppError::Validation(
-                "El identificador MAC debe tener entre 1 y 64 caracteres".to_string(),
-            ));
-        }
-    }
-    let mut device_lock = active_device
-        .0
-        .lock()
-        .map_err(|e| AppError::Config(e.to_string()))?;
-    *device_lock = macs;
-    Ok(())
+    config::persist(&app).await
 }
 
 #[tauri::command]
@@ -104,31 +69,17 @@ pub fn get_preferences(config_state: tauri::State<'_, ConfigState>) -> Result<Ap
 
 #[tauri::command]
 pub async fn save_preferences(
-    config_path_state: tauri::State<'_, ConfigPathState>,
+    app: tauri::AppHandle,
     config_state: tauri::State<'_, ConfigState>,
-    active_device: tauri::State<'_, ActiveDeviceState>,
-    device_map: tauri::State<'_, DeviceMapState>,
+    shared: tauri::State<'_, AppShared>,
     last_mac: Option<String>,
     theme: Option<String>,
 ) -> Result<(), AppError> {
-    let path = config_path_state.0.clone();
-
-    // Lock order: config_state → active_device → device_map. All commands acquiring
-    // multiple locks MUST respect this order to prevent deadlocks under concurrency.
-    let json = {
+    {
         let mut config = config_state
             .0
             .lock()
             .map_err(|e| AppError::Config(e.to_string()))?;
-
-        if let Some(ref mac) = last_mac {
-            config.last_mac = Some(mac.clone());
-            let mut device_lock = active_device
-                .0
-                .lock()
-                .map_err(|e| AppError::Config(e.to_string()))?;
-            *device_lock = vec![mac.clone()];
-        }
 
         if let Some(ref t) = theme {
             if t != "light" && t != "dark" {
@@ -139,132 +90,152 @@ pub async fn save_preferences(
             }
             config.theme = Some(t.clone());
         }
+        if let Some(mac) = last_mac {
+            config.last_mac = Some(mac);
+        }
+        migrate_device_names(&mut config.device_names, &shared.0.registry().address_map());
+    }
+    config::persist(&app).await
+}
 
-        let map = device_map
-            .0
-            .lock()
-            .map_err(|e| AppError::Config(e.to_string()))?;
-        migrate_device_names(&mut config.device_names, &map);
+/// Estado actual de todas las lámparas conocidas, sin tocar la red.
+#[tauri::command]
+pub fn list_devices(shared: tauri::State<'_, AppShared>) -> Vec<DeviceSnapshot> {
+    shared.0.registry().snapshots()
+}
 
-        serde_json::to_string_pretty(&*config).map_err(|e| AppError::Config(e.to_string()))?
+/// Busca lámparas en la red y devuelve la lista completa actualizada. Las que
+/// no respondan siguen en la lista: un broadcast perdido no las hace desaparecer.
+#[tauri::command]
+pub async fn discover(
+    app: tauri::AppHandle,
+    shared: tauri::State<'_, AppShared>,
+) -> Result<Vec<DeviceSnapshot>, AppError> {
+    run_discovery(&app, &shared.0).await?;
+    shared.0.poll_now.notify_one();
+    Ok(shared.0.registry().snapshots())
+}
+
+/// Pide al monitor un sondeo inmediato (p. ej. al volver de reposo). Los
+/// cambios llegan por el evento `device-updated`.
+#[tauri::command]
+pub fn refresh(shared: tauri::State<'_, AppShared>) -> Vec<DeviceSnapshot> {
+    shared.0.poll_now.notify_one();
+    shared.0.registry().snapshots()
+}
+
+/// Da de alta una lámpara por IP. Se le consulta el estado para obtener su MAC
+/// real, de modo que quede identificada igual que las descubiertas.
+#[tauri::command]
+pub async fn add_device_by_ip(
+    app: tauri::AppHandle,
+    shared: tauri::State<'_, AppShared>,
+    ip: String,
+) -> Result<DeviceSnapshot, AppError> {
+    let addr = validate_ip(ip.trim())?;
+    let report = network::get_pilot(SocketAddr::new(addr, WIZ_PORT), CONTROL_ATTEMPTS).await?;
+    let mac = report
+        .mac
+        .ok_or_else(|| AppError::Device("La lámpara no informó su MAC".to_string()))?;
+
+    let changed = shared
+        .0
+        .registry()
+        .observe(&mac, addr, Some(report.state), report.rssi);
+    emit_updates(&app, changed);
+    persist_known(&app, &shared.0);
+
+    shared
+        .0
+        .registry()
+        .snapshot(&mac)
+        .ok_or_else(|| AppError::Config("Dispositivo no registrado".to_string()))
+}
+
+/// Aplica el mismo cambio a una o varias lámparas en paralelo. Devuelve un
+/// resultado por lámpara: en un grupo, una caída no hace fallar a las demás.
+#[tauri::command]
+pub async fn control(
+    app: tauri::AppHandle,
+    shared: tauri::State<'_, AppShared>,
+    macs: Vec<String>,
+    patch: PilotPatch,
+) -> Result<Vec<ControlOutcome>, AppError> {
+    patch.validate()?;
+
+    let mut seen = HashSet::new();
+    let macs: Vec<String> = macs
+        .into_iter()
+        .filter(|mac| seen.insert(mac.clone()))
+        .collect();
+    if macs.is_empty() || macs.len() > MAX_CONTROL_TARGETS {
+        return Err(AppError::Validation(format!(
+            "Se debe indicar entre 1 y {} lámparas",
+            MAX_CONTROL_TARGETS
+        )));
+    }
+
+    let shared = shared.0.clone();
+    let tasks: Vec<_> = macs
+        .into_iter()
+        .map(|mac| {
+            tauri::async_runtime::spawn(control_one(
+                app.clone(),
+                shared.clone(),
+                mac,
+                patch.clone(),
+            ))
+        })
+        .collect();
+
+    let mut outcomes = Vec::with_capacity(tasks.len());
+    for task in tasks {
+        if let Ok(outcome) = task.await {
+            outcomes.push(outcome);
+        }
+    }
+
+    // Lectura de confirmación: la lámpara es la autoridad sobre su estado final.
+    shared.poll_now.notify_one();
+    Ok(outcomes)
+}
+
+async fn control_one(
+    app: tauri::AppHandle,
+    shared: Arc<Shared>,
+    mac: String,
+    patch: PilotPatch,
+) -> ControlOutcome {
+    let Some((ip, online)) = shared.registry().begin_command(&mac) else {
+        return ControlOutcome {
+            device: shared.registry().snapshot(&mac),
+            mac,
+            ok: false,
+            error: Some("No se conoce la dirección de la lámpara".to_string()),
+        };
     };
 
-    tokio::task::spawn_blocking(move || write_json_string(&path, &json))
-        .await
-        .map_err(|e| AppError::Config(e.to_string()))?
-}
+    let attempts = if online {
+        CONTROL_ATTEMPTS
+    } else {
+        OFFLINE_ATTEMPTS
+    };
+    let result = network::set_pilot(SocketAddr::new(ip, WIZ_PORT), &patch, attempts).await;
 
-#[tauri::command]
-pub async fn discover(device_map: tauri::State<'_, DeviceMapState>) -> Result<Value, AppError> {
-    let devices = discover_udp().await?;
+    let changed = shared.registry().end_command(
+        &mac,
+        match &result {
+            Ok(()) => CommandResult::Applied(&patch),
+            Err(AppError::Device(_)) => CommandResult::Rejected,
+            Err(_) => CommandResult::Unreachable,
+        },
+    );
+    emit_updates(&app, changed);
 
-    // Update the device map (MAC -> IP) with discovered devices
-    {
-        let mut map = device_map
-            .0
-            .lock()
-            .map_err(|e| AppError::Config(e.to_string()))?;
-        for device in &devices {
-            if let (Some(mac), Some(ip)) = (
-                device.get("mac").and_then(|m| m.as_str()),
-                device.get("ip").and_then(|i| i.as_str()),
-            ) {
-                map.insert(mac.to_string(), ip.to_string());
-            }
-        }
+    ControlOutcome {
+        device: shared.registry().snapshot(&mac),
+        ok: result.is_ok(),
+        error: result.err().map(|e| e.to_string()),
+        mac,
     }
-
-    Ok(serde_json::json!(devices))
-}
-
-#[tauri::command]
-pub async fn get_state(
-    ip: String,
-    device_map: tauri::State<'_, DeviceMapState>,
-) -> Result<Value, AppError> {
-    let payload = serde_json::json!({
-        "method": "getPilot",
-        "params": {}
-    });
-    let resp = send_udp_cmd(&ip, &payload).await?;
-
-    if let Some(mac) = extract_mac(&resp) {
-        let mut map = device_map
-            .0
-            .lock()
-            .map_err(|e| AppError::Config(e.to_string()))?;
-        map.insert(mac, ip.clone());
-    }
-
-    Ok(resp
-        .get("result")
-        .cloned()
-        .unwrap_or(serde_json::Value::Null))
-}
-
-#[tauri::command]
-#[allow(clippy::too_many_arguments)]
-pub async fn control(
-    ip: String,
-    state: Option<bool>,
-    dimming: Option<u8>,
-    temp: Option<u16>,
-    r: Option<u8>,
-    g: Option<u8>,
-    b: Option<u8>,
-    scene_id: Option<u8>,
-) -> Result<Value, AppError> {
-    if let Some(d) = dimming {
-        if !(10..=100).contains(&d) {
-            return Err(AppError::Validation(
-                "El brillo debe estar entre 10 y 100".to_string(),
-            ));
-        }
-    }
-    if let Some(t) = temp {
-        if !(2200..=6500).contains(&t) {
-            return Err(AppError::Validation(
-                "La temperatura debe estar entre 2200K y 6500K".to_string(),
-            ));
-        }
-    }
-    if let Some(s_id) = scene_id {
-        if !(1..=32).contains(&s_id) {
-            return Err(AppError::Validation(
-                "El ID de escena debe estar entre 1 y 32".to_string(),
-            ));
-        }
-    }
-
-    let mut params = serde_json::Map::new();
-    if let Some(s) = state {
-        params.insert("state".to_string(), serde_json::Value::Bool(s));
-    }
-    if let Some(d) = dimming {
-        params.insert("dimming".to_string(), serde_json::Value::Number(d.into()));
-    }
-    if let Some(t) = temp {
-        params.insert("temp".to_string(), serde_json::Value::Number(t.into()));
-    }
-    if let (Some(rv), Some(gv), Some(bv)) = (r, g, b) {
-        params.insert("r".to_string(), serde_json::Value::Number(rv.into()));
-        params.insert("g".to_string(), serde_json::Value::Number(gv.into()));
-        params.insert("b".to_string(), serde_json::Value::Number(bv.into()));
-    }
-    if let Some(s_id) = scene_id {
-        params.insert(
-            "sceneId".to_string(),
-            serde_json::Value::Number(s_id.into()),
-        );
-    }
-
-    let payload = serde_json::json!({
-        "method": "setPilot",
-        "params": params
-    });
-
-    let resp = send_udp_cmd(&ip, &payload).await?;
-    // The monitor emits the confirmed state in the next poll cycle (~5s).
-    // A second getPilot round-trip here is redundant given optimistic UI updates.
-    Ok(resp)
 }
