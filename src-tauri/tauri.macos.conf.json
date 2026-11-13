@@ -3,12 +3,27 @@
     "windows": [
       {
         "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "transparent": true,
+        "backgroundColor": null,
+        "windowEffects": {
+          "effects": [
+            "sidebar"
+          ],
+          "state": "followsWindowActiveState"
+        },
+        "trafficLightPosition": {
+          "x": 22,
+          "y": 28
+        }
       }
     ]
   },
   "bundle": {
-    "targets": ["dmg", "app"],
+    "targets": [
+      "dmg",
+      "app"
+    ],
     "macOS": {
       "signingIdentity": "-",
       "hardenedRuntime": false,

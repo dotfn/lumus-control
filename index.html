@@ -33,6 +33,10 @@
         if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark');
         }
+        // App de escritorio en macOS: la ventana es translúcida y el fondo lo pone el sistema.
+        if (window.__TAURI_INTERNALS__ && /Mac/i.test(navigator.userAgent)) {
+          document.documentElement.classList.add('vibrant');
+        }
       })();
     </script>
   </head>

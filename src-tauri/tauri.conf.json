@@ -22,12 +22,13 @@
         "decorations": true,
         "transparent": false,
         "visible": false,
-        "backgroundColor": "#141416"
+        "backgroundColor": "#1e1e20"
       }
     ],
     "security": {
       "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:;"
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,
