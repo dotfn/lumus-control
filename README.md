@@ -9,103 +9,103 @@
   <img src="https://img.shields.io/github/actions/workflow/status/dotfn/lumus-control/ci.yml?label=CI&logo=github">
 </p>
 
-Aplicación de escritorio nativa para descubrir y controlar bombillas inteligentes en tu red local. Sin nube, sin intermediarios — comunicación directa mediante **UDP** en tiempo real.
+Native desktop application to discover and control smart light bulbs on your local network. No cloud, no middlemen — real-time direct communication via **UDP**.
 
-Disponible para **macOS** (Apple Silicon) y **Windows** (x86_64).
-
----
-
-## Funcionalidades
-
-- **Descubrimiento automático** de bombillas en la red local vía broadcast UDP
-- **Control completo**: encendido/apagado, brillo, temperatura de color y RGB
-- **Habitaciones y Grupos** — Agrupá tus bombillas por estancias (ej. *Living*, *Dormitorio*) para controlarlas todas juntas en paralelo con un único clic
-- **Escenas dinámicas** — acceso a todos los modos de escena del protocolo
-- **Sleep timer** con fade progresivo del brillo hasta apagado
-- **Tema claro/oscuro** sincronizado con la ventana nativa
-- **Alias de dispositivos** — renombrá cada bombilla con un nombre personalizado
-- **Exclusión de dispositivos** — ocultá lámparas secundarias o de otros cuartos con un clic para no saturar tu panel
-- **Estado en tiempo real** — polling asíncrono cada 5 segundos con indicador online/offline
-- **Actualización automática** — detección, descarga e instalación automática de actualizaciones vía Tauri Updater
-- **Sin internet requerido** — la app funciona completamente offline
+Available for **macOS** (Apple Silicon) and **Windows** (x86_64).
 
 ---
 
+## Features
+
+- **Automatic discovery** of smart bulbs on the local network via UDP broadcast
+- **Full control**: power on/off, brightness, color temperature, and RGB
+- **Rooms & Groups** — Group your bulbs by room (e.g., *Living Room*, *Bedroom*) to control them all together in parallel with a single click
+- **Dynamic scenes** — access all scene modes supported by the protocol
+- **Circadian rhythm** — automatically adjusts color temperature and brightness throughout the day
+- **Sleep timer** with progressive brightness fade-out until power off
+- **Light/Dark theme** synchronized with the native window
+- **Bilingual UI** — full Spanish and English support across the app and web landing
+- **Device aliases** — rename each bulb with a custom label
+- **Device exclusion** — hide secondary lamps or bulbs from other rooms with a single click to keep your dashboard clean
+- **Real-time status** — asynchronous polling every 5 seconds with online/offline indicators
+- **Auto-updates** — automatic detection, download, and installation of updates via Tauri Updater
+- **No internet required** — the app works completely offline
+
 ---
 
-## Arquitectura
+## Architecture
 
-El proyecto está dividido en dos capas con responsabilidades estrictamente separadas y cuenta con soporte multiplataforma.
+The project is split into two layers with strictly separated responsibilities and full cross-platform support.
 
 ```
 lumus-control/
 ├── .github/workflows/
 │   ├── ci.yml                    # Quality checks (typecheck + lint + Rust tests)
-│   └── release.yml               # Compilación paralela macOS & Windows y auto-release
+│   └── release.yml               # Parallel macOS & Windows builds and auto-release
 ├── src/                          # Frontend — React + Zustand
 │   ├── features/
-│   │   ├── devices/              # Descubrimiento UDP y selección de dispositivo
-│   │   ├── lighting/             # Control de luz (brillo, color, escenas)
-│   │   ├── settings/             # Tema claro/oscuro
-│   │   ├── timer/                # Sleep timer con fade
-│   │   ├── layout/               # Titlebar nativa (Traffic Lights) y widgets
-│   │   └── updater/              # Widget de actualización automática (Tauri Updater)
+│   │   ├── devices/              # UDP discovery and device selection
+│   │   ├── lighting/             # Light control (brightness, color, scenes)
+│   │   ├── settings/             # Light/Dark theme & preferences
+│   │   ├── timer/                # Sleep timer with fade
+│   │   ├── layout/               # Native titlebar (Traffic Lights) and widgets
+│   │   └── updater/              # Auto-update widget (Tauri Updater)
 │   ├── services/
-│   │   └── deviceService.ts      # Abstracción IPC — única puerta de entrada a Tauri
+│   │   └── deviceService.ts      # IPC abstraction — single entry point to Tauri
 │   └── types.ts
 │
 └── src-tauri/                    # Backend — Rust (Tauri v2)
-    ├── tauri.conf.json           # Configuración base multiplataforma
-    ├── tauri.macos.conf.json     # Configuración específica para macOS (overlay, titlebar)
-    ├── tauri.windows.conf.json   # Configuración específica para Windows (decoraciones nativas)
+    ├── tauri.conf.json           # Cross-platform base configuration
+    ├── tauri.macos.conf.json     # macOS-specific configuration (overlay, titlebar)
+    ├── tauri.windows.conf.json   # Windows-specific configuration (native decorations)
     └── src/
-        ├── main.rs               # Punto de entrada de la aplicación
-        ├── lib.rs                # Orquestador: estados, on_window_event, plugins y handlers
+        ├── main.rs               # Application entry point
+        ├── lib.rs                # Orchestrator: state, on_window_event, plugins, and handlers
         ├── commands.rs           # IPC handlers (#[tauri::command])
-        ├── network.rs            # UDP asíncrono con tokio::net
-        ├── config.rs             # Persistencia con escritura atómica
+        ├── network.rs            # Async UDP with tokio::net
+        ├── config.rs             # Persistence with atomic writes
         ├── state.rs              # ConfigState, ActiveDeviceState, ShutdownSignal
-        ├── monitor.rs            # Polling asíncrono (tokio::spawn)
-        ├── models.rs             # Estructuras de datos compartidas
-        └── errors.rs             # AppError centralizado
+        ├── monitor.rs            # Async polling (tokio::spawn)
+        ├── models.rs             # Shared data structures
+        └── errors.rs             # Centralized AppError
 ```
 
-### Soporte Multiplataforma (Tauri v2)
+### Cross-Platform Support (Tauri v2)
 
-- **Configuración dividida**: Uso de config merging nativo (`tauri.conf.json` base + `tauri.macos.conf.json` / `tauri.windows.conf.json` específicos) para lograr una estética nativa y pulida en cada sistema operativo sin condicionales en el código.
-- **Firma digital e instaladores**: Generación automática de archivos `.dmg` firmados ad-hoc para macOS Apple Silicon y ejecutables de instalación (`.exe` NSIS) para Windows.
-- **Auto-updater integrado**: El backend Rust carga el plugin `tauri-plugin-updater` permitiendo que el cliente reciba y aplique actualizaciones automáticas desde GitHub Releases.
+- **Split configuration**: Native config merging (`tauri.conf.json` base + platform-specific `tauri.macos.conf.json` / `tauri.windows.conf.json`) to achieve a polished native look and feel on each operating system without code conditionals.
+- **Digital signing & installers**: Automatic generation of ad-hoc signed `.dmg` bundles for macOS Apple Silicon and NSIS executable installers (`.exe`) for Windows.
+- **Integrated auto-updater**: The Rust backend loads `tauri-plugin-updater`, allowing clients to receive and apply automatic updates directly from GitHub Releases.
 
-### Backend Rust
+### Rust Backend
 
-- **UDP asíncrono**: `tokio::net::UdpSocket` con timeouts no bloqueantes — la UI nunca se congela esperando respuestas de red
-- **Estado granular en Tauri**: tres estados independientes (`ConfigState`, `ActiveDeviceState`, `ShutdownSignal`) en lugar de un monolito
-- **Lecturas desde caché**: `get_preferences` y `get_device_names` leen del `Mutex<AppConfig>` en memoria, sin tocar el disco
-- **Escritura atómica**: `config.json` se escribe via `tmp → sync_all() → rename`, garantizando que el archivo nunca quede corrupto por un cierre forzado
-- **Monitor asíncrono**: el polling corre como una tarea Tokio (`tokio::spawn`) con `tokio::time::sleep`, sin bloquear ningún hilo del OS
-- **Apagado limpio**: `on_window_event(CloseRequested)` activa `ShutdownSignal(AtomicBool)`, el monitor sale en su próxima iteración
-- **Validación de origen UDP**: las respuestas de IPs distintas al dispositivo consultado son descartadas para evitar paquetes parásitos en la red local
+- **Async UDP**: `tokio::net::UdpSocket` with non-blocking timeouts — the UI never freezes waiting for network responses
+- **Granular Tauri state**: three independent state containers (`ConfigState`, `ActiveDeviceState`, `ShutdownSignal`) instead of a single monolith
+- **Cached reads**: `get_preferences` and `get_device_names` read from the in-memory `Mutex<AppConfig>` without touching disk
+- **Atomic writes**: `config.json` is written via `tmp → sync_all() → rename`, ensuring the file is never corrupted by a forced shutdown
+- **Async monitor**: polling runs as a Tokio task (`tokio::spawn`) with `tokio::time::sleep`, never blocking OS threads
+- **Graceful shutdown**: `on_window_event(CloseRequested)` triggers `ShutdownSignal(AtomicBool)` so the monitor exits on its next iteration
+- **UDP origin validation**: responses from IPs other than the queried device are discarded to prevent stray packets on the local network
 
-### Frontend React
+### React Frontend
 
-- **Stores Zustand** por dominio: `useDeviceStore`, `useLightingStore`, `useTimerStore`, `useSettingsStore` (definidos localmente dentro de cada feature)
-- **Capa de servicios** (`deviceService.ts`): los stores no conocen Tauri directamente
-- **Actualizaciones optimistas con rollback**: la UI responde instantáneamente; si el comando UDP falla, el estado revierte al valor anterior
-- **Persistencia local de grupos**: Las habitaciones (`groups`) y sus asociaciones de IPs se guardan y cargan localmente desde `localStorage` (`device_groups`), manteniendo la lógica de grupos desconectada del backend Tauri.
-- **Control multicast paralelo**: Si se selecciona una habitación, el store de iluminación despacha las peticiones UDP de control en paralelo a todas las IPs del grupo usando `Promise.allSettled`, asegurando robustez y evitando bloqueos si alguna bombilla está desconectada.
-- **Custom hooks** para efectos de tiempo y actualización: `useLightEvents`, `useSleepTimerCountdown`, `useAppUpdater`
+- **Domain-scoped Zustand stores**: `useDeviceStore`, `useLightingStore`, `useTimerStore`, `useSettingsStore` (defined locally inside each feature)
+- **Service layer** (`deviceService.ts`): stores do not interact with Tauri directly
+- **Optimistic updates with rollback**: the UI responds immediately; if the UDP command fails, state rolls back to the previous value
+- **Local group persistence**: Rooms (`groups`) and their IP associations are saved and loaded locally from `localStorage` (`device_groups`), keeping group logic decoupled from the Tauri backend
+- **Parallel multicast control**: When a room is selected, the lighting store dispatches UDP control requests in parallel to all group IPs using `Promise.allSettled`, ensuring resilience and preventing stalls if a bulb is offline
+- **Custom hooks** for timing and update side-effects: `useLightEvents`, `useSleepTimerCountdown`, `useAppUpdater`
 
 ---
 
-## Protocolo UDP
+## UDP Protocol
 
-Las bombillas escuchan en el puerto **38899**. La app implementa el protocolo directamente en Rust:
+Bulbs listen on port **38899**. The app implements the protocol directly in Rust:
 
 ```json
-// Descubrimiento (broadcast a 255.255.255.255:38899)
+// Discovery (broadcast to 255.255.255.255:38899)
 {"method": "getPilot", "params": {}}
 
-// Control directo (unicast a la IP del dispositivo)
+// Direct control (unicast to device IP)
 {"method": "setPilot", "params": {"state": true, "dimming": 80, "temp": 3000}}
 {"method": "setPilot", "params": {"r": 255, "g": 100, "b": 0}}
 {"method": "setPilot", "params": {"sceneId": 14}}
@@ -113,116 +113,105 @@ Las bombillas escuchan en el puerto **38899**. La app implementa el protocolo di
 
 ---
 
-## Instalación
-
-### One-liner (Recomendado para macOS Apple Silicon)
-
-Copia y pega esto en la Terminal:
-
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/dotfn/lumus-control/main/install.sh)"
-```
-
-El script detecta automáticamente tu arquitectura (Apple Silicon), descarga el DMG correcto desde GitHub, lo instala en `/Applications` y remueve el atributo de cuarentena para evitar el bloqueo de Gatekeeper. *(Nota: Intel Macs ya no son soportados oficialmente).*
+## Installation
 
 ### Homebrew (macOS)
 
 ```bash
-brew tap dotfn/tap
-brew install --cask lumus-control
+brew install --cask dotfn/tap/lumus-control
 ```
 
-### Descarga manual
+### Manual Download
 
-Descargá el instalador correspondiente desde la página de [**Releases**](../../releases).
+Download the installer for your platform from the [**Releases**](../../releases) page.
 
-| Plataforma | Archivo | Método / Instalador |
+| Platform | File | Method / Installer |
 |---|---|---|
-| macOS (Apple Silicon) | `Lumus.Control_<version>_aarch64.dmg` | DMG + `install.sh` o arrastrar a Aplicaciones |
-| Windows (x86_64) | `Lumus.Control_<version>_x64-setup.exe` | Instalador ejecutable (NSIS) |
+| macOS (Apple Silicon) | `Lumus.Control_<version>_aarch64.dmg` | DMG (drag to Applications) |
+| Windows (x86_64) | `Lumus.Control_<version>_x64-setup.exe` | Executable installer (NSIS) |
 
 > [!NOTE]
-> En macOS, si instalás manualmente el DMG arrastrándolo a la carpeta de Aplicaciones, es posible que debas remover el atributo de cuarentena ejecutando en tu terminal:
+> On macOS, if you install the DMG manually by dragging the app to your Applications folder, you may need to clear the quarantine attribute in Terminal:
 > ```bash
 > xattr -rd com.apple.quarantine "/Applications/Lumus Control.app"
 > ```
 
-### Build local
+### Local Build
 
 ```bash
 pnpm install
 pnpm tauri build
 ```
-*(Los instaladores compilados localmente se generarán en la carpeta `src-tauri/target/release/bundle/` según la plataforma de tu sistema).*
+*(Locally compiled installers will be generated under `src-tauri/target/release/bundle/` for your platform).*
 
 ---
 
-## Desarrollo local
+## Local Development
 
-### Requisitos
+### Prerequisites
 
 - [Node.js](https://nodejs.org/) v20+
 - [pnpm](https://pnpm.io/) v9+
-- [Rust](https://rustup.rs/) 1.77+ (vía `rustup`)
+- [Rust](https://rustup.rs/) 1.77+ (via `rustup`)
 - macOS: Xcode Command Line Tools
-- Windows: Build Tools para Visual Studio C++
+- Windows: Visual Studio C++ Build Tools
 - Linux: `libwebkit2gtk-4.1-dev`, `pkg-config`, `libssl-dev`
 
-### Comandos
+### Commands
 
 ```bash
-# Instalar dependencias
+# Install dependencies
 pnpm install
 
-# Iniciar entorno de desarrollo completo (Tauri + Frontend)
+# Start full development environment (Tauri + Frontend)
 pnpm dev
 
-# Iniciar únicamente el servidor dev de Frontend (Vite)
+# Start only the Frontend dev server (Vite)
 pnpm dev:frontend
 
-# Ejecutar todas las verificaciones locales (Quality Checks completos)
+# Run all local quality checks
 pnpm verify
 
-# Verificación de tipos TypeScript
+# TypeScript type checking
 pnpm typecheck
 
-# Linter de TypeScript/React (cero warnings permitidos)
+# TypeScript/React linter (zero warnings allowed)
 pnpm lint
 
-# Formatear código de Rust
+# Format Rust code
 pnpm rust:format
 
-# Ejecutar clippy en Rust
+# Run Clippy on Rust code
 pnpm rust:clippy
 
-# Ejecutar tests unitarios de Rust (Backend)
+# Run Rust unit tests (Backend)
 pnpm rust:test
 
-# Compilar la aplicación para producción localmente
+# Build the application for production locally
 pnpm tauri build
 ```
 
-### Tests del backend
+### Backend Tests
 
 ```bash
 pnpm rust:test
-# O directamente vía Cargo:
+# Or directly via Cargo:
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
-El backend tiene **12 tests unitarios** en `config.rs` y `network.rs` cubriendo escritura atómica, lectura con archivo corrupto, roundtrip de configuración y validación de IPs.
+The backend includes **12 unit tests** in `config.rs` and `network.rs` covering atomic writes, corrupted file recovery, configuration roundtrips, and IP validation.
 
 ---
 
 ## CI / CD
 
-El repositorio cuenta con dos workflows de GitHub Actions:
+The repository uses two GitHub Actions workflows:
 
-* **CI (`.github/workflows/ci.yml`)**: Dos jobs en paralelo — frontend (`pnpm typecheck`, `pnpm lint`) y Rust (`cargo fmt --check`, `cargo clippy`, `cargo test`) — en cada push a `main` y ramas de desarrollo (`develop`, `feature/*`, `fix/*`), y en PRs dirigidos a `develop` o `main`.
-* **Release (`.github/workflows/release.yml`)**: Crea un release draft con notas auto-generadas, compila y firma en paralelo para macOS (Apple Silicon) y Windows (x86_64) usando [`tauri-action`](https://github.com/tauri-apps/tauri-action) (que además publica el `latest.json` del auto-updater), publica el release y actualiza el cask en [`dotfn/homebrew-tap`](https://github.com/dotfn/homebrew-tap) (únicamente para tags de producción sin sufijo).
+* **CI (`.github/workflows/ci.yml`)**: Two parallel jobs — frontend (`pnpm typecheck`, `pnpm lint`) and Rust (`cargo fmt --check`, `cargo clippy`, `cargo test`) — on every push to `main` and development branches (`develop`, `feature/*`, `fix/*`), and on PRs targeting `develop` or `main`.
+* **Release (`.github/workflows/release.yml`)**: Creates a draft release with auto-generated notes, builds and signs in parallel for macOS (Apple Silicon) and Windows (x86_64) using [`tauri-action`](https://github.com/tauri-apps/tauri-action) (which also publishes `latest.json` for the auto-updater), publishes the release, and updates the cask in [`dotfn/homebrew-tap`](https://github.com/dotfn/homebrew-tap) (for production tags without a pre-release suffix).
 
 ---
 
-## Licencia
+## License
 
 MIT

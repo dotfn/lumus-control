@@ -21,8 +21,6 @@ type Platform = 'mac' | 'win' | 'source';
 
 const PLATFORM_IDS: Platform[] = ['mac', 'win', 'source'];
 
-const ONE_LINER =
-  'bash -c "$(curl -fsSL https://raw.githubusercontent.com/dotfn/lumus-control/main/install.sh)"';
 const BREW_ONE = 'brew install --cask dotfn/tap/lumus-control';
 const DOTFN_URL = 'https://dotfn.dev';
 
@@ -281,17 +279,6 @@ export const DownloadSection: React.FC = () => {
               </Step>
               <Step index="02" title={t.download.steps.mac[0].title}>
                 <p>{t.download.steps.mac[0].body}</p>
-                <Command
-                  command={ONE_LINER}
-                  id="one-liner"
-                  copied={copied}
-                  copyLabel={t.download.copy.copy}
-                  copiedLabel={t.download.copy.copied}
-                  onCopy={copyCommand}
-                />
-              </Step>
-              <Step index="03" title={t.download.steps.mac[1].title}>
-                <p>{t.download.steps.mac[1].body}</p>
               </Step>
             </ol>
           )}

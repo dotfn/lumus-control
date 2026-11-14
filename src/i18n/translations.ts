@@ -68,10 +68,6 @@ export const translations = {
       steps: {
         mac: [
           {
-            title: 'Instalación automática',
-            body: 'Descarga, instala y autoriza la app en Gatekeeper con un solo comando.',
-          },
-          {
             title: 'Actualizaciones',
             body: 'La app comprueba versiones nuevas desde Ajustes y se actualiza sin volver a descargar el instalador.',
           },
@@ -198,7 +194,7 @@ export const translations = {
           },
           {
             q: '¿Por qué macOS dice que no puede verificar la app?',
-            a: 'Las compilaciones se firman de forma ad-hoc, sin un certificado de Apple. El instalador automático retira la cuarentena; si abres el DMG a mano, haz clic derecho sobre la app y elige «Abrir» la primera vez.',
+            a: 'Las compilaciones se firman de forma ad-hoc, sin un certificado de Apple. Si instalas con Homebrew o haces clic derecho sobre la app y eliges «Abrir» la primera vez, macOS te permitirá ejecutarla.',
           },
           {
             q: '¿Necesito internet para usarla?',
@@ -540,10 +536,6 @@ export const translations = {
       steps: {
         mac: [
           {
-            title: 'Automatic install',
-            body: 'Downloads, installs, and clears Gatekeeper quarantine with a single command.',
-          },
-          {
             title: 'Updates',
             body: 'The app checks for new versions right from Settings and updates without re-downloading the installer.',
           },
@@ -670,7 +662,7 @@ export const translations = {
           },
           {
             q: 'Why does macOS say it cannot verify the app?',
-            a: 'Builds are ad-hoc signed without an Apple Developer certificate. The automatic installer clears the quarantine flag; if you open the DMG manually, right-click the app and choose "Open" the first time.',
+            a: 'Builds are ad-hoc signed without an Apple Developer certificate. If you open the DMG manually, right-click the app and choose "Open" the first time.',
           },
           {
             q: 'Do I need internet to use it?',
