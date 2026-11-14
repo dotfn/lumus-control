@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.1] — 2026-11-14
+
+### Features
+- **Nueva identidad e icono de app**: incorporación del nuevo icono 3D de lámpara colgante en macOS (`.icns`), Windows (`.ico` y tiles), iOS y Android, junto con adaptaciones vectoriales para el favicon web (`favicon.svg`, `favicon.ico`, `apple-touch-icon.png`), imagen OpenGraph y el componente `<LumusLogo />` en la interfaz.
+
 ## [0.7.0] — 2026-11-14
 
 ### Features
