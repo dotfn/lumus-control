@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0] — 2026-11-14
+
+### Features
+- **Soporte bilingüe (ES / EN)**: español e inglés en toda la web, la demo interactiva y la aplicación de escritorio, con selector de idioma en Ajustes y en la landing.
+- **Rediseño nativo macOS Tahoe**: ventana translúcida con material nativo en la barra lateral, controles en cápsula y radios concéntricos.
+- **Sección de descargas optimizada**: jerarquía centrada, selector de plataforma (macOS / Windows / Código fuente), tabla comparativa y preguntas frecuentes.
+- **Backend Rust**: reconstrucción del registro de lámparas, descubrimiento y control UDP local.
+
 ## [0.6.0] — 2026-07-02
 
 ### Fixes
