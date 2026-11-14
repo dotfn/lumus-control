@@ -1,12 +1,14 @@
 import { LightDevice, LightState, TargetSummary } from '../types';
 import { PRESET_SCENES } from '../data/scenes';
 import { getLampRgbColor, rgbToHex } from './color';
+import { getTranslations } from '../i18n';
 
 type Lamp = Pick<LightDevice, 'online' | 'state'>;
 
 /** Nombre para mostrar; las lámparas sin nombre se distinguen por el final de su MAC. */
 export function lampName(device: Pick<LightDevice, 'mac' | 'name'>): string {
-  return device.name || `Lámpara ${device.mac.replace(/[^0-9a-f]/gi, '').slice(-4).toUpperCase()}`;
+  const t = getTranslations().app.appearance;
+  return device.name || `${t.lampPrefix} ${device.mac.replace(/[^0-9a-f]/gi, '').slice(-4).toUpperCase()}`;
 }
 
 export function sceneGradient(colors: string[]): string {
@@ -37,50 +39,55 @@ export function lampFill(device?: Lamp): { background: string; color: string; gl
 }
 
 function temperatureName(kelvin: number): string {
-  if (kelvin < 3000) return 'Blanco cálido';
-  if (kelvin < 4500) return 'Blanco neutro';
-  return 'Blanco frío';
+  const t = getTranslations().app.appearance;
+  if (kelvin < 3000) return t.warmWhite;
+  if (kelvin < 4500) return t.neutralWhite;
+  return t.coolWhite;
 }
 
 /** Modo de color en palabras: "Escena Ocean", "Blanco cálido · 2700 K", "Color #FF8800". */
 export function describeColor(state: LightState): string {
+  const t = getTranslations().app.appearance;
   const scene = PRESET_SCENES.find((s) => s.id === state.sceneId);
-  if (scene) return `Escena ${scene.name}`;
+  if (scene) return `${t.scenePrefix} ${scene.name}`;
   if (state.temp !== undefined) return `${temperatureName(state.temp)} · ${state.temp} K`;
   if (state.r !== undefined && state.g !== undefined && state.b !== undefined) {
-    return `Color ${rgbToHex(state.r, state.g, state.b).toUpperCase()}`;
+    return `${t.colorPrefix} ${rgbToHex(state.r, state.g, state.b).toUpperCase()}`;
   }
-  return state.sceneId !== undefined ? 'Escena personalizada' : 'Encendida';
+  return state.sceneId !== undefined ? t.customScene : t.on;
 }
 
 /** Estado de una lámpara en una línea. */
 export function describeLamp(device: Lamp): string {
-  if (!device.online) return 'Sin conexión';
-  if (!device.state) return 'Conectando…';
-  if (!device.state.state) return 'Apagada';
+  const t = getTranslations().app.appearance;
+  if (!device.online) return t.offline;
+  if (!device.state) return t.connecting;
+  if (!device.state.state) return t.off;
   return `${device.state.dimming} % · ${describeColor(device.state)}`;
 }
 
 /** Estado de una habitación en una línea. */
 export function describeRoom(summary: TargetSummary): string {
-  if (summary.total === 0) return 'Sin lámparas';
-  if (summary.online === 0) return 'Sin conexión';
+  const t = getTranslations().app.appearance;
+  if (summary.total === 0) return t.noLamps;
+  if (summary.online === 0) return t.offline;
 
   const power =
     summary.on === 0
-      ? 'Todas apagadas'
+      ? t.allOff
       : summary.on === summary.total
         ? summary.total === 1
-          ? 'Encendida'
-          : 'Todas encendidas'
-        : `${summary.on} de ${summary.total} encendidas`;
+          ? t.on
+          : t.allOn
+        : t.partialOn(summary.on, summary.total);
   const offline = summary.total - summary.online;
-  return offline > 0 ? `${power} · ${offline} sin conexión` : power;
+  return offline > 0 ? `${power} · ${t.offlineCount(offline)}` : power;
 }
 
 export function describeSignal(rssi: number | null | undefined): string {
   if (rssi === null || rssi === undefined) return '—';
-  const quality = rssi >= -60 ? 'Excelente' : rssi >= -70 ? 'Buena' : rssi >= -80 ? 'Regular' : 'Débil';
+  const s = getTranslations().app.appearance.signal;
+  const quality = rssi >= -60 ? s.excellent : rssi >= -70 ? s.good : rssi >= -80 ? s.fair : s.weak;
   return `${quality} (${rssi} dBm)`;
 }
 

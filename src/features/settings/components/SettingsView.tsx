@@ -7,12 +7,13 @@ import { kelvinToRgb } from '../../../utils/color';
 import { formatMac, lampName } from '../../../utils/lampAppearance';
 import { formatHour, getCircadianPoints } from '../../lighting/utils/circadian';
 import { Row, Section, Segmented } from '../../shell/components/primitives';
+import { useTranslation, type Language } from '../../../i18n';
 
 type Theme = 'light' | 'dark';
 
-const THEME_OPTIONS: { value: Theme; label: string }[] = [
-  { value: 'light', label: 'Claro' },
-  { value: 'dark', label: 'Oscuro' },
+const LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
+  { value: 'es', label: 'Español' },
+  { value: 'en', label: 'English' },
 ];
 
 interface SettingsViewProps {
@@ -20,6 +21,7 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onAddLamp }) => {
+  const { t, lang, setLang } = useTranslation();
   const theme = useSettingsStore((s) => s.theme);
   const toggleTheme = useSettingsStore((s) => s.toggleTheme);
   const devices = useDeviceStore((s) => s.devices);
@@ -32,50 +34,63 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onAddLamp }) => {
   const includeDevice = useDeviceStore((s) => s.includeDevice);
   const location = useLightingStore((s) => s.location);
 
+  const themeOptions: { value: Theme; label: string }[] = [
+    { value: 'light', label: t.app.settings.light },
+    { value: 'dark', label: t.app.settings.dark },
+  ];
+
   const online = devices.filter((d) => d.online).length;
   const circadianPoints = getCircadianPoints(location?.sunriseHour ?? 6, location?.sunsetHour ?? 19);
 
   return (
     <>
-      <Section title="Apariencia">
-        <Row label="Tema">
+      <Section title={t.app.settings.appearance}>
+        <Row label={t.app.settings.theme}>
           <Segmented
             value={theme}
-            options={THEME_OPTIONS}
-            label="Tema de la interfaz"
+            options={themeOptions}
+            label={t.app.settings.themeAria}
             onChange={(value) => {
               if (value !== theme) toggleTheme(selectedMac);
             }}
           />
         </Row>
+        <Row label={t.app.settings.language}>
+          <Segmented
+            value={lang}
+            options={LANGUAGE_OPTIONS}
+            label={t.app.settings.languageAria}
+            onChange={setLang}
+          />
+        </Row>
       </Section>
 
       <Section
-        title="Red"
-        footer="Las lámparas se buscan solas al abrir la app y cada minuto. Su estado se actualiza al instante, también cuando cambian desde otra app o un interruptor."
+        title={t.app.settings.network}
+        footer={t.app.settings.networkFooter}
       >
         <Row
-          label="Buscar lámparas"
+          label={t.app.settings.scanLamps}
           hint={
             scanFailed
-              ? 'No se pudo buscar: revisa la conexión de red'
-              : `${devices.length} conocidas · ${online} en línea`
+              ? t.app.settings.scanFailed
+              : t.app.settings.scanSummary(devices.length, online)
           }
         >
           <button type="button" className="mac-btn" onClick={scan} disabled={isScanning}>
             {isScanning && <Loader2 size={13} className="mac-spin" />}
-            {isScanning ? 'Buscando…' : 'Buscar ahora'}
+            {isScanning ? t.app.settings.searching : t.app.settings.scanNow}
           </button>
         </Row>
-        <Row label="Añadir por dirección IP" hint="Para lámparas en otra subred">
+        <Row label={t.app.settings.addByIp} hint={t.app.settings.addByIpHint}>
           <button type="button" className="mac-btn" onClick={onAddLamp}>
-            Añadir…
+            {t.app.settings.addDots}
           </button>
         </Row>
       </Section>
 
       {excludedMacs.length > 0 && (
-        <Section title="Lámparas ocultas">
+        <Section title={t.app.settings.hiddenLamps}>
           {excludedMacs.map((mac) => {
             const device = devices.find((d) => d.mac === mac);
             return (
@@ -85,7 +100,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onAddLamp }) => {
                 hint={device?.ip || formatMac(mac)}
               >
                 <button type="button" className="mac-btn" onClick={() => includeDevice(mac)}>
-                  Mostrar
+                  {t.app.settings.show}
                 </button>
               </Row>
             );
@@ -94,11 +109,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onAddLamp }) => {
       )}
 
       <Section
-        title="Ritmo circadiano"
+        title={t.app.settings.circadianTitle}
         footer={
           location
-            ? `Horarios calculados para ${location.city || 'tu ubicación'}: amanece a las ${formatHour(location.sunriseHour)} y anochece a las ${formatHour(location.sunsetHour)}. Se activa desde cada lámpara o habitación.`
-            : 'Horarios de referencia; se ajustan a tu amanecer y atardecer al activarlo desde una lámpara o habitación.'
+            ? t.app.settings.circadianFooterLoc(
+                location.city || t.app.settings.yourLocation,
+                formatHour(location.sunriseHour),
+                formatHour(location.sunsetHour),
+              )
+            : t.app.settings.circadianFooterDefault
         }
       >
         {circadianPoints.map((point) => (
@@ -115,11 +134,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onAddLamp }) => {
         ))}
       </Section>
 
-      <Section title="Acerca de" footer="Control local de lámparas WiZ por UDP. Sin cuentas ni nube. Licencia MIT.">
+      <Section title={t.app.settings.about} footer={t.app.settings.aboutFooter}>
         <Row label="Lumus Control">
-          <span className="mac-row__value">Versión {__APP_VERSION__}</span>
+          <span className="mac-row__value">{t.app.settings.version(__APP_VERSION__)}</span>
         </Row>
-        <Row label="Código fuente">
+        <Row label={t.app.settings.sourceCode}>
           <a
             className="mac-row__value"
             style={{ color: 'var(--m-accent-text)' }}

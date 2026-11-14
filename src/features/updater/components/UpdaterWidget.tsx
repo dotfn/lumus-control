@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, ArrowUpCircle, X, AlertCircle, Loader2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAppUpdater } from '../hooks/useAppUpdater';
+import { useTranslation } from '../../../i18n';
 
 export const UpdaterWidget: React.FC = () => {
+  const { t } = useTranslation();
   const {
     status,
     updateInfo,
@@ -105,8 +107,8 @@ export const UpdaterWidget: React.FC = () => {
         onClick={toggleDropdown}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        aria-label={`Actualización disponible. Versión ${updateInfo?.version || ''}`}
-        title="Actualización disponible"
+        aria-label={t.app.updater.availableAria(updateInfo?.version || '')}
+        title={t.app.updater.availableTitle}
         className={`relative p-2 rounded-lg text-theme-textSecondary hover:text-theme-text hover:bg-theme-input transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-accent ${
           status === 'downloading' ? 'animate-pulse text-theme-accent' : ''
         }`}
@@ -129,7 +131,7 @@ export const UpdaterWidget: React.FC = () => {
       {isOpen && (
         <div
           role="menu"
-          aria-label="Menú de actualización"
+          aria-label={t.app.updater.menuAria}
           className="absolute right-0 top-10 w-80 glass-card bg-theme-card border border-theme-border rounded-[28px] shadow-none p-4 flex flex-col gap-4 z-50 animate-fade-in text-left select-text"
         >
           {/* Header */}
@@ -137,12 +139,12 @@ export const UpdaterWidget: React.FC = () => {
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-theme-accent" />
               <span className="text-sm font-semibold text-theme-text">
-                Actualización de software
+                {t.app.updater.softwareUpdate}
               </span>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              aria-label="Cerrar menú"
+              aria-label={t.app.updater.closeMenu}
               className="p-1 rounded-md text-theme-textSecondary hover:text-theme-text hover:bg-theme-input transition-colors"
             >
               <X className="w-4 h-4" />
@@ -154,7 +156,7 @@ export const UpdaterWidget: React.FC = () => {
             {updateInfo && (
               <div className="flex flex-col gap-0.5">
                 <span className="text-xs text-theme-textSecondary uppercase font-semibold tracking-wider">
-                  Versión disponible
+                  {t.app.updater.versionAvailable}
                 </span>
                 <span className="text-sm font-medium text-theme-text">
                   Lumus Control v{updateInfo.version}
@@ -165,7 +167,7 @@ export const UpdaterWidget: React.FC = () => {
             {/* Available State details */}
             {status === 'available' && (
               <p className="text-xs text-theme-textSecondary leading-relaxed mt-1">
-                Hay mejoras de rendimiento, estabilidad y nuevas funciones disponibles.
+                {t.app.updater.availableDesc}
               </p>
             )}
 
@@ -180,12 +182,12 @@ export const UpdaterWidget: React.FC = () => {
                   {showNotes ? (
                     <>
                       <ChevronUp className="w-3.5 h-3.5" />
-                      Ocultar novedades
+                      {t.app.updater.hideNotes}
                     </>
                   ) : (
                     <>
                       <ChevronDown className="w-3.5 h-3.5" />
-                      Ver novedades de la versión
+                      {t.app.updater.showNotes}
                     </>
                   )}
                 </button>
@@ -201,7 +203,7 @@ export const UpdaterWidget: React.FC = () => {
             {status === 'downloading' && (
               <div className="flex flex-col gap-2 my-1">
                 <div className="flex justify-between items-center text-xs font-semibold">
-                  <span className="text-theme-text">Descargando actualización...</span>
+                  <span className="text-theme-text">{t.app.updater.downloading}</span>
                   <span className="text-theme-accent ">{progress}%</span>
                 </div>
                 <div className="w-full h-1.5 bg-theme-input rounded-full overflow-hidden border border-theme-border">
@@ -211,7 +213,7 @@ export const UpdaterWidget: React.FC = () => {
                   />
                 </div>
                 <span className="text-[10px] text-theme-textSecondary italic">
-                  La app se reiniciará sola al finalizar.
+                  {t.app.updater.restartNote}
                 </span>
               </div>
             )}
@@ -221,7 +223,7 @@ export const UpdaterWidget: React.FC = () => {
               <div className="flex items-center gap-2 py-1 text-theme-green">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-xs font-semibold">
-                  Instalado. Reiniciando Lumus Control...
+                  {t.app.updater.ready}
                 </span>
               </div>
             )}
@@ -231,9 +233,9 @@ export const UpdaterWidget: React.FC = () => {
               <div className="flex items-start gap-2 text-red-500 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 text-xs">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-1">
-                  <span className="font-semibold">Error al actualizar</span>
+                  <span className="font-semibold">{t.app.updater.errorTitle}</span>
                   <span className="leading-snug text-[10px] text-red-400">
-                    {errorMsg || 'Error inesperado.'}
+                    {errorMsg || t.app.updater.errorFallback}
                   </span>
                 </div>
               </div>
@@ -251,14 +253,14 @@ export const UpdaterWidget: React.FC = () => {
                   }}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg text-theme-textSecondary hover:text-theme-text hover:bg-theme-input transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme-accent"
                 >
-                  Omitir
+                  {t.app.updater.skip}
                 </button>
                 <button
                   onClick={downloadAndInstall}
                   className="px-3.5 py-1.5 text-xs font-semibold rounded-full bg-theme-accent text-white hover:bg-theme-accent/90 transition-colors flex items-center gap-1.5 shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme-accent"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Instalar ahora
+                  {t.app.updater.installNow}
                 </button>
               </>
             )}
@@ -271,7 +273,7 @@ export const UpdaterWidget: React.FC = () => {
                 }}
                 className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-theme-input text-theme-text hover:bg-theme-input/80 transition-colors focus-visible:outline-none"
               >
-                Entendido
+                {t.app.updater.gotIt}
               </button>
             )}
           </div>

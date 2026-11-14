@@ -4,6 +4,7 @@ import { useLightingStore } from '../../lighting/store/lightingStore';
 import { aggregateLamp, roomMembers, summarize, useVisibleDevices } from '../selectors';
 import { describeLamp, describeRoom, lampName } from '../../../utils/lampAppearance';
 import { LampTile, Section, Switch } from '../../shell/components/primitives';
+import { useTranslation } from '../../../i18n';
 
 interface OverviewViewProps {
   /** Se llama tras elegir una lámpara o habitación para abrir su detalle. */
@@ -12,6 +13,7 @@ interface OverviewViewProps {
 
 /** Resumen de toda la casa: cada habitación y cada lámpara con su interruptor. */
 export const OverviewView: React.FC<OverviewViewProps> = ({ onOpenTarget }) => {
+  const { t } = useTranslation();
   const devices = useDeviceStore((s) => s.devices);
   const excludedMacs = useDeviceStore((s) => s.excludedMacs);
   const deviceNames = useDeviceStore((s) => s.deviceNames);
@@ -26,7 +28,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onOpenTarget }) => {
   return (
     <>
       {groups.length > 0 && (
-        <Section title="Habitaciones">
+        <Section title={t.app.overview.rooms}>
           {groups.map((group) => {
             const members = roomMembers(group, devices, excludedMacs, deviceNames);
             const summary = summarize(members);
@@ -50,7 +52,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onOpenTarget }) => {
                   <Switch
                     checked={summary.on > 0}
                     disabled={summary.online === 0}
-                    label={`Encender ${group.name}`}
+                    label={t.app.overview.turnOn(group.name)}
                     onChange={(on) => setLampState({ state: on }, { macs: members.map((d) => d.mac) })}
                   />
                 </div>
@@ -60,7 +62,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onOpenTarget }) => {
         </Section>
       )}
 
-      <Section title="Lámparas">
+      <Section title={t.app.overview.lamps}>
         {visible.map((device) => {
           const room = roomOf(device.mac);
           return (
@@ -85,7 +87,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onOpenTarget }) => {
                 <Switch
                   checked={!!device.state?.state}
                   disabled={!device.online}
-                  label={`Encender ${lampName(device)}`}
+                  label={t.app.overview.turnOn(lampName(device))}
                   onChange={(on) => setLampState({ state: on }, { macs: [device.mac] })}
                 />
               </div>

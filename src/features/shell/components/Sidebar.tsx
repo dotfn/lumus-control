@@ -5,6 +5,7 @@ import { useDeviceStore } from '../../devices/store/deviceStore';
 import { aggregateLamp, roomMembers, summarize, useVisibleDevices } from '../../devices/selectors';
 import { lampName } from '../../../utils/lampAppearance';
 import { LampTile } from './primitives';
+import { useTranslation } from '../../../i18n';
 
 export type AppView = 'target' | 'overview' | 'settings';
 
@@ -26,6 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewRoom,
   onAddLamp,
 }) => {
+  const { t } = useTranslation();
   const devices = useDeviceStore((s) => s.devices);
   const excludedMacs = useDeviceStore((s) => s.excludedMacs);
   const deviceNames = useDeviceStore((s) => s.deviceNames);
@@ -65,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <nav className={`mac-sidebar ${isOpen ? 'is-open' : ''}`} aria-label="Lámparas y habitaciones">
+    <nav className={`mac-sidebar ${isOpen ? 'is-open' : ''}`} aria-label={t.app.sidebar.navAria}>
       <div
         data-tauri-drag-region
         className={`mac-sidebar__top ${trafficLights ? 'mac-sidebar__top--traffic' : ''}`}
@@ -83,19 +85,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="mac-nav__glyph">
               <LayoutGrid size={15} />
             </span>
-            <span className="mac-nav__label">Todas las lámparas</span>
+            <span className="mac-nav__label">{t.app.sidebar.allLamps}</span>
             <span className="mac-nav__meta">{visible.length}</span>
           </button>
         )}
 
         <div className="mac-nav__header">
-          <span>Habitaciones</span>
-          <button type="button" className="mac-nav__add" onClick={onNewRoom} aria-label="Nueva habitación" title="Nueva habitación">
+          <span>{t.app.sidebar.rooms}</span>
+          <button
+            type="button"
+            className="mac-nav__add"
+            onClick={onNewRoom}
+            aria-label={t.app.sidebar.newRoom}
+            title={t.app.sidebar.newRoom}
+          >
             <Plus size={14} />
           </button>
         </div>
         {groups.length === 0 && (
-          <p className="mac-nav__empty">Agrupa lámparas para controlarlas juntas.</p>
+          <p className="mac-nav__empty">{t.app.sidebar.emptyRooms}</p>
         )}
         {groups.map((group) => {
           const members = roomMembers(group, devices, excludedMacs, deviceNames);
@@ -109,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   className={`mac-nav__chevron ${isOpenRoom ? 'is-open' : ''}`}
-                  aria-label={isOpenRoom ? `Contraer ${group.name}` : `Expandir ${group.name}`}
+                  aria-label={isOpenRoom ? t.app.sidebar.collapse(group.name) : t.app.sidebar.expand(group.name)}
                   aria-expanded={isOpenRoom}
                   onClick={() => setCollapsed((prev) => ({ ...prev, [group.id]: isOpenRoom }))}
                 >
@@ -137,14 +145,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
 
         <div className="mac-nav__header">
-          <span>Lámparas</span>
-          <button type="button" className="mac-nav__add" onClick={onAddLamp} aria-label="Añadir lámpara por IP" title="Añadir lámpara por IP">
+          <span>{t.app.sidebar.lamps}</span>
+          <button
+            type="button"
+            className="mac-nav__add"
+            onClick={onAddLamp}
+            aria-label={t.app.sidebar.addByIp}
+            title={t.app.sidebar.addByIp}
+          >
             <Plus size={14} />
           </button>
         </div>
         {unassigned.length === 0 && (
           <p className="mac-nav__empty">
-            {visible.length === 0 ? 'Ninguna lámpara encontrada.' : 'Todas están en una habitación.'}
+            {visible.length === 0 ? t.app.sidebar.noLampsFound : t.app.sidebar.allInRooms}
           </p>
         )}
         {unassigned.map((device) => lampItem(device, false))}
@@ -160,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="mac-nav__glyph">
             <Settings size={15} />
           </span>
-          <span className="mac-nav__label">Ajustes</span>
+          <span className="mac-nav__label">{t.app.sidebar.settings}</span>
         </button>
       </div>
     </nav>

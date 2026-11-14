@@ -4,8 +4,10 @@ import { DemoProvider } from '../context/DemoContext';
 import { ControlPage } from './ControlPage';
 import { FloatingDemoWindow } from '../features/layout/components/FloatingDemoWindow';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useTranslation } from '../i18n';
 
 export const DemoPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
@@ -64,7 +66,7 @@ export const DemoPage: React.FC = () => {
 
           <div className="flex items-center gap-1.5 text-xs text-theme-textSecondary">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Demo activa
+            {t.app.toolbar.demoActive}
           </div>
 
           <div className="w-px h-5 bg-theme-border/60" />
@@ -72,12 +74,12 @@ export const DemoPage: React.FC = () => {
           <button
             onClick={handleClose}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-theme-textSecondary hover:text-theme-text hover:bg-theme-border/50 rounded-lg transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-accent focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-            aria-label="Cerrar demo y volver al inicio"
+            aria-label={t.app.toolbar.closeDemoAria}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10.5 1 L4 7.5 L10.5 14" />
             </svg>
-            Cerrar
+            {t.app.toolbar.closeDemo}
           </button>
         </div>
       </div>

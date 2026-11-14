@@ -14,6 +14,7 @@ import {
 import { LampTile, Row, Section, Switch } from '../../shell/components/primitives';
 import { LightControls } from './LightControls';
 import { AutomationSection } from './AutomationSection';
+import { useTranslation } from '../../../i18n';
 
 interface TargetViewProps {
   onEditRoom: (groupId: string) => void;
@@ -24,6 +25,7 @@ interface TargetViewProps {
  * y para una habitación: cambian el encabezado y la última sección.
  */
 export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
+  const { t } = useTranslation();
   const devices = useDeviceStore((s) => s.devices);
   const snapshots = useDeviceStore((s) => s.snapshots);
   const excludedMacs = useDeviceStore((s) => s.excludedMacs);
@@ -75,7 +77,7 @@ export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
           {device && draftName !== null ? (
             <input
               className="mac-input mac-input--title"
-              aria-label="Nombre de la lámpara"
+              aria-label={t.app.target.lampNameAria}
               value={draftName}
               maxLength={60}
               autoFocus
@@ -92,8 +94,8 @@ export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
               <button
                 type="button"
                 className="mac-hero__edit"
-                aria-label={group ? 'Editar habitación' : 'Cambiar nombre'}
-                title={group ? 'Editar habitación' : 'Cambiar nombre'}
+                aria-label={group ? t.app.target.editRoom : t.app.target.rename}
+                title={group ? t.app.target.editRoom : t.app.target.rename}
                 onClick={() => (group ? onEditRoom(group.id) : setDraftName(device?.name ?? ''))}
               >
                 <Pencil size={13} />
@@ -106,7 +108,7 @@ export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
           size="lg"
           checked={lampState.state}
           disabled={!isConnected}
-          label={group ? `Encender ${group.name}` : 'Encender lámpara'}
+          label={group ? t.app.target.turnOnRoom(group.name) : t.app.target.turnOnLamp}
           onChange={(on) => setLampState({ state: on })}
         />
       </header>
@@ -115,12 +117,12 @@ export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
         <div className="mac-notice" role="status">
           <TriangleAlert size={18} className="mac-notice__icon" aria-hidden="true" />
           <div className="mac-row__text">
-            <div>Esta habitación no tiene lámparas</div>
-            <div className="mac-row__hint">Añade alguna para poder controlarla.</div>
+            <div>{t.app.target.emptyRoomTitle}</div>
+            <div className="mac-row__hint">{t.app.target.emptyRoomHint}</div>
           </div>
           {group && (
             <button type="button" className="mac-btn" onClick={() => onEditRoom(group.id)}>
-              Editar…
+              {t.app.target.editDots}
             </button>
           )}
         </div>
@@ -130,14 +132,12 @@ export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
             <div className="mac-notice" role="status">
               <TriangleAlert size={18} className="mac-notice__icon" aria-hidden="true" />
               <div className="mac-row__text">
-                <div>{group ? 'Ninguna lámpara responde' : 'La lámpara no responde'}</div>
-                <div className="mac-row__hint">
-                  Comprueba que tenga corriente y esté en la misma red Wi‑Fi. Se reconectará sola.
-                </div>
+                <div>{group ? t.app.target.roomOffline : t.app.target.lampOffline}</div>
+                <div className="mac-row__hint">{t.app.target.offlineHint}</div>
               </div>
               <button type="button" className="mac-btn" onClick={scan} disabled={isScanning}>
                 {isScanning && <Loader2 size={13} className="mac-spin" />}
-                Buscar
+                {t.app.target.scan}
               </button>
             </div>
           )}
@@ -158,8 +158,8 @@ export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
 
       {group && members.length > 0 && (
         <Section
-          title="Lámparas"
-          footer="El interruptor de cada una funciona por separado del de la habitación."
+          title={t.app.target.lamps}
+          footer={t.app.target.lampsFooter}
         >
           {members.map((member) => (
             <div key={member.mac} className="mac-row">
@@ -174,7 +174,7 @@ export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
                 <Switch
                   checked={!!member.state?.state}
                   disabled={!member.online}
-                  label={`Encender ${lampName(member)}`}
+                  label={t.app.overview.turnOn(lampName(member))}
                   onChange={(on) => setMemberPower(member.mac, on)}
                 />
               </div>
@@ -184,21 +184,21 @@ export const TargetView: React.FC<TargetViewProps> = ({ onEditRoom }) => {
       )}
 
       {device && (
-        <Section title="Información">
-          <Row label="Dirección IP">
-            <span className="mac-row__value">{device.ip || 'Desconocida'}</span>
+        <Section title={t.app.target.info}>
+          <Row label={t.app.target.ipAddress}>
+            <span className="mac-row__value">{device.ip || t.app.target.unknown}</span>
           </Row>
-          <Row label="Dirección MAC">
+          <Row label={t.app.target.macAddress}>
             <span className="mac-row__value">{formatMac(device.mac)}</span>
           </Row>
-          <Row label="Señal Wi‑Fi">
+          <Row label={t.app.target.wifiSignal}>
             <span className="mac-row__value">
               {device.online ? describeSignal(snapshots[device.mac]?.rssi) : '—'}
             </span>
           </Row>
-          <Row label="Ocultar lámpara" hint="Deja de aparecer en la lista; se recupera desde Ajustes">
+          <Row label={t.app.target.hideLamp} hint={t.app.target.hideHint}>
             <button type="button" className="mac-btn" onClick={() => excludeDevice(device.mac)}>
-              Ocultar
+              {t.app.target.hide}
             </button>
           </Row>
         </Section>

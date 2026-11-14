@@ -4,6 +4,7 @@ import { useDeviceStore } from '../store/deviceStore';
 import { useVisibleDevices } from '../selectors';
 import { lampName } from '../../../utils/lampAppearance';
 import { LampTile, Sheet } from '../../shell/components/primitives';
+import { useTranslation } from '../../../i18n';
 
 interface RoomSheetProps {
   /** Habitación a editar; sin id se crea una nueva. */
@@ -12,6 +13,7 @@ interface RoomSheetProps {
 }
 
 export const RoomSheet: React.FC<RoomSheetProps> = ({ groupId, onClose }) => {
+  const { t } = useTranslation();
   const groups = useDeviceStore((s) => s.groups);
   const createGroup = useDeviceStore((s) => s.createGroup);
   const updateGroup = useDeviceStore((s) => s.updateGroup);
@@ -44,29 +46,29 @@ export const RoomSheet: React.FC<RoomSheetProps> = ({ groupId, onClose }) => {
 
   return (
     <Sheet
-      title={editing ? 'Editar habitación' : 'Nueva habitación'}
-      description="Las lámparas de una habitación se controlan juntas con un solo ajuste."
+      title={editing ? t.app.sheets.editRoom : t.app.sheets.newRoom}
+      description={t.app.sheets.roomDesc}
       onClose={onClose}
     >
       <form onSubmit={save} style={{ display: 'contents' }}>
         <label className="mac-field-label" htmlFor="room-name">
-          Nombre
+          {t.app.sheets.name}
         </label>
         <input
           id="room-name"
           className="mac-input"
           value={name}
           maxLength={40}
-          placeholder="Living, Dormitorio…"
+          placeholder={t.app.sheets.roomPlaceholder}
           onChange={(e) => setName(e.target.value)}
         />
 
-        <span className="mac-field-label">Lámparas</span>
+        <span className="mac-field-label">{t.app.sheets.lamps}</span>
         <div className="mac-sheet__body">
           <div className="mac-group">
             {visible.length === 0 && (
               <div className="mac-row">
-                <span className="mac-row__hint">Todavía no se encontró ninguna lámpara.</span>
+                <span className="mac-row__hint">{t.app.sheets.noLampsYet}</span>
               </div>
             )}
             {visible.map((device) => (
@@ -94,15 +96,15 @@ export const RoomSheet: React.FC<RoomSheetProps> = ({ groupId, onClose }) => {
                 onClose();
               }}
             >
-              Eliminar habitación
+              {t.app.sheets.deleteRoom}
             </button>
           )}
           <span className="mac-sheet__actions-spacer" />
           <button type="button" className="mac-btn" onClick={onClose}>
-            Cancelar
+            {t.app.sheets.cancel}
           </button>
           <button type="submit" className="mac-btn mac-btn--primary" disabled={!name.trim()}>
-            {editing ? 'Guardar' : 'Crear'}
+            {editing ? t.app.sheets.save : t.app.sheets.create}
           </button>
         </div>
       </form>
@@ -111,6 +113,7 @@ export const RoomSheet: React.FC<RoomSheetProps> = ({ groupId, onClose }) => {
 };
 
 export const AddLampSheet: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { t } = useTranslation();
   const addDeviceByIp = useDeviceStore((s) => s.addDeviceByIp);
   const [ip, setIp] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -134,13 +137,13 @@ export const AddLampSheet: React.FC<{ onClose: () => void }> = ({ onClose }) => 
 
   return (
     <Sheet
-      title="Añadir lámpara por IP"
-      description="Para lámparas que la búsqueda automática no encuentra, por ejemplo en otra subred."
+      title={t.app.sheets.addLampTitle}
+      description={t.app.sheets.addLampDesc}
       onClose={onClose}
     >
       <form onSubmit={submit} style={{ display: 'contents' }}>
         <label className="mac-field-label" htmlFor="lamp-ip">
-          Dirección IP
+          {t.app.sheets.ipLabel}
         </label>
         <input
           id="lamp-ip"
@@ -164,11 +167,11 @@ export const AddLampSheet: React.FC<{ onClose: () => void }> = ({ onClose }) => 
 
         <div className="mac-sheet__actions">
           <button type="button" className="mac-btn" onClick={onClose}>
-            Cancelar
+            {t.app.sheets.cancel}
           </button>
           <button type="submit" className="mac-btn mac-btn--primary" disabled={!ip.trim() || isAdding}>
             {isAdding && <Loader2 size={13} className="mac-spin" />}
-            Añadir
+            {t.app.sheets.add}
           </button>
         </div>
       </form>

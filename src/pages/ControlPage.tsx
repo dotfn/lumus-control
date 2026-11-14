@@ -18,6 +18,7 @@ import { OverviewView } from '../features/devices/components/OverviewView';
 import { AddLampSheet, RoomSheet } from '../features/devices/components/DeviceSheets';
 import { SettingsView } from '../features/settings/components/SettingsView';
 import { UpdaterWidget } from '../features/updater/components/UpdaterWidget';
+import { useTranslation } from '../i18n';
 import '../features/shell/shell.css';
 
 type ControlPageProps = {
@@ -30,6 +31,7 @@ type ActiveSheet = { kind: 'room'; groupId?: string } | { kind: 'add-lamp' } | n
 const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
 
 export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, onBack }) => {
+  const { t } = useTranslation();
   const [view, setView] = useState<AppView>('target');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sheet, setSheet] = useState<ActiveSheet>(null);
@@ -95,14 +97,14 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
   let subtitle: string;
   let dot: string;
   if (activeView === 'settings') {
-    title = 'Ajustes';
+    title = t.app.toolbar.settings;
     subtitle = '';
     dot = '';
   } else if (activeView === 'overview') {
     const lit = visible.filter((d) => d.online && d.state?.state).length;
     const offline = visible.filter((d) => !d.online).length;
-    title = 'Todas las lámparas';
-    subtitle = `${lit} de ${visible.length} encendidas${offline > 0 ? ` · ${offline} sin conexión` : ''}`;
+    title = t.app.toolbar.allLamps;
+    subtitle = t.app.toolbar.allSummary(lit, visible.length, offline);
     dot = offline === 0 ? 'mac-dot--ok' : offline === visible.length ? 'mac-dot--bad' : 'mac-dot--warn';
   } else if (hasTarget) {
     // El detalle ya lleva nombre y estado en su encabezado; repetirlos aquí
@@ -124,7 +126,7 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
       <button
         type="button"
         className={`mac-scrim ${sidebarOpen ? 'is-open' : ''}`}
-        aria-label="Cerrar lista de lámparas"
+        aria-label={t.app.toolbar.closeSidebar}
         onClick={() => setSidebarOpen(false)}
       />
       <Sidebar
@@ -139,7 +141,7 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
       <main className="mac-main">
         <div className="mac-toolbar" data-tauri-drag-region>
           {onBack && (
-            <button type="button" className="mac-toolbtn" onClick={onBack} aria-label="Volver al inicio">
+            <button type="button" className="mac-toolbtn" onClick={onBack} aria-label={t.app.toolbar.backHome}>
               <ArrowLeft size={17} />
             </button>
           )}
@@ -147,7 +149,7 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
             type="button"
             className="mac-toolbtn mac-toolbtn--menu"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir lista de lámparas"
+            aria-label={t.app.toolbar.openSidebar}
           >
             <PanelLeft size={17} />
           </button>
@@ -171,8 +173,8 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
               className="mac-toolbtn"
               onClick={scan}
               disabled={isScanning}
-              aria-label="Buscar lámparas en la red"
-              title="Buscar lámparas en la red"
+              aria-label={t.app.toolbar.scanLamps}
+              title={t.app.toolbar.scanLamps}
             >
               <RefreshCw size={15} className={isScanning ? 'mac-spin' : ''} />
             </button>
@@ -182,20 +184,20 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
         {isDemo && (
           <div className="mac-banner">
             <span>
-              <strong>Modo demo:</strong> estas lámparas son virtuales.
+              <strong>{t.app.toolbar.demoBadge}</strong> {t.app.toolbar.demoText}
             </span>
             {isTauri() ? (
               <a
                 className="mac-btn mac-btn--primary"
-                href="https://lumuscontrol.app/download"
+                href="https://lumuscontrol.app/#download"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Descargar app
+                {t.app.toolbar.downloadApp}
               </a>
             ) : (
-              <Link className="mac-btn mac-btn--primary" to="/download">
-                Descargar app
+              <Link className="mac-btn mac-btn--primary" to="/#download">
+                {t.app.toolbar.downloadApp}
               </Link>
             )}
           </div>
@@ -222,20 +224,18 @@ export const ControlPage: React.FC<ControlPageProps> = ({ hideTitlebar = false, 
                   <Lightbulb size={44} strokeWidth={1.25} className="mac-empty__icon" />
                 )}
                 <h1 className="mac-empty__title">
-                  {isSearching ? 'Buscando lámparas…' : 'No se encontraron lámparas'}
+                  {isSearching ? t.app.toolbar.searching : t.app.toolbar.notFound}
                 </h1>
                 <p className="mac-empty__text">
-                  {isSearching
-                    ? 'Esto tarda un par de segundos.'
-                    : 'Comprueba que estén encendidas y conectadas a la misma red Wi‑Fi que este equipo.'}
+                  {isSearching ? t.app.toolbar.searchingHint : t.app.toolbar.notFoundHint}
                 </p>
                 {!isSearching && (
                   <div className="mac-empty__actions">
                     <button type="button" className="mac-btn mac-btn--primary" onClick={scan}>
-                      Buscar de nuevo
+                      {t.app.toolbar.scanAgain}
                     </button>
                     <button type="button" className="mac-btn" onClick={() => setSheet({ kind: 'add-lamp' })}>
-                      Añadir por IP…
+                      {t.app.toolbar.addByIp}
                     </button>
                   </div>
                 )}

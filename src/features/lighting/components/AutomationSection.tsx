@@ -3,16 +3,9 @@ import { Moon, Sunrise, Timer } from 'lucide-react';
 import { useLightingStore } from '../store/lightingStore';
 import { useTimerStore } from '../../timer/store/timerStore';
 import { IconTile, Row, Section, Switch } from '../../shell/components/primitives';
+import { useTranslation } from '../../../i18n';
 
-const DURATIONS = [
-  { minutes: 5, label: '5 minutos' },
-  { minutes: 15, label: '15 minutos' },
-  { minutes: 30, label: '30 minutos' },
-  { minutes: 45, label: '45 minutos' },
-  { minutes: 60, label: '1 hora' },
-  { minutes: 90, label: '1 h 30 min' },
-  { minutes: 120, label: '2 horas' },
-];
+const DURATION_MINUTES = [5, 15, 30, 45, 60, 90, 120];
 
 function formatRemaining(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -33,6 +26,7 @@ export const AutomationSection: React.FC<AutomationSectionProps> = ({
   currentDimming,
   disabled,
 }) => {
+  const { t } = useTranslation();
   const circadianActive = useLightingStore((s) => s.circadianActive);
   const circadianMacs = useLightingStore((s) => s.circadianMacs);
   const circadianTarget = useLightingStore((s) => s.circadianTarget);
@@ -58,37 +52,37 @@ export const AutomationSection: React.FC<AutomationSectionProps> = ({
   const timerHere = timerActive && targetMacs.some((mac) => timerMacs.includes(mac));
 
   const circadianHint = isSyncingLocation
-    ? 'Obteniendo la ubicación…'
+    ? t.app.automation.locating
     : circadianHere && circadianTarget
-      ? `Ahora: ${circadianTarget.temp} K · ${circadianTarget.dimming} %`
+      ? t.app.automation.circadianNow(circadianTarget.temp, circadianTarget.dimming)
       : circadianActive
-        ? 'Activo en otras lámparas'
-        : 'Ajusta el blanco y el brillo según la hora del día';
+        ? t.app.automation.activeElsewhere
+        : t.app.automation.circadianHint;
 
   const endLabel = endTime
     ? new Date(endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '';
   const timerHint = !timerActive
-    ? 'Apaga la luz al cumplirse el tiempo'
+    ? t.app.automation.timerOffHint
     : timerHere
-      ? `Se apaga a las ${endLabel} · quedan ${formatRemaining(timerSeconds)}`
-      : `Activo en otras lámparas · quedan ${formatRemaining(timerSeconds)}`;
+      ? t.app.automation.timerHereHint(endLabel, formatRemaining(timerSeconds))
+      : t.app.automation.timerElsewhereHint(formatRemaining(timerSeconds));
 
   return (
-    <Section title="Automatización" disabled={disabled}>
+    <Section title={t.app.automation.title} disabled={disabled}>
       <Row
         icon={
           <IconTile color="#ff9500">
             <Sunrise size={16} />
           </IconTile>
         }
-        label="Ritmo circadiano"
+        label={t.app.automation.circadian}
         hint={circadianHint}
       >
         <Switch
           checked={circadianHere}
           disabled={isSyncingLocation}
-          label="Ritmo circadiano"
+          label={t.app.automation.circadian}
           onChange={(checked) => (checked ? applyCircadianRhythm() : stopCircadian())}
         />
       </Row>
@@ -101,25 +95,25 @@ export const AutomationSection: React.FC<AutomationSectionProps> = ({
             </IconTile>
           </span>
           <div className="mac-row__text">
-            <div className="mac-row__label">Apagado automático</div>
+            <div className="mac-row__label">{t.app.automation.sleepTimer}</div>
             <div className="mac-row__hint tabular">{timerHint}</div>
           </div>
           <div className="mac-row__trailing">
             {timerActive ? (
               <button type="button" className="mac-btn" onClick={cancelTimer}>
-                Cancelar
+                {t.app.automation.cancel}
               </button>
             ) : (
               <>
                 <select
                   className="mac-select"
-                  aria-label="Duración del apagado automático"
+                  aria-label={t.app.automation.durationAria}
                   value={minutes}
                   onChange={(e) => setMinutes(parseInt(e.target.value, 10))}
                 >
-                  {DURATIONS.map((d) => (
-                    <option key={d.minutes} value={d.minutes}>
-                      {d.label}
+                  {DURATION_MINUTES.map((m) => (
+                    <option key={m} value={m}>
+                      {t.app.automation.durations[m]}
                     </option>
                   ))}
                 </select>
@@ -128,7 +122,7 @@ export const AutomationSection: React.FC<AutomationSectionProps> = ({
                   className="mac-btn mac-btn--primary"
                   onClick={() => startTimer(minutes, fadeOut, currentDimming)}
                 >
-                  Iniciar
+                  {t.app.automation.start}
                 </button>
               </>
             )}
@@ -138,7 +132,7 @@ export const AutomationSection: React.FC<AutomationSectionProps> = ({
           <div
             className="mac-progress"
             role="progressbar"
-            aria-label="Tiempo transcurrido del apagado automático"
+            aria-label={t.app.automation.progressAria}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round((1 - timerSeconds / totalTimerSeconds) * 100)}
@@ -157,13 +151,13 @@ export const AutomationSection: React.FC<AutomationSectionProps> = ({
             <Moon size={15} />
           </IconTile>
         }
-        label="Atenuar antes de apagar"
-        hint="Baja el brillo de a poco hasta apagarse"
+        label={t.app.automation.fadeOut}
+        hint={t.app.automation.fadeOutHint}
       >
         <Switch
           checked={timerActive ? timerFadeOut : fadeOut}
           disabled={timerActive}
-          label="Atenuar antes de apagar"
+          label={t.app.automation.fadeOut}
           onChange={setFadeOut}
         />
       </Row>

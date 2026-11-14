@@ -8,6 +8,7 @@ import {
   mergePatch,
   sameLightState,
 } from '../../../utils/lightState';
+import { getTranslations } from '../../../i18n';
 
 export interface DeviceGroup {
   id: string;
@@ -173,20 +174,21 @@ function derive(state: CoreState, prev?: DerivedState): DerivedState {
     on: on.length,
   };
 
+  const s = getTranslations().app.deviceStatus;
   let connectionStatus: string;
   if (state.selectedGroupId) {
     connectionStatus =
       online.length === 0
-        ? 'La habitación no responde'
-        : `${online.length} de ${targetMacs.length} en línea`;
+        ? s.notResponding
+        : `${online.length}/${targetMacs.length}`;
   } else if (state.selectedMac) {
-    connectionStatus = online.length > 0 ? 'Lámpara conectada' : 'Lámpara no responde';
+    connectionStatus = online.length > 0 ? s.connected : s.notResponding;
   } else if (state.isScanning || !state.isReady) {
-    connectionStatus = 'Buscando lámparas...';
+    connectionStatus = s.scanning;
   } else if (state.scanFailed) {
-    connectionStatus = 'Error al buscar lámparas';
+    connectionStatus = s.scanError;
   } else {
-    connectionStatus = devices.length > 0 ? 'Selecciona una lámpara' : 'No se encontraron lámparas';
+    connectionStatus = devices.length > 0 ? s.connected : s.notResponding;
   }
 
   return {
@@ -364,7 +366,7 @@ export const useDeviceStore = create<DeviceState>((set, get) => {
         get().selectDevice(device.mac);
         return null;
       } catch (e) {
-        return typeof e === 'string' ? e : 'No se encontró una lámpara en esa dirección';
+        return typeof e === 'string' ? e : getTranslations().app.sheets.ipNotFound;
       }
     },
 

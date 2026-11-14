@@ -1,3 +1,5 @@
+import { getTranslations } from '../../../i18n';
+
 export interface LocationData {
   latitude: number;
   longitude: number;
@@ -127,6 +129,7 @@ export async function fetchSunriseSunset(latitude: number, longitude: number): P
  * Calculates dynamic daily timeline points based on Sunrise and Sunset local hours.
  */
 export function getCircadianPoints(sunriseHour: number, sunsetHour: number): CircadianPoint[] {
+  const c = getTranslations().app.circadianPoints;
   const t0 = 0.0;
   const t1 = Math.max(4.0, Math.min(9.0, sunriseHour - 1.0));
   const t2 = Math.max(t1 + 1.0, Math.min(12.0, sunriseHour + 2.0));
@@ -141,8 +144,8 @@ export function getCircadianPoints(sunriseHour: number, sunsetHour: number): Cir
       endHour: t1,
       temp: 2200,
       dimming: 15,
-      name: 'Madrugada',
-      desc: 'Luz cálida y suave para descansar',
+      name: c.lateNight.name,
+      desc: c.lateNight.desc,
     },
     {
       time: `${formatHour(t1)} - ${formatHour(t2)}`,
@@ -150,8 +153,8 @@ export function getCircadianPoints(sunriseHour: number, sunsetHour: number): Cir
       endHour: t2,
       temp: 3000,
       dimming: 60,
-      name: 'Amanecer',
-      desc: 'Luz moderada para despertar',
+      name: c.sunrise.name,
+      desc: c.sunrise.desc,
     },
     {
       time: `${formatHour(t2)} - ${formatHour(t3)}`,
@@ -159,8 +162,8 @@ export function getCircadianPoints(sunriseHour: number, sunsetHour: number): Cir
       endHour: t3,
       temp: 5000,
       dimming: 100,
-      name: 'Día',
-      desc: 'Blanco frío para concentración',
+      name: c.day.name,
+      desc: c.day.desc,
     },
     {
       time: `${formatHour(t3)} - ${formatHour(t4)}`,
@@ -168,8 +171,8 @@ export function getCircadianPoints(sunriseHour: number, sunsetHour: number): Cir
       endHour: t4,
       temp: 3500,
       dimming: 70,
-      name: 'Tarde',
-      desc: 'Temperatura y brillo medios',
+      name: c.afternoon.name,
+      desc: c.afternoon.desc,
     },
     {
       time: `${formatHour(t4)} - ${formatHour(t5)}`,
@@ -177,8 +180,8 @@ export function getCircadianPoints(sunriseHour: number, sunsetHour: number): Cir
       endHour: t5,
       temp: 2700,
       dimming: 40,
-      name: 'Noche',
-      desc: 'Relajante antes de dormir',
+      name: c.night.name,
+      desc: c.night.desc,
     },
   ];
 }
