@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Github, Sparkles } from 'lucide-react';
+import { Download, Github } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { LumusLogo } from '../features/shell/components/LumusLogo';
 import { DemoProvider } from '../context/DemoContext';
 import { ControlPage } from './ControlPage';
 import { RoomCanvas, RoomCanvasHandle } from '../features/hero/components/RoomCanvas';
@@ -218,9 +219,7 @@ export const LandingPage: React.FC = () => {
         <header className="absolute inset-x-0 top-0 z-20">
           <div className="px-6 lg:px-10 h-16 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-[10px] bg-white/10 border border-white/10 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-white/90" aria-hidden="true" />
-              </span>
+              <LumusLogo variant="badge" size={32} className="shadow-sm" />
               <span className="font-display font-semibold text-sm tracking-tight text-white/90">Lumus Control</span>
             </Link>
             <nav className="flex items-center gap-1.5 text-[13px] font-medium">

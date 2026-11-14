@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { LumusLogo } from '../../shell/components/LumusLogo';
 
 export interface Finish {
   id: string;
@@ -132,14 +132,16 @@ export const DeviceSimulatorShowcase: React.FC<DeviceSimulatorShowcaseProps> = (
                     boxShadow: `0 0 ${i * 100}px ${i * 20}px ${currentFinish.activeColor}`,
                   }}
                 >
-                  <Sparkles
-                    className="w-8 h-8 transition-[color,transform] duration-500"
+                  <div
+                    className="transition-[color,transform] duration-500"
                     style={{
                       color: currentFinish.activeColor,
                       opacity: 0.2 + i * 0.8,
                       transform: `scale(${0.7 + i * 0.55})`,
                     }}
-                  />
+                  >
+                    <LumusLogo variant="glyph" size={32} />
+                  </div>
                 </div>
               </div>
 

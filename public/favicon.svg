@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="fBg" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#2c2d33"/>
+      <stop offset="50%" stop-color="#151519"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <linearGradient id="fRim" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.24"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02"/>
+    </linearGradient>
+    <radialGradient id="fGlow" cx="50%" cy="62%" r="48%">
+      <stop offset="0%" stop-color="#ff9f2e" stop-opacity="0.62"/>
+      <stop offset="65%" stop-color="#ff8811" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ff8811" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fDome" x1="20%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#dcdbe0"/>
+      <stop offset="100%" stop-color="#8c8994"/>
+    </linearGradient>
+    <linearGradient id="fInner" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#d48432"/>
+      <stop offset="50%" stop-color="#ffe6a3"/>
+      <stop offset="100%" stop-color="#b86b1f"/>
+    </linearGradient>
+    <radialGradient id="fBulb" cx="50%" cy="45%" r="52%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#fff3b8"/>
+      <stop offset="100%" stop-color="#ffaa2b"/>
+    </radialGradient>
+    <clipPath id="fClip">
+      <rect width="32" height="32" rx="7.5" ry="7.5"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#fClip)">
+    <!-- Dark matte squircle -->
+    <rect width="32" height="32" rx="7.5" ry="7.5" fill="url(#fBg)"/>
+
+    <!-- Warm ambient glow -->
+    <circle cx="16" cy="19.5" r="13" fill="url(#fGlow)"/>
+
+    <!-- Top cord (thickened for 16px/32px favicon legibility) -->
+    <rect x="15.1" y="0" width="1.8" height="7.5" fill="#dcdbe0"/>
+
+    <!-- Pull-chain cord & sphere bead on the right -->
+    <rect x="23.1" y="17.2" width="1.3" height="6.2" rx="0.65" fill="#edd3ad"/>
+    <circle cx="23.75" cy="24.2" r="1.65" fill="#f5e1c0"/>
+
+    <!-- Socket cap -->
+    <path d="M 13.2,8.8 C 13.2,7.2 14.2,6.5 16,6.5 C 17.8,6.5 18.8,7.2 18.8,8.8 L 18.8,11.2 L 13.2,11.2 Z" fill="#d0cfd6"/>
+
+    <!-- Warm golden inner opening of shade -->
+    <ellipse cx="16" cy="17.4" rx="9.5" ry="1.8" fill="url(#fInner)"/>
+
+    <!-- Glowing bulb -->
+    <circle cx="16" cy="18.5" r="4.3" fill="url(#fBulb)"/>
+
+    <!-- Dome shade -->
+    <path d="M 6.5,17.4 C 6.8,11.4 10.8,9.4 16,9.4 C 21.2,9.4 25.2,11.4 25.5,17.4 C 22.4,16.1 9.6,16.1 6.5,17.4 Z" fill="url(#fDome)"/>
+  </g>
+
+  <!-- Subtle top bevel border -->
+  <rect x="0.3" y="0.3" width="31.4" height="31.4" rx="7.2" ry="7.2" fill="none" stroke="url(#fRim)" stroke-width="0.6"/>
+</svg>

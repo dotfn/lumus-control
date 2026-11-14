@@ -7,9 +7,9 @@ import {
   Github,
   Globe,
   Laptop,
-  Sparkles,
   Wifi,
 } from 'lucide-react';
+import { LumusLogo } from '../shell/components/LumusLogo';
 import { useTranslation, type Language } from '../../i18n';
 import './download.css';
 
@@ -494,7 +494,7 @@ export const DownloadSection: React.FC = () => {
         <footer className="dl-footer">
           <div className="dl-footer__brand">
             <span className="dl-footer__logo" aria-hidden="true">
-              <Sparkles className="h-4 w-4" />
+              <LumusLogo variant="icon" size={44} />
             </span>
             <span className="dl-footer__name">Lumus Control</span>
           </div>

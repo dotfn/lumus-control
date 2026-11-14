@@ -1,29 +1,124 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <!-- Background Gradient -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#007aff"/>
-      <stop offset="100%" stop-color="#5856d6"/>
-    </linearGradient>
-    
-    <!-- Squircle Shadow -->
-    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.35"/>
-    </filter>
+    <!-- Soft drop shadow behind squircle (filter-free for universal SVG compatibility) -->
+    <radialGradient id="dropShadow" cx="50%" cy="52%" r="48%">
+      <stop offset="72%" stop-color="#000000" stop-opacity="0.38"/>
+      <stop offset="88%" stop-color="#000000" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
 
-    <!-- Sparkle Glow -->
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="16" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
+    <!-- Dark matte squircle base gradient -->
+    <linearGradient id="bgGrad" x1="25%" y1="0%" x2="75%" y2="100%">
+      <stop offset="0%" stop-color="#2c2d33"/>
+      <stop offset="45%" stop-color="#141418"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+
+    <!-- Top rim bevel highlight -->
+    <linearGradient id="rimGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.26"/>
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.03"/>
+    </linearGradient>
+
+    <!-- Warm ambient radial glow on dark background -->
+    <radialGradient id="ambientGlow" cx="50%" cy="58%" r="42%">
+      <stop offset="0%" stop-color="#ff9f2e" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#ff8811" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ff8811" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Bulb soft halo -->
+    <radialGradient id="bulbHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffe699" stop-opacity="0.8"/>
+      <stop offset="55%" stop-color="#ffaa2b" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#ff9011" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- White/grey 3D shading for dome -->
+    <linearGradient id="domeGrad" x1="22%" y1="15%" x2="85%" y2="85%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="45%" stop-color="#d8d7dc"/>
+      <stop offset="85%" stop-color="#8b8892"/>
+      <stop offset="100%" stop-color="#6e6a75"/>
+    </linearGradient>
+
+    <!-- Socket cap 3D cylinder shading -->
+    <linearGradient id="capGrad" x1="15%" y1="20%" x2="88%" y2="80%">
+      <stop offset="0%" stop-color="#f5f5f7"/>
+      <stop offset="50%" stop-color="#a8a6af"/>
+      <stop offset="100%" stop-color="#57545d"/>
+    </linearGradient>
+
+    <!-- Cord 3D shading -->
+    <linearGradient id="cordGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#b5b4bc"/>
+      <stop offset="100%" stop-color="#6e6c75"/>
+    </linearGradient>
+
+    <!-- Warm golden interior of dome shade -->
+    <linearGradient id="innerDomeGrad" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#d98b3a"/>
+      <stop offset="30%" stop-color="#ffcb74"/>
+      <stop offset="50%" stop-color="#ffeab3"/>
+      <stop offset="70%" stop-color="#ffbf61"/>
+      <stop offset="100%" stop-color="#b86e24"/>
+    </linearGradient>
+
+    <!-- Glowing bulb core -->
+    <radialGradient id="bulbGrad" cx="48%" cy="46%" r="52%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#fff6cc"/>
+      <stop offset="85%" stop-color="#ffda75"/>
+      <stop offset="100%" stop-color="#ffae34"/>
+    </radialGradient>
+
+    <!-- Pull bead 3D shading -->
+    <radialGradient id="beadGrad" cx="35%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#fff3de"/>
+      <stop offset="55%" stop-color="#d7be9e"/>
+      <stop offset="100%" stop-color="#7c6852"/>
+    </radialGradient>
+
+    <clipPath id="squircleClip">
+      <rect x="100" y="100" width="824" height="824" rx="196" ry="196"/>
+    </clipPath>
   </defs>
 
-  <!-- Squircle Base with Shadow -->
-  <rect x="112" y="112" width="800" height="800" rx="200" ry="200" fill="url(#bgGrad)" filter="url(#shadow)"/>
+  <!-- Soft Drop Shadow -->
+  <rect x="76" y="92" width="872" height="872" rx="220" ry="220" fill="url(#dropShadow)"/>
 
-  <!-- Large Sparkle (Centered) -->
-  <path d="M 512,232 Q 512,512 232,512 Q 512,512 512,792 Q 512,512 792,512 Q 512,512 512,232 Z" fill="#ffffff" filter="url(#glow)"/>
+  <!-- Squircle Base -->
+  <rect x="100" y="100" width="824" height="824" rx="196" ry="196" fill="url(#bgGrad)"/>
 
-  <!-- Small Sparkle (Top-Right) -->
-  <path d="M 700,320 Q 700,380 640,380 Q 700,380 700,440 Q 700,380 760,380 Q 700,380 700,320 Z" fill="#ffffff" opacity="0.85"/>
+  <g clip-path="url(#squircleClip)">
+    <!-- Ambient Warm Glow Behind Bulb -->
+    <circle cx="512" cy="590" r="350" fill="url(#ambientGlow)"/>
+
+    <!-- Hanging Cord (Top) -->
+    <rect x="502" y="100" width="20" height="205" fill="url(#cordGrad)"/>
+
+    <!-- Pull Chain Cord & Bead (Right) -->
+    <rect x="691" y="546" width="8" height="154" rx="4" fill="#e8cfa8"/>
+    <circle cx="695" cy="712" r="21" fill="url(#beadGrad)"/>
+
+    <!-- Lamp Socket Cap -->
+    <path d="M 456,318 C 456,288 476,274 512,274 C 548,274 568,288 568,318 L 568,366 L 456,366 Z" fill="url(#capGrad)"/>
+
+    <!-- Warm Inner Rim of Dome -->
+    <ellipse cx="512" cy="544" rx="212" ry="34" fill="url(#innerDomeGrad)" stroke="#b58d5c" stroke-width="3"/>
+
+    <!-- Bulb Bloom Halo -->
+    <circle cx="512" cy="566" r="130" fill="url(#bulbHalo)"/>
+
+    <!-- Glowing Light Bulb -->
+    <circle cx="512" cy="566" r="88" fill="url(#bulbGrad)"/>
+
+    <!-- Dome Shade Upper Body -->
+    <path d="M 300,544 C 306,412 396,344 512,344 C 628,344 718,412 724,544 C 656,518 368,518 300,544 Z" fill="url(#domeGrad)"/>
+  </g>
+
+  <!-- Subtle Inner Bevel Stroke -->
+  <rect x="102" y="102" width="820" height="820" rx="194" ry="194" fill="none" stroke="url(#rimGrad)" stroke-width="4"/>
 </svg>

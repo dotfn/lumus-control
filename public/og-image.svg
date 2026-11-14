@@ -5,13 +5,41 @@
       <stop offset="100%" stop-color="#0d0d0f"/>
     </radialGradient>
     <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ffb454" stop-opacity="0.35"/>
+      <stop offset="0%" stop-color="#ffb454" stop-opacity="0.38"/>
       <stop offset="100%" stop-color="#ffb454" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="heroGlow" cx="50%" cy="0%" r="60%">
-      <stop offset="0%" stop-color="#007aff" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="#007aff" stop-opacity="0"/>
+    <radialGradient id="heroGlow" cx="25%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#ff9f2e" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ff9f2e" stop-opacity="0"/>
     </radialGradient>
+    <linearGradient id="logoBg" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#2c2d33"/>
+      <stop offset="50%" stop-color="#151519"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <radialGradient id="logoAmbient" cx="50%" cy="62%" r="48%">
+      <stop offset="0%" stop-color="#ff9f2e" stop-opacity="0.62"/>
+      <stop offset="65%" stop-color="#ff8811" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ff8811" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="logoDome" x1="20%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#dcdbe0"/>
+      <stop offset="100%" stop-color="#8c8994"/>
+    </linearGradient>
+    <linearGradient id="logoInner" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#d48432"/>
+      <stop offset="50%" stop-color="#ffe6a3"/>
+      <stop offset="100%" stop-color="#b86b1f"/>
+    </linearGradient>
+    <radialGradient id="logoBulb" cx="50%" cy="45%" r="52%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#fff3b8"/>
+      <stop offset="100%" stop-color="#ffaa2b"/>
+    </radialGradient>
+    <clipPath id="logoClip">
+      <rect x="0" y="0" width="52" height="52" rx="13" ry="13"/>
+    </clipPath>
   </defs>
 
   <!-- Background -->
@@ -27,7 +55,7 @@
   </g>
 
   <!-- Lamp glow blob -->
-  <ellipse cx="780" cy="310" rx="200" ry="200" fill="url(#lampGlow)"/>
+  <ellipse cx="780" cy="310" rx="210" ry="210" fill="url(#lampGlow)"/>
 
   <!-- App card mockup -->
   <rect x="560" y="115" width="440" height="400" rx="20" fill="rgba(28,28,30,0.85)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
@@ -38,11 +66,16 @@
   <circle cx="632" cy="148" r="6" fill="rgba(40,200,64,0.5)"/>
 
   <!-- Card: lamp circle -->
-  <circle cx="780" cy="265" r="52" fill="rgba(255,255,255,0.92)" filter="url(#f1)"/>
-  <circle cx="780" cy="265" r="52" fill="none" stroke="#ffb454" stroke-width="2" opacity="0.8"/>
-  <!-- Star/sparkle in lamp -->
-  <g transform="translate(780,265)" fill="#ffb454" opacity="0.9">
-    <polygon points="0,-16 3,-6 12,-6 5,0 8,11 0,5 -8,11 -5,0 -12,-6 -3,-6" />
+  <circle cx="780" cy="265" r="52" fill="rgba(255,248,235,0.95)"/>
+  <circle cx="780" cy="265" r="52" fill="none" stroke="#ffb454" stroke-width="2" opacity="0.85"/>
+  <!-- Adapted pendant lamp glyph inside card circle -->
+  <g transform="translate(756, 239)">
+    <rect x="22.8" y="4" width="2.4" height="9" rx="1.2" fill="#d98b3a"/>
+    <path d="M 19.5,14 C 19.5,11.8 21,10.8 24,10.8 C 27,10.8 28.5,11.8 28.5,14 L 28.5,17 L 19.5,17 Z" fill="#e59843"/>
+    <circle cx="24" cy="29.5" r="6.5" fill="#ffb454"/>
+    <path d="M 9.5,27.5 C 10,18.5 16,15.5 24,15.5 C 32,15.5 38,18.5 38.5,27.5 C 34,25.5 14,25.5 9.5,27.5 Z" fill="#e08e35"/>
+    <rect x="34.8" y="27" width="1.8" height="9.5" rx="0.9" fill="#d98b3a"/>
+    <circle cx="35.7" cy="37.8" r="2.4" fill="#d98b3a"/>
   </g>
 
   <!-- Card: lamp label -->
@@ -51,7 +84,7 @@
 
   <!-- Card: brightness bar -->
   <rect x="620" y="378" width="320" height="4" rx="2" fill="rgba(255,255,255,0.06)"/>
-  <rect x="620" y="378" width="256" height="4" rx="2" fill="#007aff"/>
+  <rect x="620" y="378" width="256" height="4" rx="2" fill="#ffb454"/>
 
   <!-- Card: preset chips -->
   <rect x="620" y="402" width="92" height="28" rx="8" fill="rgba(255,180,84,0.12)" stroke="rgba(255,180,84,0.3)" stroke-width="1"/>
@@ -61,32 +94,35 @@
   <rect x="824" y="402" width="92" height="28" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
   <text x="870" y="420" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="rgba(154,150,140,0.8)">Ocaso</text>
 
-  <!-- Left: Logo mark -->
-  <rect x="160" y="220" width="48" height="48" rx="14" fill="url(#logoGrad)"/>
-  <defs>
-    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#007aff"/>
-      <stop offset="100%" stop-color="#5856d6"/>
-    </linearGradient>
-  </defs>
-  <!-- Sparkle in logo -->
-  <g transform="translate(184,244)" fill="white" opacity="0.95">
-    <polygon points="0,-10 2,-4 8,-4 3,0 5,7 0,3 -5,7 -3,0 -8,-4 -2,-4" />
+  <!-- Left: New Pendant Lamp Logo Mark (52x52) -->
+  <g transform="translate(160, 214)">
+    <g clip-path="url(#logoClip)">
+      <rect width="52" height="52" rx="13" ry="13" fill="url(#logoBg)"/>
+      <circle cx="26" cy="31.5" r="21" fill="url(#logoAmbient)"/>
+      <rect x="24.6" y="0" width="2.8" height="12" fill="#dcdbe0"/>
+      <rect x="37.4" y="27.8" width="1.8" height="9.8" rx="0.9" fill="#edd3ad"/>
+      <circle cx="38.3" cy="39" r="2.5" fill="#f5e1c0"/>
+      <path d="M 21.5,14.2 C 21.5,11.6 23.1,10.5 26,10.5 C 28.9,10.5 30.5,11.6 30.5,14.2 L 30.5,18.2 L 21.5,18.2 Z" fill="#d0cfd6"/>
+      <ellipse cx="26" cy="28.2" rx="15.2" ry="2.8" fill="url(#logoInner)"/>
+      <circle cx="26" cy="29.8" r="6.8" fill="url(#logoBulb)"/>
+      <path d="M 10.8,28.2 C 11.3,18.4 17.6,15.2 26,15.2 C 34.4,15.2 40.7,18.4 41.2,28.2 C 36.2,26.1 15.8,26.1 10.8,28.2 Z" fill="url(#logoDome)"/>
+    </g>
+    <rect x="0.5" y="0.5" width="51" height="51" rx="12.5" ry="12.5" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
   </g>
 
   <!-- Left: App name -->
-  <text x="160" y="302" font-family="system-ui, -apple-system, sans-serif" font-size="38" font-weight="800" fill="#f5f2ea" letter-spacing="-0.5">Lumus Control</text>
+  <text x="160" y="304" font-family="system-ui, -apple-system, sans-serif" font-size="38" font-weight="800" fill="#f5f2ea" letter-spacing="-0.5">Lumus Control</text>
 
   <!-- Left: Tagline -->
   <text x="160" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="17" fill="rgba(154,150,140,0.9)" font-weight="500">Control local de luces inteligentes</text>
-  <text x="160" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="17" fill="rgba(154,150,140,0.9)" font-weight="500">para macOS. Sin nube. Sin lag.</text>
+  <text x="160" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="17" fill="rgba(154,150,140,0.9)" font-weight="500">para macOS y Windows. Sin nube. Sin lag.</text>
 
   <!-- Left: Pills -->
-  <rect x="160" y="388" width="110" height="26" rx="13" fill="rgba(0,122,255,0.15)" stroke="rgba(0,122,255,0.3)" stroke-width="1"/>
-  <text x="215" y="405" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#007aff" letter-spacing="0.5">OPEN SOURCE</text>
+  <rect x="160" y="388" width="110" height="26" rx="13" fill="rgba(255,180,84,0.14)" stroke="rgba(255,180,84,0.32)" stroke-width="1"/>
+  <text x="215" y="405" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#ffb454" letter-spacing="0.5">OPEN SOURCE</text>
   <rect x="280" y="388" width="118" height="26" rx="13" fill="rgba(52,199,89,0.12)" stroke="rgba(52,199,89,0.3)" stroke-width="1"/>
   <text x="339" y="405" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#34c759" letter-spacing="0.5">100% PRIVADO</text>
 
   <!-- Bottom: URL -->
-  <text x="600" y="575" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="13" fill="rgba(154,150,140,0.5)" letter-spacing="1">lumus-control.vercel.app</text>
+  <text x="600" y="575" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="13" fill="rgba(154,150,140,0.5)" letter-spacing="1">lumuscontrol.app</text>
 </svg>

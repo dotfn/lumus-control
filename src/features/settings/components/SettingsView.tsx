@@ -7,6 +7,7 @@ import { kelvinToRgb } from '../../../utils/color';
 import { formatMac, lampName } from '../../../utils/lampAppearance';
 import { formatHour, getCircadianPoints } from '../../lighting/utils/circadian';
 import { Row, Section, Segmented } from '../../shell/components/primitives';
+import { LumusLogo } from '../../shell/components/LumusLogo';
 import { useTranslation, type Language } from '../../../i18n';
 
 type Theme = 'light' | 'dark';
@@ -135,7 +136,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onAddLamp }) => {
       </Section>
 
       <Section title={t.app.settings.about} footer={t.app.settings.aboutFooter}>
-        <Row label="Lumus Control">
+        <Row icon={<LumusLogo variant="icon" size={22} />} label="Lumus Control">
           <span className="mac-row__value">{t.app.settings.version(__APP_VERSION__)}</span>
         </Row>
         <Row label={t.app.settings.sourceCode}>

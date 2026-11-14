@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, ArrowUpCircle, X, AlertCircle, Loader2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, ArrowUpCircle, X, AlertCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { LumusLogo } from '../../shell/components/LumusLogo';
 import { useAppUpdater } from '../hooks/useAppUpdater';
 import { useTranslation } from '../../../i18n';
 
@@ -137,7 +138,7 @@ export const UpdaterWidget: React.FC = () => {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-theme-border pb-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-theme-accent" />
+              <LumusLogo variant="glyph" size={16} className="text-theme-accent" />
               <span className="text-sm font-semibold text-theme-text">
                 {t.app.updater.softwareUpdate}
               </span>
