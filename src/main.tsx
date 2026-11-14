@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { inject } from '@vercel/analytics';
 import { App } from './app/App';
+import { isTauri } from './utils/tauri';
 import '@fontsource/inter/300.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
@@ -9,9 +11,14 @@ import '@fontsource/inter/700.css';
 import '@fontsource/inter/800.css';
 import './index.css';
 
+if (!isTauri()) {
+  inject();
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
 );
+
 
