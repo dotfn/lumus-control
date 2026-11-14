@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { LandingPage } from '../pages/LandingPage';
 import { DemoPage } from '../pages/DemoPage';
-import { DownloadPage } from '../pages/DownloadPage';
 
 export const webRouter = createBrowserRouter([
   {
@@ -13,8 +12,9 @@ export const webRouter = createBrowserRouter([
     element: <DemoPage />,
   },
   {
+    // Las descargas viven ahora en la landing.
     path: '/download',
-    element: <DownloadPage />,
+    element: <Navigate to="/#download" replace />,
   },
   {
     path: '*',

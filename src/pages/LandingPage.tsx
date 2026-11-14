@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Github, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { DemoProvider } from '../context/DemoContext';
 import { ControlPage } from './ControlPage';
 import { RoomCanvas, RoomCanvasHandle } from '../features/hero/components/RoomCanvas';
 import { AppWindow } from '../features/hero/components/AppWindow';
+import { DownloadSection } from '../features/download/DownloadSection';
 import type { LampKind, LampLight, LampSpec } from '../features/hero/roomScene';
 import { playSwitchClick } from '../features/hero/clickSound';
 import { useDeviceStore } from '../features/devices/store/deviceStore';
@@ -13,6 +14,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getLampRgbColor } from '../utils/color';
 import { lampName } from '../utils/lampAppearance';
 import { DEFAULT_LIGHT_STATE } from '../utils/lightState';
+import { useTranslation } from '../i18n';
 
 const GITHUB_URL = 'https://github.com/dotfn/lumus-control';
 
@@ -24,10 +26,12 @@ const LAMP_KINDS: LampKind[] = ['pendant', 'floor', 'table'];
 let startedDark = false;
 
 export const LandingPage: React.FC = () => {
+  const { t, lang, setLang } = useTranslation();
   const devices = useDeviceStore((s) => s.devices);
   const selectedMac = useDeviceStore((s) => s.selectedMac);
   const initDevices = useDeviceStore((s) => s.init);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const { hash } = useLocation();
 
   const [ready, setReady] = useState(false);
   const [has3d, setHas3d] = useState(true);
@@ -43,7 +47,17 @@ export const LandingPage: React.FC = () => {
   const lastSelected = useRef<string | null>(null);
 
   useEffect(() => {
-    document.title = 'Lumus Control — Control local de luces inteligentes para macOS y Windows';
+    document.title = t.meta.title;
+  }, [t.meta.title]);
+
+  // Los enlaces a `/#download` (incluida la antigua ruta /download) aterrizan aquí.
+  useEffect(() => {
+    if (hash !== '#download') return;
+    document.getElementById('download')?.scrollIntoView({ block: 'start' });
+  }, [hash]);
+
+  const scrollToDownload = useCallback(() => {
+    document.getElementById('download')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
   useEffect(() => {
@@ -147,118 +161,130 @@ export const LandingPage: React.FC = () => {
   } as React.CSSProperties;
 
   const views = [
-    { id: null as string | null, label: 'Habitación' },
+    { id: null as string | null, label: t.hero.room },
     ...roomDevices.map((device) => ({ id: device.mac as string | null, label: lampName(device) })),
   ];
 
   return (
     <div
-      className={`hero-room relative w-full h-full overflow-x-hidden overflow-y-auto lg:overflow-hidden ${has3d ? '' : 'hero-room--flat'}`}
+      id="landing-scroll"
+      className={`hero-room relative w-full h-full overflow-x-hidden overflow-y-auto ${has3d ? '' : 'hero-room--flat'}`}
       style={roomStyle}
     >
-      <div className="relative h-[62svh] min-h-[420px] lg:absolute lg:inset-0 lg:h-auto lg:min-h-0">
-        {has3d && lamps.length > 0 && (
-          <RoomCanvas
-            ref={roomRef}
-            className="absolute inset-0"
-            lamps={lamps}
-            lights={lights}
-            viewShift={isDesktop ? viewShift : 0}
-            onPull={toggle}
-            onSelect={select}
-            onUserOrbit={() => setView(undefined)}
-            onUnavailable={() => setHas3d(false)}
-            renderHint={(lamp, index) => (
-              <span className={`hero-hint ${pulled[lamp.id] ? 'is-hidden' : ''}`}>
-                <span className="hero-hint__dot" />
-                {index === 0 && !anyPulled.current && <span className="hero-hint__label">Tira de la cuerda</span>}
-              </span>
-            )}
-          />
-        )}
-        <div className="hero-fade pointer-events-none absolute inset-x-0 bottom-0 h-40 lg:h-80" />
+      <section className="relative lg:h-[100svh]">
+        <div className="relative h-[62svh] min-h-[420px] lg:absolute lg:inset-0 lg:h-auto lg:min-h-0">
+          {has3d && lamps.length > 0 && (
+            <RoomCanvas
+              ref={roomRef}
+              className="absolute inset-0"
+              lamps={lamps}
+              lights={lights}
+              viewShift={isDesktop ? viewShift : 0}
+              onPull={toggle}
+              onSelect={select}
+              onUserOrbit={() => setView(undefined)}
+              onUnavailable={() => setHas3d(false)}
+              renderHint={(lamp, index) => (
+                <span className={`hero-hint ${pulled[lamp.id] ? 'is-hidden' : ''}`}>
+                  <span className="hero-hint__dot" />
+                  {index === 0 && !anyPulled.current && <span className="hero-hint__label">{t.hero.pullCord}</span>}
+                </span>
+              )}
+            />
+          )}
+          <div className="hero-fade pointer-events-none absolute inset-x-0 bottom-0 h-40 lg:h-80" />
 
-        <nav
-          className="hero-views absolute z-10 left-1/2 -translate-x-1/2 bottom-4 lg:left-10 lg:translate-x-0 lg:bottom-auto lg:top-[76px]"
-          aria-label="Vistas de la habitación"
-        >
-          {views.map((item) => (
-            <button
-              key={item.id ?? 'room'}
-              type="button"
-              className="hero-views__item shrink-0"
-              aria-pressed={view === item.id}
-              onClick={() => (item.id ? select(item.id) : focus(null))}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        <p className="hero-ink-3 hidden lg:block absolute z-10 left-10 top-[124px] text-[11px] font-medium pointer-events-none">
-          Arrastra para girar · rueda para acercar · clic en una lámpara para enfocarla
-        </p>
-      </div>
-
-      <header className="absolute inset-x-0 top-0 z-20">
-        <div className="px-6 lg:px-10 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-[10px] bg-white/10 border border-white/10 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white/90" aria-hidden="true" />
-            </span>
-            <span className="font-display font-semibold text-sm tracking-tight text-white/90">Lumus Control</span>
-          </Link>
-          <nav className="flex items-center gap-1.5 text-[13px] font-medium">
-            <Link to="/download" className="hero-navlink">
-              Descargas
-            </Link>
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hero-navlink" aria-label="Repositorio en GitHub">
-              <Github className="w-4 h-4" aria-hidden="true" />
-              <span className="hidden sm:inline">GitHub</span>
-            </a>
+          <nav
+            className="hero-views absolute z-10 left-1/2 -translate-x-1/2 bottom-4 lg:left-10 lg:translate-x-0 lg:bottom-auto lg:top-[76px]"
+            aria-label={t.hero.viewsAria}
+          >
+            {views.map((item) => (
+              <button
+                key={item.id ?? 'room'}
+                type="button"
+                className="hero-views__item shrink-0"
+                aria-pressed={view === item.id}
+                onClick={() => (item.id ? select(item.id) : focus(null))}
+              >
+                {item.label}
+              </button>
+            ))}
           </nav>
-        </div>
-      </header>
-
-      <div className="relative z-10 px-6 pt-8 pb-10 lg:absolute lg:left-10 lg:bottom-10 lg:p-0 lg:max-w-[30rem] lg:pointer-events-none">
-        <div className={has3d ? 'sr-only' : 'flex flex-wrap gap-2 mb-5'}>
-          {roomDevices.map((device) => (
-            <button
-              key={device.mac}
-              type="button"
-              className="hero-switch pointer-events-auto"
-              aria-pressed={lights[device.mac]?.on ?? false}
-              onClick={() => (has3d ? roomRef.current?.pull(device.mac) : toggle(device.mac))}
-            >
-              {lights[device.mac]?.on ? 'Apagar' : 'Encender'} {lampName(device)}
-            </button>
-          ))}
+          <p className="hero-ink-3 hidden lg:block absolute z-10 left-10 top-[124px] text-[11px] font-medium pointer-events-none">
+            {t.hero.orbitHint}
+          </p>
         </div>
 
-        <h1 className="hero-ink font-display font-bold text-[40px] sm:text-5xl lg:text-[44px] xl:text-[50px] leading-[1.03] tracking-[-0.03em]">
-          Luz pura.
-          <br />
-          Control local.
-        </h1>
-        <p className="hero-ink-2 mt-4 max-w-[28rem] text-[15px] leading-relaxed">
-          Controla tus lámparas Wi‑Fi desde el escritorio. Sin nube, sin cuentas y con respuesta
-          instantánea: tan directo como tirar de una cuerda.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Link to="/download" className="hero-cta pointer-events-auto">
-            <Download className="w-4 h-4" aria-hidden="true" />
-            Descargar la app
-          </Link>
-          <span className="hero-ink-3 text-xs font-medium">macOS y Windows · código abierto</span>
-        </div>
-      </div>
+        <header className="absolute inset-x-0 top-0 z-20">
+          <div className="px-6 lg:px-10 h-16 flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-[10px] bg-white/10 border border-white/10 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white/90" aria-hidden="true" />
+              </span>
+              <span className="font-display font-semibold text-sm tracking-tight text-white/90">Lumus Control</span>
+            </Link>
+            <nav className="flex items-center gap-1.5 text-[13px] font-medium">
+              <Link to="/#download" className="hero-navlink" onClick={scrollToDownload}>
+                {t.nav.downloads}
+              </Link>
+              <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hero-navlink" aria-label={t.nav.githubAria}>
+                <Github className="w-4 h-4" aria-hidden="true" />
+                <span className="hidden sm:inline">GitHub</span>
+              </a>
+              <button
+                type="button"
+                className="hero-navlink"
+                onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
+                aria-label={`${t.nav.languageLabel}: ${lang === 'es' ? 'Español' : 'English'}`}
+              >
+                {lang === 'es' ? 'EN' : 'ES'}
+              </button>
+            </nav>
+          </div>
+        </header>
 
-      <div className="px-4 pb-16 lg:p-0">
-        <AppWindow title="Lumus Control" floating={isDesktop} onLayout={onWindowLayout}>
-          <DemoProvider isDemo={true}>
-            <ControlPage hideTitlebar={true} />
-          </DemoProvider>
-        </AppWindow>
-      </div>
+        <div className="relative z-10 px-6 pt-8 pb-10 lg:absolute lg:left-10 lg:bottom-10 lg:p-0 lg:max-w-[30rem] lg:pointer-events-none">
+          <div className={has3d ? 'sr-only' : 'flex flex-wrap gap-2 mb-5'}>
+            {roomDevices.map((device) => (
+              <button
+                key={device.mac}
+                type="button"
+                className="hero-switch pointer-events-auto"
+                aria-pressed={lights[device.mac]?.on ?? false}
+                onClick={() => (has3d ? roomRef.current?.pull(device.mac) : toggle(device.mac))}
+              >
+                {lights[device.mac]?.on ? t.hero.turnOff : t.hero.turnOn} {lampName(device)}
+              </button>
+            ))}
+          </div>
+
+          <h1 className="hero-ink font-display font-bold text-[40px] sm:text-5xl lg:text-[44px] xl:text-[50px] leading-[1.03] tracking-[-0.03em]">
+            {t.hero.titleLine1}
+            <br />
+            {t.hero.titleLine2}
+          </h1>
+          <p className="hero-ink-2 mt-4 max-w-[28rem] text-[15px] leading-relaxed">
+            {t.hero.subtitle}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link to="/#download" className="hero-cta pointer-events-auto" onClick={scrollToDownload}>
+              <Download className="w-4 h-4" aria-hidden="true" />
+              {t.hero.cta}
+            </Link>
+            <span className="hero-ink-3 text-xs font-medium">{t.hero.platforms}</span>
+          </div>
+        </div>
+
+        <div className="px-4 pb-16 lg:p-0">
+          <AppWindow title="Lumus Control" floating={isDesktop} onLayout={onWindowLayout}>
+            <DemoProvider isDemo={true}>
+              <ControlPage hideTitlebar={true} />
+            </DemoProvider>
+          </AppWindow>
+        </div>
+      </section>
+
+      <DownloadSection />
     </div>
   );
 };

@@ -1,0 +1,815 @@
+/* Post-hero landing & download experience.
+   Inspired by this-day.app/es editorial rhythm, harmonized with Lumus Control's
+   dark room palette and warm lamp glow. */
+
+.dl-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  scroll-margin-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 88px 24px 40px;
+}
+
+.dl-glow {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 560px;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 80% at 50% 0%, rgba(255, 180, 84, 0.09), transparent 72%),
+    radial-gradient(40% 60% at 15% 12%, rgba(255, 255, 255, 0.03), transparent 72%);
+}
+
+.dl-inner {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+/* ─── Centered Editorial Header & Focal CTA ─── */
+.dl-hero-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.dl-title {
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: clamp(2.5rem, 5.2vw, 4rem);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  color: #ffffff;
+  text-wrap: balance;
+}
+
+.dl-title__muted {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.dl-intro {
+  max-width: 52ch;
+  margin-top: 16px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Platform segmented pill switcher */
+.dl-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 32px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dl-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.18s ease, background-color 0.18s ease;
+}
+
+.dl-tab:hover {
+  color: #ffffff;
+}
+
+.dl-tab[aria-selected='true'] {
+  background: #ffffff;
+  color: #0b0b0c;
+  font-weight: 600;
+}
+
+.dl-cta-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.dl-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 28px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0b0b0c;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.dl-primary:hover {
+  opacity: 0.92;
+}
+
+.dl-primary:active {
+  transform: scale(0.98);
+}
+
+.dl-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.68);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Single Compact Install Panel */
+.dl-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 680px;
+  margin: 40px auto 0;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #101013;
+}
+
+.dl-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.dl-panel__kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.dl-panel__platform {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.68);
+  font-variant-numeric: tabular-nums;
+}
+
+.dl-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dl-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.dl-step:last-child {
+  border-bottom: none;
+}
+
+.dl-step__index {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.64);
+  font-variant-numeric: tabular-nums;
+}
+
+.dl-step__title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  text-wrap: balance;
+}
+
+.dl-step__body p {
+  max-width: 48ch;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dl-step__body p + .dl-command,
+.dl-step__body .dl-command:first-child {
+  margin-top: 12px;
+}
+
+.dl-command {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: #08080a;
+}
+
+.dl-command code {
+  min-width: 0;
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dl-copy {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.dl-copy:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dl-inline-code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.09);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dl-panel__foot {
+  margin-top: auto;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dl-panel__foot p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.dl-panel__foot button {
+  padding: 4px 0;
+  color: #ffffff;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.dl-panel__foot button:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ─── 3-Column Metrics Strip (ThisDay style) ─── */
+.dl-claims {
+  display: grid;
+  gap: 32px;
+  margin-top: 64px;
+  padding: 40px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dl-claim {
+  text-align: center;
+  padding: 0 16px;
+}
+
+.dl-claim__value {
+  display: block;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: clamp(2.25rem, 3.8vw, 3rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.dl-claim__title {
+  display: block;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.dl-claim__body {
+  max-width: 30ch;
+  margin: 8px auto 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+/* ─── Bento Highlights (2-up + Wide Language Card) ─── */
+.dl-bento {
+  display: grid;
+  gap: 20px;
+  margin-top: 64px;
+}
+
+.dl-card {
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: #101013;
+}
+
+.dl-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dl-card__title {
+  margin-top: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-wrap: balance;
+}
+
+.dl-card__body {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 48ch;
+}
+
+.dl-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.dl-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.dl-card--wide {
+  gap: 20px;
+}
+
+.dl-card__lang-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.dl-card__lang-head .dl-card__title {
+  margin-top: 0;
+}
+
+.dl-lang-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dl-lang-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.dl-lang-pill:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+.dl-lang-pill[aria-pressed='true'] {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0b0b0c;
+  font-weight: 600;
+}
+
+/* ─── Centered Section Heading ─── */
+.dl-section-head {
+  text-align: center;
+  max-width: 54ch;
+  margin: 0 auto;
+}
+
+.dl-section-head__title {
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  text-wrap: balance;
+}
+
+.dl-section-head__body {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ─── Comparison Table (ThisDay style) ─── */
+.dl-compare {
+  margin-top: 88px;
+}
+
+.dl-table-wrap {
+  margin-top: 32px;
+  overflow-x: auto;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: #101013;
+}
+
+.dl-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dl-table th,
+.dl-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  vertical-align: top;
+}
+
+.dl-table tbody tr:last-child th,
+.dl-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dl-table thead th {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dl-table thead th.is-lumus {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dl-table tbody th {
+  font-weight: 600;
+  color: #ffffff;
+  width: 22%;
+}
+
+.dl-table tbody td {
+  color: rgba(255, 255, 255, 0.7);
+  width: 26%;
+}
+
+.dl-table tbody td.is-lumus {
+  color: #ffffff;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ─── Centered FAQ Accordion (ThisDay style) ─── */
+.dl-faq {
+  margin-top: 88px;
+}
+
+.dl-faq__list {
+  max-width: 720px;
+  margin: 32px auto 0;
+}
+
+.dl-q {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dl-q:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dl-q__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 60px;
+  padding: 16px 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #ffffff;
+  cursor: pointer;
+  list-style: none;
+  transition: color 0.18s ease;
+}
+
+.dl-q__summary::-webkit-details-marker {
+  display: none;
+}
+
+.dl-q__summary:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.dl-q__icon {
+  position: relative;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.dl-q__icon::before,
+.dl-q__icon::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 12px;
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.64);
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.dl-q__icon::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.dl-q[open] .dl-q__icon::after {
+  transform: translate(-50%, -50%) rotate(0deg);
+  opacity: 0;
+}
+
+.dl-q__answer {
+  max-width: 62ch;
+  padding: 0 0 20px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* ─── Centered Editorial Footer (ThisDay style) ─── */
+.dl-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+  margin-top: 88px;
+  padding-top: 48px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dl-footer__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dl-footer__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.dl-footer__name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.dl-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.dl-footer__links a,
+.dl-footer__links button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color 0.18s ease;
+}
+
+.dl-footer__links a:hover,
+.dl-footer__links button:hover {
+  color: #ffffff;
+}
+
+.dl-footer__claims {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+.dl-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px 28px;
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dl-footer__lang {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dl-footer__lang-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.18s ease, background-color 0.18s ease;
+}
+
+.dl-footer__lang-btn:hover {
+  color: #ffffff;
+}
+
+.dl-footer__lang-btn[aria-pressed='true'] {
+  background: #ffffff;
+  color: #0b0b0c;
+  font-weight: 600;
+}
+
+.dl-footer__dotfn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color 0.18s ease;
+}
+
+.dl-footer__dotfn:hover {
+  color: #ffffff;
+}
+
+.dl-mark {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+}
+
+.dl-mark__dot {
+  width: 4px;
+  height: 4px;
+  margin-right: 1px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+/* Focus rings */
+.dl-section a:focus-visible,
+.dl-section button:focus-visible,
+.dl-section summary:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 2px;
+}
+
+/* Responsive layouts */
+@media (min-width: 768px) {
+  .dl-claims {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .dl-claim + .dl-claim {
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .dl-bento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dl-card--wide {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dl-section {
+    padding: 96px 40px 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dl-tab,
+  .dl-primary,
+  .dl-brew__copy,
+  .dl-copy,
+  .dl-lang-pill,
+  .dl-q__summary,
+  .dl-q__icon::before,
+  .dl-q__icon::after,
+  .dl-footer__links a,
+  .dl-footer__links button,
+  .dl-footer__lang-btn,
+  .dl-footer__dotfn {
+    transition: none;
+  }
+}
